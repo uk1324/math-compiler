@@ -163,6 +163,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="codeGenerator.hpp" />
+    <ClInclude Include="bashPath.hpp" />
     <ClInclude Include="ir.hpp" />
     <ClInclude Include="irCompiler.hpp" />
     <ClInclude Include="irCompilerMessageReporter.hpp" />
@@ -186,6 +187,12 @@
     <ClInclude Include="utils\pritningUtils.hpp" />
     <ClInclude Include="utils\put.hpp" />
     <ClInclude Include="sourceInfo.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="disassemble.sh" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="notes.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

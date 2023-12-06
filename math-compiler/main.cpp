@@ -12,7 +12,22 @@
 #include "utils/put.hpp"
 #include "irCompiler.hpp"
 #include "irVm.hpp"
+#include "codeGenerator.hpp"
 #include <sstream>
+#include <fstream>
+#include <filesystem>
+#include <windows.h>
+
+// Can be nullptr.
+void* allocateExecutableMemory(i64 size) {
+	return reinterpret_cast<u8*>(VirtualAllocEx(
+		GetCurrentProcess(),
+		nullptr, // No desired starting address
+		size, // Rounds to page size
+		MEM_COMMIT,
+		PAGE_EXECUTE_READWRITE
+	));
+}
 
 i64 tokenOffsetInSource(const Token& token, std::string_view originalSource) {
 	const auto offsetInOriginalSource = token.source.data() - originalSource.data();
@@ -183,6 +198,8 @@ void testMain() {
 	);
 }
 
+#include "bashPath.hpp"
+
 void test() {
 	std::string_view source = "2 + 2";
 
@@ -212,35 +229,56 @@ void test() {
 	if (irCode.has_value()) {
 		printIrCode(std::cout, **irCode);
 	}
+
+
+
+	CodeGenerator codeGenerator;
+	/*const auto& machineCode = codeGenerator.compile(**irCode);*/
+	auto machineCode = codeGenerator.compile(**irCode);
+
+	auto buffer = reinterpret_cast<u8*>(allocateExecutableMemory(machineCode.size() + codeGenerator.data.size()));
+	if (buffer == nullptr) {
+		put("failed to allocate executable memory");
+		return;
+	}
+
+	memcpy(buffer, machineCode.data(), machineCode.size());
+	const auto dataBuffer = buffer + machineCode.size();
+	memcpy(dataBuffer, codeGenerator.data.data(), codeGenerator.data.size());
+	//codeGenerator.patchExecutableCodeRipAddresses(machineCode.data(), codeGenerator.data.data());
+	/*codeGenerator.patchExecutableCodeRipAddresses(machineCode.data(), dataBuffer);*/
+	//codeGenerator.patchExecutableCodeRipAddresses(buffer, dataBuffer);
+	codeGenerator.patchExecutableCodeRipAddresses(buffer, codeGenerator.data.data());
+
+	using Function = float (*)(void);
+
+	/*const auto f = reinterpret_cast<Function>(buffer);*/
+	const auto f = reinterpret_cast<Function>(buffer);
+	const auto out = f();
+	put("out = %", out);
+
+	std::ofstream bin("test.txt", std::ios::out | std::ios::binary);
+	/*bin.write(reinterpret_cast<const char*>(machineCode.data()), machineCode.size());*/
+	bin.write(reinterpret_cast<const char*>(buffer), machineCode.size());
+
+	//const auto disassemble = std::string(BASH_PATH) + " ./disassemble.sh";
+	//put("%", std::filesystem::current_path());
+
+	//std::cout << disassemble << '\n';
+	//system(disassemble.c_str());
+
+	//std::ifstream text("disassembled.txt");
+	//std::cout << text.rdbuf();
 }
 
 void f0() {
 	return;
 }
 
-using F = void(*)();
-
-#include <stdio.h>
-#include <windows.h>
-#include <fstream>
-
-// Can be nullptr.
-void* allocateExecutableMemory(i64 size) {
-	return reinterpret_cast<u8*>(VirtualAllocEx(
-		GetCurrentProcess(),
-		nullptr, // No desired starting address
-		size, // Rounds to page size
-		MEM_COMMIT,
-		PAGE_EXECUTE_READWRITE
-	));
-}
-
-#include <bitset>
-
 // https://stackoverflow.com/questions/4911993/how-to-generate-and-run-native-code-dynamically
 int main(void) {
-
-	auto buffer = reinterpret_cast<u8*>(allocateExecutableMemory(4096));
+	test();
+	/*auto buffer = reinterpret_cast<u8*>(allocateExecutableMemory(4096));
 
 	if (buffer == nullptr) {
 		put("failed to allocate executable memory");
@@ -249,99 +287,11 @@ int main(void) {
 	
 	using Function = int (*)(void);
 
-	enum class ModRMRegisterX86 : u8 {
-		AX = 0b000,
-		CX = 0b001,
-		DX = 0b010,
-		BX = 0b011,
-		SP = 0b100,
-		BP = 0b101,
-		SI = 0b110,
-		DI = 0b111
-	};
-
-
-
-	//auto encodeModRm = [](
-	//	bool registerDirectAddressing, // MODRM.mod
-	//	ModRMRegisterX86 reg // MODRM.reg
-	//	ModRMRegisterX86
-	//) {
-	//	u8 v = 0;
-	//	if (registerDirectAddressing) {
-	//		v |= 0b11000000;
-	//	} // else use register indirect addressing.
-
-	//	if ()
-
-	//};
-
-	//auto encodeRexPrefixByte = [](bool w, bool r, bool x, bool b) -> u8 {
-	//	return 0b0100'0000 | (w << 3) | (r << 2) | (x << 1) | static_cast<u8>(b);
-	//};
-
-	//auto encodeModRmByte = [](u8 mod /* 2 bit */, u8 reg /* 3 bit */, u8 rm /* 3 bit */) -> u8 {
-	//	return (mod << 6) | (reg << 3) | rm;
-	//};
-
-	//auto encodeModRmDirectAddressing = [&](ModRMRegisterX86 g, ModRMRegisterX86 e) {
-	//	return encodeModRmByte(0b11, static_cast<u8>(g), static_cast<u8>(e));
-	//};
-
-
-	//u8* p = buffer;
-
-	//auto emitXorEaxEax = [&]() {
-	//	//// xor eax, eax
-	//	*p++ = 0x33;
-	//	*p++ = 0xC0;
-	//};
-	//auto prefixByte = encodeRexPrefixByte(true, false, false, false);;
-	//*p++ = prefixByte;
-
-	////std::cout << std::bitset<8>(prefixByte) << '\n';;
-
-	////std::cout << std::hex << encodeRexPrefixByte(true, false, false, false) << '\n';
-	//// Add opcode
-	//*p++ = encodeModRmDirectAddressing(ModRMRegisterX86::AX, ModRMRegisterX86::CX);
-	//////encodeModRmDirectAddressing(ModRMRegisterX86::AX, ModRMRegisterX86::BP);
-
-	//*p++ = 0xC3; // ret
 	const auto f = reinterpret_cast<Function>(buffer);
 	const auto out = f();
 
-	std::ofstream bin("test.txt", std::ios::out | std::ios::binary);
-	bin.write(reinterpret_cast<const char*>(buffer), p - buffer);
-	//funcptr func;
-	//func.y = buf;
-
-	////arg1 = 123; arg2 = 321; res1 = 0;
-
-	//func.x(); // call generated code
-
-	//*p++ = 0x50; // push eax
-	//*p++ = 0x52; // push edx
-
-	//*p++ = 0xA1; // mov eax, [arg2]
-	//(int*&)p[0] = &arg2; p += sizeof(int*);
-
-	//*p++ = 0x92; // xchg edx,eax
-
-	//*p++ = 0xA1; // mov eax, [arg1]
-	//(int*&)p[0] = &arg1; p += sizeof(int*);
-
-	//*p++ = 0xF7; *p++ = 0xEA; // imul edx
-
-	//*p++ = 0xA3; // mov [res1],eax
-	//(int*&)p[0] = &res1; p += sizeof(int*);
-
-	//*p++ = 0x5A; // pop edx
-	//*p++ = 0x58; // pop eax
-	//*p++ = 0xC3; // ret
-
-	
-
-	//printf("arg1=%i arg2=%i arg1*arg2=%i func(arg1,arg2)=%i\n", arg1, arg2, arg1 * arg2, res1);
+	std::ofstream bin("test.txt", std::ios::out | std::ios::binary);*/
+	//bin.write(reinterpret_cast<const char*>(buffer), p - buffer);
 
 }
 
