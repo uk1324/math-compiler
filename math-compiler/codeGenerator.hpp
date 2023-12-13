@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ir.hpp"
+#include <unordered_map>
 
 struct CodeGenerator {
 	CodeGenerator();
@@ -9,24 +10,9 @@ struct CodeGenerator {
 	const std::vector<u8>& compile(const std::vector<IrOp>& irCode);
 	void patchExecutableCodeRipAddresses(u8* code, const u8* data);
 
-	enum class Register {
-		RAX,
-		RCX,
-		RDX,
-		RBX,
-		RSP,
-		RBP,
-		RSI,
-		RDI,
-		R8,
-		R9,
-		R10,
-		R11,
-		R12,
-		R13,
-		R14,
-		R15
-	};
+	void loadConstantOp(const LoadConstantOp& op);
+	void addOp(const AddOp& op);
+	void multiplyOp(const MultiplyOp& op);
 
 	void emitU8(u8 value);
 	void emitI8(i8 value);
@@ -77,21 +63,24 @@ struct CodeGenerator {
 		XMM7 = static_cast<u8>(ModRMRegisterX86::DI)
 	};
 
-	static u8 encodeModRmDirectAddressingByte(u8 g, u8 e);
-	static u8 encodeModRmDirectAddressingByte(ModRMRegisterXmm g, ModRMRegisterXmm e);
-	static u8 encodeModRmDirectAddressingByte(ModRMRegisterX86 g, ModRMRegisterX86 e);
+	[[nodiscard]] static u8 encodeModRmDirectAddressingByte(u8 g, u8 e);
+	[[nodiscard]] static u8 encodeModRmDirectAddressingByte(ModRMRegisterXmm g, ModRMRegisterXmm e);
+	[[nodiscard]] static u8 encodeModRmDirectAddressingByte(ModRMRegisterX86 g, ModRMRegisterX86 e);
 
-	static u8 encodeModRmByte(u8 mod /* 2 bit */, u8 reg /* 3 bit */, u8 rm /* 3 bit */);
+	[[nodiscard]] static u8 encodeModRmByte(u8 mod /* 2 bit */, u8 reg /* 3 bit */, u8 rm /* 3 bit */);
 
 	// <registerWithAddress> + disp8]
-	static u8 encodeModRmReg32DispI8Reg32(ModRMRegisterX86 registerWithAddress, ModRMRegisterX86 reg);
-	static u8 encodeModRmReg32DispI32Reg32(ModRMRegisterX86 registerWithAddress, ModRMRegisterX86 reg);
+	[[nodiscard]] static u8 encodeModRmReg32DispI8Reg32(ModRMRegisterX86 registerWithAddress, ModRMRegisterX86 reg);
+	[[nodiscard]] static u8 encodeModRmReg32DispI32Reg32(ModRMRegisterX86 registerWithAddress, ModRMRegisterX86 reg);
 
-	static u8 encodeRexPrefixByte(bool w, bool r, bool x, bool b);
+	[[nodiscard]] static u8 encodeRexPrefixByte(bool w, bool r, bool x, bool b);
 
 	void emitAddRegisterToRegister32(ModRMRegisterX86 rhs, ModRMRegisterX86 lhs);
 	void emitAddRegisterToRegister64(ModRMRegisterX64 rhs, ModRMRegisterX64 lhs);
 	void emitMovssRegToRegXmm(ModRMRegisterXmm destination, ModRMRegisterXmm source);
+
+	void emitAddssRegXmmRegXmm(ModRMRegisterXmm lhs, ModRMRegisterXmm rhs);
+	void emitMulssRegXmmRegXmm(ModRMRegisterXmm lhs, ModRMRegisterXmm rhs);
 
 	// !!!!!!!!!!!!!!! TODO: Read about addressing.
 
@@ -104,7 +93,10 @@ struct CodeGenerator {
 	//void emitMovsMemEbp32ToReg(u32 ebpDisplacement, ModRMRegisterXmm source);
 	//void emitMovsMemToRegXmm(ModRMRegisterXmm destination, ModRMRegisterXmm source);
 	/*void allocateImmediateAndEmitRipOffset32(float constant);*/
-	void movssToRegXmmFromImm32(ModRMRegisterXmm destination, float immediate);
+	void movssToRegXmmConstant32(ModRMRegisterXmm destination, float immediate);
+
+	void emitPushReg64(ModRMRegisterX64 reg);
+	void emitPopReg64(ModRMRegisterX64 reg);
 
 	struct RipRelativeImmediate32Allocation {
 		float value;
@@ -113,6 +105,26 @@ struct CodeGenerator {
 	};
 	std::vector<RipRelativeImmediate32Allocation> ripRelativeImmediate32Allocations;
 	
+	struct StackAllocation {
+		i32 baseOffset;
+		i32 byteSize;
+	};
+	std::vector<StackAllocation> stackAllocations;
+	i32 stackMemoryAllocated;
+	struct BaseOffset {
+		i32 baseOffset;
+	};
+	BaseOffset stackAllocate(i32 size, i32 aligment);
+
+	struct RegisterLocation {
+		BaseOffset location;
+	};
+	std::unordered_map<Register, RegisterLocation> registerLocations;
+	RegisterLocation getRegisterLocation(Register reg);
+
+	void movssToRegisterLocationFromRegXmm(const RegisterLocation& to, ModRMRegisterXmm from);
+	void movssToRegXmmFromRegisterLocation(ModRMRegisterXmm to, const RegisterLocation& from);
+
 	std::vector<u8> code;
 	std::vector<u8> data;
 };

@@ -13,6 +13,7 @@
 #include "irCompiler.hpp"
 #include "irVm.hpp"
 #include "codeGenerator.hpp"
+#include <span>
 #include <sstream>
 #include <fstream>
 #include <filesystem>
@@ -27,6 +28,10 @@ void* allocateExecutableMemory(i64 size) {
 		MEM_COMMIT,
 		PAGE_EXECUTE_READWRITE
 	));
+}
+
+void executeProgram(const std::vector<u8>& code, const std::vector<u8>& data) {
+
 }
 
 i64 tokenOffsetInSource(const Token& token, std::string_view originalSource) {
@@ -201,7 +206,10 @@ void testMain() {
 #include "bashPath.hpp"
 
 void test() {
-	std::string_view source = "2 + 2";
+	/*std::string_view source = "2 + 2";*/
+	/*std::string_view source = "1 + 2 * 3";*/
+	std::string_view source = "1 + 2 * 3";
+	/*std::string_view source = "0.5772156649";*/
 
 	std::ostream& outputStream = std::cerr;
 
@@ -222,6 +230,9 @@ void test() {
 		printExpr(ast->root, true);
 		std::cout << " = ";
 		std::cout << evaluateExpr(ast->root) << '\n';
+	} else {
+		put("parser error");
+		return;
 	}
 
 	IrCompiler compiler;

@@ -14,7 +14,7 @@ struct Expr {
 	const ExprType type;
 };
 
-using Real = double;
+using Real = float;
 
 struct ConstantExpr : public Expr {
 	ConstantExpr(Real value);

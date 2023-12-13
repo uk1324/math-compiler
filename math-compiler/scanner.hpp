@@ -20,6 +20,7 @@ struct Scanner {
 	Token number();
 
 	u8 peek();
+	bool match(char c);
 	void skipWhitespace();
 	void advance();
 	bool eof();

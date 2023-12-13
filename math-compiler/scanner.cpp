@@ -63,11 +63,15 @@ Token Scanner::token() {
 
 Token Scanner::number() {
 	while (!eof()) {
-		if (isDigit(peek())) {
-			advance();
-		} else {
+		if (match('.')) {
+			while (!eof() && isDigit(peek())) {
+				advance();
+			}
+			break;
+		} else if (!isDigit(peek())) {
 			break;
 		}
+		advance();
 	}
 	return makeToken(TokenType::FLOAT);
 }
@@ -78,6 +82,14 @@ u8 Scanner::peek() {
 	}
 	ASSERT(currentCharIndex >= 0);
 	return source[static_cast<usize>(currentCharIndex)];
+}
+
+bool Scanner::match(char c) {
+	if (peek() == c) {
+		advance();
+		return true;
+	}
+	return false;
 }
 
 void Scanner::skipWhitespace() {
