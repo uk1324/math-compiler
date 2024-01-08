@@ -54,7 +54,10 @@ public:
 	const Result* operator->() const;
 	// Use ok() instead of operator*
 
-	bool operator==(Result& other) const;
+	bool operator==(const Result& other) const;
+	bool operator!=(const Result& other) const;
+	bool operator==(const Ok& value) const;
+	bool operator!=(const Ok& value) const;
 
 	Ok& ok();
 	const Ok& ok() const;
@@ -182,7 +185,7 @@ const Result<Ok, Err>* Result<Ok, Err>::operator->() const {
 }
 
 template<typename Ok, typename Err>
-bool Result<Ok, Err>::operator==(Result& other) const {
+bool Result<Ok, Err>::operator==(const Result& other) const {
 	if (state != other.state) {
 		return false;
 	}
@@ -194,6 +197,24 @@ bool Result<Ok, Err>::operator==(Result& other) const {
 }
 
 template<typename Ok, typename Err>
+inline bool Result<Ok, Err>::operator!=(const Result& other) const {
+	return !(*this == other);
+}
+
+template<typename Ok, typename Err>
+bool Result<Ok, Err>::operator==(const Ok& value) const {
+	if (isOk()) {
+		return ok_ == value;
+	}
+	return false;
+}
+
+template<typename Ok, typename Err>
+bool Result<Ok, Err>::operator!=(const Ok& value) const {
+	return !(*this == value);
+}
+
+template<typename Ok, typename Err>
 Ok& Result<Ok, Err>::ok() {
 	RESULT_ASSERT(isOk());
 	return ok_;
@@ -201,7 +222,7 @@ Ok& Result<Ok, Err>::ok() {
 
 template<typename Ok, typename Err>
 const Ok& Result<Ok, Err>::ok() const {
-	return const_cast<const Result*>(this)->ok();
+	return const_cast<Result*>(this)->ok();
 }
 
 template<typename Ok, typename Err>
@@ -217,7 +238,7 @@ Err& Result<Ok, Err>::err() {
 
 template<typename Ok, typename Err>
 const Err& Result<Ok, Err>::err() const {
-	return const_cast<const Result*>(this)->err();
+	return const_cast<Result*>(this)->err();
 }
 
 template<typename Ok, typename Err>

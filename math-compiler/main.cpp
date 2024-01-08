@@ -140,8 +140,12 @@ void runTests() {
 			const auto output = evaluateAst(ast->root, parameters, arguments);
 			if (output != expectedOutput) {
 				printFailed(name);
-				std::cout << "ast interpreter error: ";
-				std::cout << "expected '" << expectedOutput << "' got '" << output << "'\n";
+				put("ast interpreter error:");
+				if (output.ok()) {
+					//put("expected '%' got '%'", expectedOutput, output.ok());
+				} else {
+					//put("message: %", output.err());
+				}
 				evaluationError = true;
 			}
 		}
@@ -305,7 +309,12 @@ void test() {
 	const auto ast = parser.parse(tokens, &parserReporter);
 	if (ast.has_value()) {
 		printExpr(ast->root, true);
-		put(" = %", evaluateAst(ast->root, parameters, arguments));
+		const auto outputRes = evaluateAst(ast->root, parameters, arguments);
+		if (outputRes.ok()) {
+			put(" = %", outputRes.ok());
+		} else {
+			put("\nevaluation error: ", outputRes.err());
+		}
 	} else {
 		put("parser error");
 		return;
@@ -327,10 +336,8 @@ void test() {
 	/*bin.write(reinterpret_cast<const char*>(buffer), machineCode.size());*/
 }
 
-#include "utils/result.hpp"
-
 // https://stackoverflow.com/questions/4911993/how-to-generate-and-run-native-code-dynamically
 int main(void) {
 	//test();
-	//runTests();
+	runTests();
 }
