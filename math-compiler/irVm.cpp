@@ -66,11 +66,11 @@ IrVm::Status IrVm::executeMultiplyOp(const MultiplyOp& op) {
 void IrVm::allocateRegisterIfNotExists(Register index) {
 	// index = 0 size must be at least 1
 	// size > index not >=
-	if (registers.size() <= index) {
+	if (static_cast<i64>(registers.size()) <= index) {
 		registers.resize(index + 1);
 	}
 }
 
 bool IrVm::registerExists(Register index) {
-	return index < registers.size();
+	return index < static_cast<i64>(registers.size());
 }

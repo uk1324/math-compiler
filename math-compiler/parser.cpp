@@ -87,6 +87,14 @@ Expr* Parser::timesOrDivideBinaryExpr() {
 }
 
 Expr* Parser::primaryExpr() {
+	Expr* lhs = nullptr;
+
+	auto parenExprAfterMatch = [this]() -> Expr* {
+		auto e = expr();
+		expect(TokenType::RIGHT_PAREN);
+		return e;
+	};
+
 	if (match(TokenType::FLOAT)) {
 		const auto numberTokenSource = peekPrevious().source;
 		Real value;
@@ -98,16 +106,32 @@ Expr* Parser::primaryExpr() {
 		if (result.ec != std::errc()) {
 			// The scanner shouldn't have let throught a invalid number.
 			ASSERT_NOT_REACHED();
+			return nullptr;
 		}
-		return astAllocator.allocate<ConstantExpr>(value);
+		
+		lhs = astAllocator.allocate<ConstantExpr>(value);
 	} else if (match(TokenType::LEFT_PAREN)) {
-		Expr* e = expr();
-		if (!match(TokenType::RIGHT_PAREN)) {
-			// unterminated paren. // give the position of the first paren.
-		}
-		return e;
+		lhs = parenExprAfterMatch();
 	}
-	throwError(UnexpectedTokenParserError{ .token = peek() });
+	else if (match(TokenType::IDENTIFIER)) {
+		lhs = astAllocator.allocate<IdentifierExpr>(peekPrevious().source);
+	} else {
+		throwError(UnexpectedTokenParserError{ .token = peek() });
+	}
+
+	for (;;) {
+		Expr* rhs;
+		if (match(TokenType::IDENTIFIER)) {
+			rhs = astAllocator.allocate<IdentifierExpr>(peekPrevious().source);
+		} else if (match(TokenType::LEFT_PAREN)) {
+			rhs = parenExprAfterMatch();
+		} else {
+			break;
+		}
+		lhs = astAllocator.allocate<BinaryExpr>(lhs, rhs, BinaryOpType::MULTIPLY);
+	}
+
+	return lhs;
 }
 
 const Token& Parser::peek() {
@@ -120,6 +144,10 @@ const Token& Parser::peekPrevious() {
 	return (*tokens)[static_cast<usize>(currentTokenIndex) - 1];
 }
 
+bool Parser::check(TokenType type) {
+	return peek().type == type;
+}
+
 bool Parser::match(TokenType type) {
 	if (peek().type == type) {
 		advance();
@@ -128,9 +156,16 @@ bool Parser::match(TokenType type) {
 	return false;
 }
 
+void Parser::expect(TokenType type) {
+	if (match(type)) {
+		return;
+	}
+	throwError(ExpectedTokenParserError{ .expected = type, .found = peek() });
+}
+
 void Parser::advance() {
 	ASSERT_NOT_NEGATIVE(currentTokenIndex);
-	if ((*tokens)[static_cast<usize>(currentTokenIndex)].type == TokenType::END_OF_FILE) {
+	if ((*tokens)[static_cast<usize>(currentTokenIndex)].type == TokenType::END_OF_SOURCE) {
 		return;
 	}
 	currentTokenIndex++;

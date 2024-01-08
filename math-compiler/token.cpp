@@ -14,11 +14,10 @@ const char* tokenToStr(const Token& token) {
 	case TokenType::SLASH: return "SLASH";
 	case TokenType::LEFT_PAREN: return "LEFT_PAREN";
 	case TokenType::RIGHT_PAREN: return "LEFT_PAREN";
-	case TokenType::END_OF_FILE: return "EOF";
+	case TokenType::END_OF_SOURCE: return "END_OF_SOURCE";
+	case TokenType::IDENTIFIER: return "IDENTIFIER";
 	case TokenType::ERROR: return "ERROR";
-
-	default:
-		ASSERT_NOT_REACHED();
-		break;
 	}
+	ASSERT_NOT_REACHED();
+	return nullptr;
 }

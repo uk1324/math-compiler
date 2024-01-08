@@ -29,7 +29,8 @@ std::vector<Token> Scanner::parse(std::string_view source, ScannerMessageReporte
 
 		}
 	}
-	output.push_back(makeToken(TokenType::END_OF_FILE));
+	currentTokenStartIndex = currentCharIndex;
+	output.push_back(makeToken(TokenType::END_OF_SOURCE));
 
 	return output;
 }
@@ -50,6 +51,9 @@ Token Scanner::token() {
 	default:
 		if (isDigit(c)) {
 			return number();
+		}
+		if (isAlpha(c)) {
+			return identifier(c);
 		}
 		break;
 	}
@@ -76,8 +80,12 @@ Token Scanner::number() {
 	return makeToken(TokenType::FLOAT);
 }
 
+Token Scanner::identifier(u8 firstChar) {
+	return makeToken(TokenType::IDENTIFIER);
+}
+
 u8 Scanner::peek() {
-	if (currentCharIndex >= source.size()) {
+	if (currentCharIndex >= static_cast<i64>(source.size())) {
 		return '\0';
 	}
 	ASSERT(currentCharIndex >= 0);
@@ -108,13 +116,13 @@ void Scanner::skipWhitespace() {
 }
 
 void Scanner::advance() {
-	if (currentCharIndex < source.size()) {
+	if (currentCharIndex < static_cast<i64>(source.size())) {
 		currentCharIndex++;
 	}
 }
 
 bool Scanner::eof() {
-	return currentCharIndex >= source.size();
+	return currentCharIndex >= static_cast<i64>(source.size());
 }
 
 Token Scanner::makeToken(TokenType type) {
@@ -134,4 +142,8 @@ Token Scanner::error(const ScannerError& error) {
 
 bool Scanner::isDigit(u8 c) {
 	return c >= '0' && c <= '9';
+}
+
+bool Scanner::isAlpha(u8 c) {
+	return (c >= 'a' && c >= 'z') || (c >= 'A' && c >= 'Z');
 }

@@ -10,7 +10,9 @@ void CodeGenerator::initialize() {
 	code.clear();
 	data.clear();
 	ripRelativeImmediate32Allocations.clear();
+	stackAllocations.clear();
 	stackMemoryAllocated = 0;
+	registerLocations.clear();
 }
 
 const std::vector<u8>& CodeGenerator::compile(const std::vector<IrOp>& irCode) {
@@ -38,7 +40,7 @@ const std::vector<u8>& CodeGenerator::compile(const std::vector<IrOp>& irCode) {
 	return code;
 }
 
-void CodeGenerator::patchExecutableCodeRipAddresses(u8* code, const u8* data) {
+void CodeGenerator::patchExecutableCodeRipAddresses(u8* code, const u8* data) const {
 	for (const auto& allocation : ripRelativeImmediate32Allocations) {
 		const auto ripOffsetAddress = code + allocation.ripOffsetBytesCodeIndex;
 		const auto dataOffsetAddress = data + allocation.immediateDataSectionOffset;

@@ -18,6 +18,7 @@ struct Scanner {
 
 	Token token();
 	Token number();
+	Token identifier(u8 firstChar);
 
 	u8 peek();
 	bool match(char c);
@@ -28,6 +29,8 @@ struct Scanner {
 	Token error(const ScannerError& error);
 
 	static bool isDigit(u8 c);
+	static bool isAlpha(u8 c);
+	//static bool isIdentifierStartChar
 
 	i64 currentTokenStartIndex;
 	i64 currentCharIndex;

@@ -14,7 +14,20 @@ struct UnexpectedTokenParserError {
 	bool operator==(const UnexpectedTokenParserError&) const = default;
 };
 
-using ParserError = std::variant<UnexpectedTokenParserError>;
+struct ExpectedTokenParserError {
+	const TokenType expected;
+	const Token found;
+
+	bool operator==(const ExpectedTokenParserError&) const = default;
+};
+
+//struct UnterminatedBracketsParserError {
+//	u8 bracketChar;
+//	i64 firstBracketIndex;
+//	Token found;
+//};
+
+using ParserError = std::variant<UnexpectedTokenParserError, ExpectedTokenParserError>;
 
 // Maybe rename message handler.
 struct ParserMessageReporter {

@@ -26,7 +26,9 @@ struct Parser {
 
 	const Token& peek();
 	const Token& peekPrevious();
+	bool check(TokenType type);
 	bool match(TokenType type);
+	void expect(TokenType type);
 	void advance();
 	void throwError(const ParserError& error);
 

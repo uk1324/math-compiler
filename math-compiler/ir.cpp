@@ -2,13 +2,13 @@
 #include "utils/overloaded.hpp"
 
 void printBinaryOp(std::ostream& out, const char* opName, Register lhs, Register rhs, Register destination) {
-	out << opName << " " << lhs << " " << rhs << " -> " << destination << '\n';
+	out << opName << " r" << lhs << " r" << rhs << " -> r" << destination << '\n';
 }
 
 void printIrOp(std::ostream& out, const IrOp& op) {
 	std::visit(overloaded{
 		[&](const LoadConstantOp& load) {
-			out << "load " << " '" << load.constant << "' -> " << load.destination << '\n';
+			out << "load " << " '" << load.constant << "' -> r" << load.destination << '\n';
 		},
 		[&](const AddOp& add) {
 			printBinaryOp(out, "add", add.lhs, add.rhs, add.destination);
@@ -17,7 +17,7 @@ void printIrOp(std::ostream& out, const IrOp& op) {
 			printBinaryOp(out, "mul", add.lhs, add.rhs, add.destination);
 		},
 		[&](const ReturnOp& ret) {
-			out << "ret " << ret.returnedRegister << '\n';
+			out << "ret r" << ret.returnedRegister << '\n';
 		}
 	}, op);
 }

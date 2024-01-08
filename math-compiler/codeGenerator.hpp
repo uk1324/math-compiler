@@ -8,7 +8,7 @@ struct CodeGenerator {
 	void initialize();
 
 	const std::vector<u8>& compile(const std::vector<IrOp>& irCode);
-	void patchExecutableCodeRipAddresses(u8* code, const u8* data);
+	void patchExecutableCodeRipAddresses(u8* code, const u8* data) const;
 
 	void loadConstantOp(const LoadConstantOp& op);
 	void addOp(const AddOp& op);

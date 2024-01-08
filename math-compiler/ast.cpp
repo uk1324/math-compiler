@@ -10,6 +10,10 @@ BinaryExpr::BinaryExpr(Expr* lhs, Expr* rhs, BinaryOpType op)
 	, rhs(rhs)
 	, op(op) {}
 
-VariableExpr::VariableExpr(std::string_view identifier) 
-	: Expr{ ExprType::VARIABLE } {
-}
+//VariableExpr::VariableExpr(std::string_view identifier) 
+//	: Expr{ ExprType::VARIABLE } {
+//}
+
+IdentifierExpr::IdentifierExpr(std::string_view identifier)
+	: Expr{ ExprType::IDENTIFIER }
+	, identifier(identifier) {}

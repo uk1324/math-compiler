@@ -1,6 +1,12 @@
 #pragma once
 
 #include "ast.hpp"
+#include "input.hpp"
+#include "utils/result.hpp"
+#include <span>
+#include <string>
 
-Real evaluateExpr(const Expr* expr);
-Real evaulateBinaryOp(Real lhs, Real rhs, BinaryOpType op);
+Result<Real, std::string> evaluateAst(
+	const Expr* expr, 
+	std::span<const FunctionParameter> parameters, 
+	std::span<const float> arguments);

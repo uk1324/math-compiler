@@ -15,7 +15,7 @@ enum class TokenType {
 	LEFT_PAREN,
 	RIGHT_PAREN,
 	IDENTIFIER,
-	END_OF_FILE,
+	END_OF_SOURCE,
 	ERROR,
 };
 

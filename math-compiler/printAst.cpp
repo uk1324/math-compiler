@@ -1,6 +1,6 @@
 #include "printAst.hpp"
 #include "utils/asserts.hpp"
-#include <iostream>
+#include "utils/put.hpp"
 
 void printBinaryOpType(BinaryOpType type) {
 	switch (type)
@@ -45,6 +45,12 @@ void printExpr(Expr* e, bool printExtraParens) {
 	case ExprType::CONSTANT: {
 		const auto constantExpr = static_cast<ConstantExpr*>(e);
 		std::cout << constantExpr->value;
+		break;
+	}
+
+	case ExprType::IDENTIFIER: {
+		const auto identifierExpr = static_cast<IdentifierExpr*>(e);
+		putnn("%", identifierExpr->identifier);
 		break;
 	}
 

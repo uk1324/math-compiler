@@ -117,7 +117,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -157,6 +157,7 @@
     <ClCompile Include="test\testingScannerMessageReporter.cpp" />
     <ClCompile Include="token.cpp" />
     <ClCompile Include="ostreamParserMessageReporter.cpp" />
+    <ClCompile Include="utils\asserts.cpp" />
     <ClCompile Include="utils\printingUtils.cpp" />
     <ClCompile Include="utils\put.cpp" />
     <ClCompile Include="sourceInfo.cpp" />
@@ -164,6 +165,7 @@
   <ItemGroup>
     <ClInclude Include="codeGenerator.hpp" />
     <ClInclude Include="bashPath.hpp" />
+    <ClInclude Include="input.hpp" />
     <ClInclude Include="ir.hpp" />
     <ClInclude Include="irCompiler.hpp" />
     <ClInclude Include="irCompilerMessageReporter.hpp" />
@@ -176,6 +178,7 @@
     <ClInclude Include="ostreamScannerMessageReporter.hpp" />
     <ClInclude Include="evaluateAst.hpp" />
     <ClInclude Include="ostreamParserMessageReporter.hpp" />
+    <ClInclude Include="utils\result.hpp" />
     <ClInclude Include="utils\ints.hpp" />
     <ClInclude Include="parser.hpp" />
     <ClInclude Include="printAst.hpp" />

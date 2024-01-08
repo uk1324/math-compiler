@@ -30,8 +30,27 @@ void* allocateExecutableMemory(i64 size) {
 	));
 }
 
-void executeProgram(const std::vector<u8>& code, const std::vector<u8>& data) {
+void freeExecutableMemory(void* memory) {
+	const auto ret = VirtualFreeEx(GetCurrentProcess(), memory, 0, MEM_RELEASE);
+	ASSERT(ret);
+}
 
+Real executeProgram(const CodeGenerator& codeGenerator, const std::vector<u8>& code, const std::vector<u8>& data) {
+	auto codeBuffer = reinterpret_cast<u8*>(allocateExecutableMemory(code.size() + data.size()));
+	if (codeBuffer == nullptr) {
+		put("failed to allocate executable memory");
+		exit(EXIT_FAILURE);
+	}
+
+	memcpy(codeBuffer, code.data(), code.size());
+	const auto dataBuffer = codeBuffer + code.size();
+	memcpy(dataBuffer, data.data(), data.size());
+	codeGenerator.patchExecutableCodeRipAddresses(codeBuffer, data.data());
+
+	using Function = float (*)(void);
+
+	const auto function = reinterpret_cast<Function>(codeBuffer);
+	return function();
 }
 
 i64 tokenOffsetInSource(const Token& token, std::string_view originalSource) {
@@ -64,14 +83,13 @@ std::vector<T> setDifference(const std::vector<T>& as, const std::vector<T>& bs)
 	return difference;
 }
 
-//#define DEBUG_PRINT_GENERATED_IR_CODE
-
-void testMain() {
+void runTests() {
 	Scanner scanner;
 	Parser parser;
 
 	IrCompiler irCompiler;
 	IrVm irVm;
+	CodeGenerator codeGenerator;
 
 	std::stringstream output;
 
@@ -85,7 +103,12 @@ void testMain() {
 		std::cout << TerminalColors::GREEN << "[PASSED] " << TerminalColors::RESET << name << '\n';
 	};
 
-	auto runTestExpected = [&](std::string_view name, std::string_view source, Real expectedOutput) {
+	auto runTestExpected = [&](
+		std::string_view name, 
+		std::string_view source, 
+		Real expectedOutput,
+		std::span<const FunctionParameter> parameters = std::span<const FunctionParameter>(),
+		std::span<const float> arguments = std::span<const float>()) {
 		scannerReporter.reporter.source = source;
 		parserReporter.reporter.source = source;
 		//std::cout << "RUNNING TEST " << name " ";
@@ -114,7 +137,7 @@ void testMain() {
 		bool evaluationError = false;
 
 		{
-			const auto output = evaluateExpr(ast->root);
+			const auto output = evaluateAst(ast->root, parameters, arguments);
 			if (output != expectedOutput) {
 				printFailed(name);
 				std::cout << "ast interpreter error: ";
@@ -145,6 +168,18 @@ void testMain() {
 			return;
 		}
 
+		{
+			ASSERT(irCode.has_value());
+			const auto code = codeGenerator.compile(**irCode);
+			const auto output = executeProgram(codeGenerator, code, codeGenerator.data);
+			if (output != expectedOutput) {
+				printFailed(name);
+				put("evaluation error: ");
+				put("expected '%' got '%'", expectedOutput, output);
+				evaluationError = true;
+			}
+		}
+
 		if (evaluationError) {
 			return;
 		}
@@ -168,12 +203,14 @@ void testMain() {
 		if (scannerErrorsThatWereNotReported.size() != 0) {
 			printFailed(name);
 			put("% scanner errors were not reported", scannerErrorsThatWereNotReported.size());
+			put("output: \n%", output.str());
+			output.str("");
 			scannerReporter.reset();
 			return;
 		}
 
 		auto ast = parser.parse(tokens, &parserReporter);
-		if (!ast.has_value() && !parserReporter.errorHappened) {
+		if (!scannerReporter.errorHappened && !ast.has_value() && !parserReporter.errorHappened) {
 			ASSERT_NOT_REACHED();
 			return;
 		}
@@ -183,10 +220,13 @@ void testMain() {
 		if (parserErrorsThatWereNotReported.size() != 0) {
 			printFailed(name);
 			put("% parser errors were not reported", parserErrorsThatWereNotReported.size());
+			put("output: \n%", output.str());
+			output.str("");
 			parserReporter.reset();
 			return;
 		}
 
+		output.str("");
 		printPassed(name);
 	};
 
@@ -194,6 +234,7 @@ void testMain() {
 	runTestExpected("constant multiplication", "17 * 22", 374);
 	runTestExpected("multiplication precedence", "2 + 3 * 4", 14);
 	runTestExpected("parens", "(2 + 3) * 4", 20);
+	runTestExpected("implicit multiplication", "4(2 + 3)", 20);
 
 	runTestExpectedErrors(
 		"illegal character", 
@@ -201,6 +242,38 @@ void testMain() {
 		{ IllegalCharScannerError{ .character = '?', .sourceOffset = 0 }},
 		{}
 	);
+
+	{
+		const std::string_view source = "(2 + 2";
+		const auto errorText = source.substr(6, 0);
+		runTestExpectedErrors(
+			"expected token",
+			source,
+			{},
+			{ 
+				ExpectedTokenParserError{
+					.expected = TokenType::RIGHT_PAREN,
+					.found = Token(TokenType::END_OF_SOURCE, errorText)
+				}
+			}
+		);
+	}
+
+	{
+		const std::string_view source = "(2 + ";
+		// This assumes that the last char is the last char in source of length 0.
+		const auto errorText = source.substr(5, 0);
+		runTestExpectedErrors(
+			"unexpected token",
+			source,
+			{},
+			{
+				UnexpectedTokenParserError{
+					.token = Token(TokenType::END_OF_SOURCE, errorText)
+				}
+			}
+		);
+	}
 }
 
 #include "bashPath.hpp"
@@ -208,8 +281,12 @@ void testMain() {
 void test() {
 	/*std::string_view source = "2 + 2";*/
 	/*std::string_view source = "1 + 2 * 3";*/
-	std::string_view source = "1 + 2 * 3";
+	std::string_view source = "xyz + 4(x + y)z";
+	FunctionParameter parameters[] { { "x" }, { "y" }, { "z" } };
+	float arguments[] = { 1.0f, 2.0f, 4.0f };
+	//std::string_view source = "(2 + 3) * 4";
 	/*std::string_view source = "0.5772156649";*/
+	//std::vector<Func
 
 	std::ostream& outputStream = std::cerr;
 
@@ -221,15 +298,14 @@ void test() {
 		std::cout << "\n";
 		highlightInText(std::cout, source, tokenOffsetInSource(token, source), token.source.size());
 		std::cout << "\n";
-	}
+	} 
 
 	OstreamParserMessageReporoter parserReporter(outputStream, source);
 	Parser parser;
 	const auto ast = parser.parse(tokens, &parserReporter);
 	if (ast.has_value()) {
 		printExpr(ast->root, true);
-		std::cout << " = ";
-		std::cout << evaluateExpr(ast->root) << '\n';
+		put(" = %", evaluateAst(ast->root, parameters, arguments));
 	} else {
 		put("parser error");
 		return;
@@ -241,205 +317,20 @@ void test() {
 		printIrCode(std::cout, **irCode);
 	}
 
-
-
 	CodeGenerator codeGenerator;
-	/*const auto& machineCode = codeGenerator.compile(**irCode);*/
 	auto machineCode = codeGenerator.compile(**irCode);
-
-	auto buffer = reinterpret_cast<u8*>(allocateExecutableMemory(machineCode.size() + codeGenerator.data.size()));
-	if (buffer == nullptr) {
-		put("failed to allocate executable memory");
-		return;
-	}
-
-	memcpy(buffer, machineCode.data(), machineCode.size());
-	const auto dataBuffer = buffer + machineCode.size();
-	memcpy(dataBuffer, codeGenerator.data.data(), codeGenerator.data.size());
-	//codeGenerator.patchExecutableCodeRipAddresses(machineCode.data(), codeGenerator.data.data());
-	/*codeGenerator.patchExecutableCodeRipAddresses(machineCode.data(), dataBuffer);*/
-	//codeGenerator.patchExecutableCodeRipAddresses(buffer, dataBuffer);
-	codeGenerator.patchExecutableCodeRipAddresses(buffer, codeGenerator.data.data());
-
-	using Function = float (*)(void);
-
-	/*const auto f = reinterpret_cast<Function>(buffer);*/
-	const auto f = reinterpret_cast<Function>(buffer);
-	const auto out = f();
+	const auto out = executeProgram(codeGenerator, machineCode, codeGenerator.data);
 	put("out = %", out);
 
 	std::ofstream bin("test.txt", std::ios::out | std::ios::binary);
-	/*bin.write(reinterpret_cast<const char*>(machineCode.data()), machineCode.size());*/
-	bin.write(reinterpret_cast<const char*>(buffer), machineCode.size());
-
-	//const auto disassemble = std::string(BASH_PATH) + " ./disassemble.sh";
-	//put("%", std::filesystem::current_path());
-
-	//std::cout << disassemble << '\n';
-	//system(disassemble.c_str());
-
-	//std::ifstream text("disassembled.txt");
-	//std::cout << text.rdbuf();
+	bin.write(reinterpret_cast<const char*>(machineCode.data()), machineCode.size());
+	/*bin.write(reinterpret_cast<const char*>(buffer), machineCode.size());*/
 }
 
-void f0() {
-	return;
-}
+#include "utils/result.hpp"
 
 // https://stackoverflow.com/questions/4911993/how-to-generate-and-run-native-code-dynamically
 int main(void) {
-	test();
-	/*auto buffer = reinterpret_cast<u8*>(allocateExecutableMemory(4096));
-
-	if (buffer == nullptr) {
-		put("failed to allocate executable memory");
-		return 0;
-	}
-	
-	using Function = int (*)(void);
-
-	const auto f = reinterpret_cast<Function>(buffer);
-	const auto out = f();
-
-	std::ofstream bin("test.txt", std::ios::out | std::ios::binary);*/
-	//bin.write(reinterpret_cast<const char*>(buffer), p - buffer);
-
+	//test();
+	//runTests();
 }
-
-//int main() {
-//	
-//
-//	//testMain();
-//	//test();
-//	return 0;
-//}
-
-//#define _CRT_SECURE_NO_WARNINGS
-//#include <stdio.h>
-
-//int main() {
-//	printf("Ten program sluzy do rozwiazywania rownania liniowego\n");
-//	float a, b;
-//	printf("a = ");
-//	scanf("%f", &a);
-//	printf("b = ");
-//	scanf("%f", &b);
-//	printf("%gx + %g = 0\n", a, b);
-//	if (a == 0) {
-//		if (b == 0) {
-//			printf("rownanie tozsamosciowe");
-//		}
-//		else {
-//			printf("brak rozwiazan");
-//		}
-//	} else {
-//		printf("x = %g\n", -b / a);
-//	}
-//
-//	//
-//}
-
-//#define _CRT_SECURE_NO_WARNINGS
-//#include <stdio.h>
-//#include <math.h>
-
-//void solveLinear(float a, float b) {
-//	if (a == 0.0f) {
-//		if (b == 0.0f) {
-//			printf("rownanie tozsamosciowe");
-//		}
-//		else {
-//			printf("brak rozwiazan");
-//		}
-//	} else {
-//		printf("x = %g\n", -b / a);
-//	}
-//}
-//
-//int main() {
-//	printf("Ten program sluzy do rozwiazywania ax^2 + bx + c = 0\n");
-//	float a, b, c;
-//	printf("a = ");
-//	scanf("%f", &a);
-//	printf("b = ");
-//	scanf("%f", &b);
-//	printf("c = ");
-//	scanf("%f", &c);
-//	
-//	printf("%gx^2 + %gx = 0 + %g\n", a, b, c);
-//
-//	if (a == 0.0f) {
-//		solveLinear(b, c);
-//		return 0;
-//	}
-//
-//	float discriminant = b * b - 4.0f * a * c;
-//	if (discriminant < 0) {
-//		printf("Brak rozwiazan rzeczywistych\n");
-//	} else if (discriminant == 0) {
-//		float x = -b / (2.0f * a);
-//		printf("x = %g", x);
-//	} else {
-//		float sqrtDiscriminant = sqrt(discriminant);
-//		float x0 = (-b + sqrtDiscriminant) / (2.0f * a);
-//		float x1 = (-b - sqrtDiscriminant) / (2.0f * a);
-//		printf("x0 = %g, x1 = %g", x0, x1);
-//	}
-//}
-
-//#include <bit>
-
-//bool isPowerOf2(int x) {
-//	int bitCount = 0;
-//	while (x) {
-//		if (x & 1) {
-//			bitCount++;
-//			if (bitCount > 1) {
-//				break;
-//			}
-//		}
-//		x >>= 1;
-//	}
-//	return bitCount <= 1;
-//}
-//
-//int main() {
-//	int x;
-//	printf("x = ");
-//	scanf("%d", &x);
-//
-//	printf(isPowerOf2(x) ? "x is a power of 2" : "x is not a power of 2");
-//
-//	/*for (int i = 0; i < 1000; i++) {
-//		if (isPowerOf2(i)) {
-//			printf("%d\n", i);
-//		}
-//	}*/
-//}
-
-//bool isPrime(int x) {
-//	if (x < 2) {
-//		return false;
-//	}
-//
-//	for (int i = 2; i <= static_cast<int>(sqrt(x)); i++) {
-//		if (x % i == 0) {
-//			return false;
-//		}
-//	}
-//	return true;
-//}
-//
-//int main() {
-//	int x;
-//	printf("x = ");
-//	scanf("%d", &x);
-//
-//	printf(isPrime(x) ? "x is prime" : "x is not prime");
-//
-//	for (int i = 0; i < 1000; i++) {
-//		if (isPrime(i)) {
-//			printf("%d\n", i);
-//		}
-//	}
-//}

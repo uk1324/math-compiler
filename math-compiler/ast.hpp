@@ -7,7 +7,7 @@
 enum class ExprType {
 	CONSTANT,
 	BINARY,
-	VARIABLE,
+	IDENTIFIER,
 };
 
 struct Expr {
@@ -36,8 +36,10 @@ struct BinaryExpr : public Expr {
 	BinaryOpType op;
 };
 
-struct VariableExpr : public Expr {
-	VariableExpr(std::string_view identifier);
+struct IdentifierExpr : public Expr {
+	IdentifierExpr(std::string_view identifier);
+
+	std::string_view identifier;
 };
 
 struct Ast {
