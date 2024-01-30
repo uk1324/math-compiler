@@ -10,6 +10,24 @@
 // 0F probably refers to the value of the m-mmmm field (this isn't the actual value of the field read the manual to find the values).
 // the l bit of the prefix decides wether it is a 128 or 256 bit instruction
 // the /r mean the modrm field
+
+/*
+
+void perform_calculations(float* input, float* output);
+
+extern const int INPUT_BATCH_SIZE;
+extern const int OUTPUT_BATCH_SIZE;
+
+void function(float* input, float* output, int outputBatchCount) {
+	for (int i = 0; i < outputBatchCount; i++) {
+		perform_calculations(input, output);
+
+		input += INPUT_BATCH_SIZE;
+		output += OUTPUT_BATCH_SIZE;
+	}
+}
+
+*/
 struct CodeGenerator {
 	CodeGenerator();
 	void initialize();
@@ -91,6 +109,8 @@ struct CodeGenerator {
 
 	[[nodiscard]] static u8 encodeRexPrefixByte(bool w, bool r, bool x, bool b);
 
+	void emitModRmReg32DispI32Reg32(ModRMRegisterX86 registerWithAddress, i32 displacement, ModRMRegisterX86 reg);
+
 	void emitAddRegisterToRegister32(ModRMRegisterX86 rhs, ModRMRegisterX86 lhs);
 	void emitAddRegisterToRegister64(ModRMRegisterX64 rhs, ModRMRegisterX64 lhs);
 	void emitMovssRegToRegXmm(ModRMRegisterXmm destination, ModRMRegisterXmm source);
@@ -114,7 +134,20 @@ struct CodeGenerator {
 	void emitPushReg64(ModRMRegisterX64 reg);
 	void emitPopReg64(ModRMRegisterX64 reg);
 
+	void emit2ByteVex(bool r, u8 vvvv, bool l, u8 pp);
+	void emit3ByteVex(bool r, bool x, bool b, u8 m_mmmm, bool w, u8 vvvv, bool l, u8 pp);
+	void emitRegYmmRegYmmVexByte(ModRMRegisterXmm a, ModRMRegisterXmm b);
+
+	void emitInstructionRegYmmRegYmmRegYmm(u8 opCode, ModRMRegisterXmm destination, ModRMRegisterXmm lhs, ModRMRegisterXmm rhs);
+
 	void emitVmovapsToRegYmmFromRegYmm(ModRMRegisterXmm destination, ModRMRegisterXmm source);
+	void emitVmovapsToMemReg32DispI32FromRegYmm(ModRMRegisterX86 regWithDestinationAddress, i32 addressDisplacement, ModRMRegisterXmm source);
+	void emitVmovapsToRegYmmFromMemReg32DispI32(ModRMRegisterXmm destination, ModRMRegisterX86 regWithSourceAddress, i32 addressDisplacement);
+
+	void emitVaddpsRegYmmRegYmmRegYmm(ModRMRegisterXmm destination, ModRMRegisterXmm lhs, ModRMRegisterXmm rhs);
+	void emitVsubpsRegYmmRegYmmRegYmm(ModRMRegisterXmm destination, ModRMRegisterXmm lhs, ModRMRegisterXmm rhs);
+	void emitVmulpsRegYmmRegYmmRegYmm(ModRMRegisterXmm destination, ModRMRegisterXmm lhs, ModRMRegisterXmm rhs);
+	void emitVdivpsRegYmmRegYmmRegYmm(ModRMRegisterXmm destination, ModRMRegisterXmm lhs, ModRMRegisterXmm rhs);
 
 	struct RipRelativeImmediate32Allocation {
 		float value;
@@ -139,9 +172,6 @@ struct CodeGenerator {
 	};
 	std::unordered_map<Register, RegisterLocation> registerLocations;
 	RegisterLocation getRegisterLocation(Register reg);
-
-	void emit2ByteVex(bool r, u8 vvvv, bool l, u8 pp);
-	void emit3ByteVex(bool r, bool x, bool b, u8 m_mmmm, bool w, u8 vvvv, bool l, u8 pp);
 
 	void movssToRegisterLocationFromRegXmm(const RegisterLocation& to, ModRMRegisterXmm from);
 	void movssToRegXmmFromRegisterLocation(ModRMRegisterXmm to, const RegisterLocation& from);
