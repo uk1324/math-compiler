@@ -1,12 +1,24 @@
 #include "token.hpp"
 #include "utils/asserts.hpp"
 
-Token::Token(TokenType type, std::string_view source)
+Token::Token(TokenType type, const SourceLocation& sourceLocation)
 	: type(type)
-	, source(source) {}
+	, location(sourceLocation) {}
 
-const char* tokenToStr(const Token& token) {
-	switch (token.type) {
+i64 Token::start() const {
+	return location.start;
+}
+
+i64 Token::end() const {
+	return location.end();
+}
+
+i64 Token::length() const {
+	return location.length;
+}
+
+const char* tokenTypeToStr(TokenType type) {
+	switch (type) {
 	case TokenType::PLUS: return "PLUS";
 	case TokenType::MINUS: return "MINUS";
 	case TokenType::FLOAT: return "FLOAT";

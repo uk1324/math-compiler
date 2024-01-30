@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string_view>
+#include "sourceInfo.hpp"
 
 //struct FloatToken {};
 
@@ -20,12 +21,19 @@ enum class TokenType {
 };
 
 struct Token {
-	Token(TokenType type, std::string_view source);
+	Token(TokenType type, const SourceLocation& sourceLocation);
 
 	bool operator==(const Token&) const = default;
 
-	std::string_view source;
+	i64 start() const;
+	i64 end() const;
+	i64 length() const;
+	
+
+	// Changed this from storing a string_view to stroring SourceLocation, becsause to get a SourceLocation from a string_view you need access to the source. I think it might be better to store SourceLocations rather than pointers to the source using a string_view
+	SourceLocation location;
+	//std::string_view source;
 	TokenType type;
 };
 
-const char* tokenToStr(const Token& token);
+const char* tokenTypeToStr(TokenType type);

@@ -6,7 +6,7 @@
 struct OstreamScannerMessageReporter final : public ScannerMessageReporter {
 	OstreamScannerMessageReporter(std::ostream& output, std::string_view source);
 
-	void onError(const ScannerError& error);
+	void onError(const ScannerError& error) override;
 
 	std::ostream& output;
 	std::string_view source;

@@ -4,17 +4,18 @@
 #include <charconv>
 
 Parser::Parser() {
-	initialize(nullptr, nullptr);
+	initialize(nullptr, std::string_view(), nullptr);
 }
 
-void Parser::initialize(const std::vector<Token>* tokens, ParserMessageReporter* reporter) {
+void Parser::initialize(const std::vector<Token>* tokens, std::string_view source, ParserMessageReporter* reporter) {
 	this->tokens = tokens;
+	this->source = source;
 	currentTokenIndex = 0;
 	messageReporter = reporter;
 }
 
-std::optional<Ast> Parser::parse(const std::vector<Token>& tokens, ParserMessageReporter* reporter) {
-	initialize(&tokens, reporter);
+std::optional<Ast> Parser::parse(const std::vector<Token>& tokens, std::string_view source, ParserMessageReporter* reporter) {
+	initialize(&tokens, source, reporter);
 
 	try {
 		const auto root = expr();
@@ -41,18 +42,20 @@ Expr* Parser::binaryExpr() {
 }
 
 Expr* Parser::plusOrMinusBinaryExpr() {
+	const auto start = peek().start();
 	auto lhs = timesOrDivideBinaryExpr();
 
 	while (match(TokenType::PLUS) || match(TokenType::MINUS)) {
 		const auto operatorTokenType = peekPrevious().type;
 		const auto rhs = timesOrDivideBinaryExpr();
+		const auto end = peek().end();
 		switch (operatorTokenType) {
 		case TokenType::PLUS:
-			lhs = astAllocator.allocate<BinaryExpr>(lhs, rhs, BinaryOpType::PLUS);
+			lhs = astAllocator.allocate<BinaryExpr>(lhs, rhs, BinaryOpType::PLUS, start, end);
 			break;
 
 		case TokenType::MINUS:
-			lhs = astAllocator.allocate<BinaryExpr>(lhs, rhs, BinaryOpType::MINUS);
+			lhs = astAllocator.allocate<BinaryExpr>(lhs, rhs, BinaryOpType::MINUS, start, end);
 			break;
 
 		default:
@@ -64,18 +67,20 @@ Expr* Parser::plusOrMinusBinaryExpr() {
 }
 
 Expr* Parser::timesOrDivideBinaryExpr() {
+	const auto start = peek().start();
 	auto lhs = primaryExpr();
 
 	while (match(TokenType::STAR) || match(TokenType::SLASH)) {
 		const auto operatorTokenType = peekPrevious().type;
 		const auto rhs = primaryExpr();
+		const auto end = peek().end();
 		switch (operatorTokenType) {
 		case TokenType::STAR:
-			lhs = astAllocator.allocate<BinaryExpr>(lhs, rhs, BinaryOpType::MULTIPLY);
+			lhs = astAllocator.allocate<BinaryExpr>(lhs, rhs, BinaryOpType::MULTIPLY, start, end);
 			break;
 
 		case TokenType::SLASH:
-			lhs = astAllocator.allocate<BinaryExpr>(lhs, rhs, BinaryOpType::DIVIDE);
+			lhs = astAllocator.allocate<BinaryExpr>(lhs, rhs, BinaryOpType::DIVIDE, start, end);
 			break;
 
 		default:
@@ -95,8 +100,11 @@ Expr* Parser::primaryExpr() {
 		return e;
 	};
 
+	i64 lhsStart;
+
 	if (match(TokenType::FLOAT)) {
-		const auto numberTokenSource = peekPrevious().source;
+		const auto& numberToken = peekPrevious();
+		const auto numberTokenSource = tokenSource(numberToken);
 		Real value;
 		const auto result = std::from_chars(
 			numberTokenSource.data(), 
@@ -109,26 +117,40 @@ Expr* Parser::primaryExpr() {
 			return nullptr;
 		}
 		
-		lhs = astAllocator.allocate<ConstantExpr>(value);
+		lhs = astAllocator.allocate<ConstantExpr>(value, numberToken.start(), numberToken.end());
+		lhsStart = numberToken.start();
 	} else if (match(TokenType::LEFT_PAREN)) {
+		lhsStart = peek().start();
 		lhs = parenExprAfterMatch();
-	}
-	else if (match(TokenType::IDENTIFIER)) {
-		lhs = astAllocator.allocate<IdentifierExpr>(peekPrevious().source);
+	} else if (match(TokenType::IDENTIFIER)) {
+		const auto identifierToken = peekPrevious();
+		lhs = astAllocator.allocate<IdentifierExpr>(
+			tokenSource(identifierToken), 
+			identifierToken.start(), 
+			identifierToken.end());
+		lhsStart = identifierToken.start();
 	} else {
 		throwError(UnexpectedTokenParserError{ .token = peek() });
 	}
 
 	for (;;) {
+		i64 rhsEnd;
+
 		Expr* rhs;
 		if (match(TokenType::IDENTIFIER)) {
-			rhs = astAllocator.allocate<IdentifierExpr>(peekPrevious().source);
+			const auto identifierToken = peekPrevious();
+			rhs = astAllocator.allocate<IdentifierExpr>(
+				tokenSource(identifierToken), 
+				identifierToken.start(), 
+				identifierToken.end());
+			rhsEnd = identifierToken.end();
 		} else if (match(TokenType::LEFT_PAREN)) {
 			rhs = parenExprAfterMatch();
+			rhsEnd = peekPrevious().end();
 		} else {
 			break;
 		}
-		lhs = astAllocator.allocate<BinaryExpr>(lhs, rhs, BinaryOpType::MULTIPLY);
+		lhs = astAllocator.allocate<BinaryExpr>(lhs, rhs, BinaryOpType::MULTIPLY, lhsStart, rhsEnd);
 	}
 
 	return lhs;
@@ -174,4 +196,8 @@ void Parser::advance() {
 void Parser::throwError(const ParserError& error) {
 	messageReporter->onError(error);
 	throw Error();
+}
+
+std::string_view Parser::tokenSource(const Token& token) const {
+	return source.substr(token.location.start, token.location.length);
 }

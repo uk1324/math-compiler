@@ -35,12 +35,12 @@ void OstreamParserMessageReporoter::onError(const ParserError& error) {
 			if (e.token.type == TokenType::ERROR) {
 				return;
 			}
-			const auto location = tokenSourceLocation(source, e.token);
+			const auto& location = e.token.location;
 			highlightInText(output, source, location.start, location.length);
 			put(output, "unexpected %", tokenTypeName(e.token.type));
 		},
 		[&](const ExpectedTokenParserError& e) {
-			const auto location = tokenSourceLocation(source, e.found);
+			const auto& location = e.found.location;
 			highlightInText(output, source, location.start, location.length);
 			put(output, "expected % found %", tokenTypeName(e.expected), tokenTypeName(e.found.type));
 		},

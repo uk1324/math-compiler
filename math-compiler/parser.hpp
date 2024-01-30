@@ -14,10 +14,10 @@ struct Parser {
 	};
 
 	Parser();
-	void initialize(const std::vector<Token>* tokens, ParserMessageReporter* reporter);
+	void initialize(const std::vector<Token>* tokens, std::string_view source, ParserMessageReporter* reporter);
 
 	// TODO: Use span.
-	std::optional<Ast> parse(const std::vector<Token>& tokens, ParserMessageReporter* reporter);
+	std::optional<Ast> parse(const std::vector<Token>& tokens, std::string_view source, ParserMessageReporter* reporter);
 	Expr* expr();
 	Expr* binaryExpr();
 	Expr* plusOrMinusBinaryExpr();
@@ -30,11 +30,14 @@ struct Parser {
 	bool match(TokenType type);
 	void expect(TokenType type);
 	void advance();
-	void throwError(const ParserError& error);
+	[[noreturn]] void throwError(const ParserError& error);
+
+	std::string_view tokenSource(const Token& token) const;
 
 	const std::vector<Token>* tokens;
 	i64 currentTokenIndex;
 
 	ParserMessageReporter* messageReporter;
+	std::string_view source;
 	AstAllocator astAllocator;
 };

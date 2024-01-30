@@ -5,31 +5,42 @@
 //#define IR_COMPILER_DEBUG_PRINT_ADDED_INSTRUCTIONS
 
 IrCompiler::IrCompiler() {
-	initialize();
+	initialize(std::span<const FunctionParameter>(), nullptr);
 }
 
-void IrCompiler::initialize() {
+void IrCompiler::initialize(std::span<const FunctionParameter> parameters, IrCompilerMessageReporter* reporter) {
 	generatedIrCode.clear();
+	this->parameters = parameters;
+	this->reporter = reporter;
 }
 
-std::optional<const std::vector<IrOp>*> IrCompiler::compile(const Ast& ast) {
-	initialize();
-	const auto result = compileExpression(ast.root);
-	addOp(ReturnOp{
-		.returnedRegister = result.result
-	});
+std::optional<const std::vector<IrOp>*> IrCompiler::compile(
+	const Ast& ast, 
+	const std::span<const FunctionParameter> parameters,
+	IrCompilerMessageReporter& reporter) {
+	initialize(parameters, &reporter);
 
-	return &generatedIrCode;
+	try {
+		const auto result = compileExpression(ast.root);
+		addOp(ReturnOp{
+			.returnedRegister = result.result
+		});
+		return &generatedIrCode;
+	} catch (const CompilerError&) {
+		return std::nullopt;
+	}
+
+
 }
 
 IrCompiler::ExprResult IrCompiler::compileExpression(const Expr* expr) {
 #define CASE_EXPR(ENUM_NAME, TypeName) \
 	case ExprType::ENUM_NAME: return compile##TypeName(*static_cast<const TypeName*>(expr))
 
-	switch (expr->type)
-	{
+	switch (expr->type) {
 		CASE_EXPR(CONSTANT, ConstantExpr);
 		CASE_EXPR(BINARY, BinaryExpr);
+		CASE_EXPR(IDENTIFIER, IdentifierExpr);
 	
 	default:
 		ASSERT_NOT_REACHED();
@@ -75,6 +86,24 @@ IrCompiler::ExprResult IrCompiler::compileBinaryExpr(const BinaryExpr& expr) {
 	return ExprResult{ .result = destination };
 }
 
+void IrCompiler::createRegistersForVariables() {
+	for (i32 i = 0; i < parameters.size(); i++) {
+		const auto reg = allocateRegister();
+	}
+}
+
+IrCompiler::ExprResult IrCompiler::compileIdentifierExpr(const IdentifierExpr& expr) {
+	for (i32 i = 0; i < parameters.size(); i++) {
+		if (parameters[i].name == expr.identifier) {
+			return ExprResult{ .result = i };
+		}
+	}
+	throwError(UndefinedVariableIrCompilerError{
+		.undefinedVariableName = expr.identifier,
+		.location = expr.sourceLocation
+	});
+}
+
 Register IrCompiler::allocateRegister() {
 	const Register allocated = allocatedRegistersCount;
 	allocatedRegistersCount++;
@@ -86,4 +115,9 @@ void IrCompiler::addOp(const IrOp& op) {
 	#ifdef IR_COMPILER_DEBUG_PRINT_ADDED_INSTRUCTIONS
 	printIrOp(std::cout, op);
 	#endif
+}
+
+[[noreturn]] void IrCompiler::throwError(const IrCompilerError& error) {
+	reporter->onError(error);
+	throw CompilerError{};
 }

@@ -1,5 +1,6 @@
 #include "evaluateAst.hpp"
 #include "utils/asserts.hpp"
+#include "utils/format.hpp"
 #include <vector>
 
 struct State {
@@ -8,14 +9,15 @@ struct State {
 };
 
 static Result<Real, std::string> evaluateExpr(const State& state, const Expr* expr);
-static Result<Real, std::string> evaulateBinaryOp(const State& state, Real lhs, Real rhs, BinaryOpType op);
-
+static Result<Real, std::string> evaluateBinaryOp(const State& state, Real lhs, Real rhs, BinaryOpType op);
+static Result<Real, std::string> getVariable(const State& state, std::string_view identifier);
 //static Real resolve;
 
 Result<Real, std::string> evaluateAst(
 	const Expr* expr, 
 	std::span<const FunctionParameter> parameters, 
 	std::span<const float> arguments) {
+	ASSERT(parameters.size() == arguments.size());
 	State state{
 		.parameters = parameters,
 		.arguments = arguments,
@@ -33,7 +35,7 @@ Result<Real, std::string> evaluateExpr(const State& state, const Expr* expr) {
 		TRY(lhs);
 		const auto rhs = evaluateExpr(state, binaryExpr->rhs);
 		TRY(rhs);
-		return evaulateBinaryOp(state, lhs.ok(), rhs.ok(), binaryExpr->op);
+		return evaluateBinaryOp(state, lhs.ok(), rhs.ok(), binaryExpr->op);
 	}
 
 	case CONSTANT: {
@@ -43,8 +45,7 @@ Result<Real, std::string> evaluateExpr(const State& state, const Expr* expr) {
 
 	case IDENTIFIER: {
 		const auto identifierExpr = static_cast<const IdentifierExpr*>(expr);
-		identifierExpr->identifier;
-
+		return getVariable(state, identifierExpr->identifier);
 	}
 
 	}
@@ -52,7 +53,7 @@ Result<Real, std::string> evaluateExpr(const State& state, const Expr* expr) {
 	return 0.0f;
 }
 
-Result<Real, std::string> evaulateBinaryOp(const State& state, Real lhs, Real rhs, BinaryOpType op) {
+Result<Real, std::string> evaluateBinaryOp(const State& state, Real lhs, Real rhs, BinaryOpType op) {
 	switch (op) {
 	case BinaryOpType::PLUS: return lhs + rhs;
 	case BinaryOpType::MINUS: return lhs - rhs;
@@ -63,4 +64,13 @@ Result<Real, std::string> evaulateBinaryOp(const State& state, Real lhs, Real rh
 		ASSERT_NOT_REACHED();
 		return 0.0f;
 	}
+}
+
+Result<Real, std::string> getVariable(const State& state, std::string_view identifier) {
+	for (int i = 0; i < state.parameters.size(); i++) {
+		if (state.parameters[i].name == identifier) {
+			return state.arguments[i];
+		}
+	}
+	return ResultErr(format("variable '%' does not exist", identifier));
 }

@@ -144,17 +144,22 @@
     <ClCompile Include="ast.cpp" />
     <ClCompile Include="astAllocator.cpp" />
     <ClCompile Include="codeGenerator.cpp" />
+    <ClCompile Include="executeFunction.cpp" />
     <ClCompile Include="ir.cpp" />
     <ClCompile Include="irCompiler.cpp" />
     <ClCompile Include="irVm.cpp" />
+    <ClCompile Include="ostreamIrCompilerMessageReporter.cpp" />
     <ClCompile Include="ostreamScannerMessageReporter.cpp" />
     <ClCompile Include="evaluateAst.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="os\windows.cpp" />
     <ClCompile Include="parser.cpp" />
     <ClCompile Include="printAst.cpp" />
     <ClCompile Include="scanner.cpp" />
+    <ClCompile Include="test\testingIrCompilerMessageReporter.cpp" />
     <ClCompile Include="test\testingParserMessageReporter.cpp" />
     <ClCompile Include="test\testingScannerMessageReporter.cpp" />
+    <ClCompile Include="test\tests.cpp" />
     <ClCompile Include="token.cpp" />
     <ClCompile Include="ostreamParserMessageReporter.cpp" />
     <ClCompile Include="utils\asserts.cpp" />
@@ -165,19 +170,26 @@
   <ItemGroup>
     <ClInclude Include="codeGenerator.hpp" />
     <ClInclude Include="bashPath.hpp" />
+    <ClInclude Include="executeFunction.hpp" />
     <ClInclude Include="input.hpp" />
     <ClInclude Include="ir.hpp" />
     <ClInclude Include="irCompiler.hpp" />
     <ClInclude Include="irCompilerMessageReporter.hpp" />
     <ClInclude Include="irVm.hpp" />
+    <ClInclude Include="ostreamIrCompilerMessageReporter.hpp" />
+    <ClInclude Include="os\os.hpp" />
+    <ClInclude Include="test.hpp" />
+    <ClInclude Include="test\testingIrCompilerMessageReporter.hpp" />
     <ClInclude Include="test\testingParserMessageReporter.hpp" />
     <ClInclude Include="test\testingScannerMessageReporter.hpp" />
+    <ClInclude Include="test\tests.hpp" />
     <ClInclude Include="utils\asserts.hpp" />
     <ClInclude Include="ast.hpp" />
     <ClInclude Include="astAllocator.hpp" />
     <ClInclude Include="ostreamScannerMessageReporter.hpp" />
     <ClInclude Include="evaluateAst.hpp" />
     <ClInclude Include="ostreamParserMessageReporter.hpp" />
+    <ClInclude Include="utils\format.hpp" />
     <ClInclude Include="utils\result.hpp" />
     <ClInclude Include="utils\ints.hpp" />
     <ClInclude Include="parser.hpp" />
@@ -190,11 +202,10 @@
     <ClInclude Include="utils\pritningUtils.hpp" />
     <ClInclude Include="utils\put.hpp" />
     <ClInclude Include="sourceInfo.hpp" />
+    <ClInclude Include="utils\setDifference.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="disassemble.sh" />
-  </ItemGroup>
-  <ItemGroup>
+    <Text Include="function_argument_format.txt" />
     <Text Include="notes.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

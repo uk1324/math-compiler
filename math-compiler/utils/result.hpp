@@ -90,7 +90,7 @@ Result<Ok, Err>::Result(Ok&& ok) noexcept
 
 template<typename Ok, typename Err>
 Result<Ok, Err>::Result(ResultErr<Err>&& err) noexcept
-	: err_(std::move(err))
+	: err_(std::move(err.err_))
 	, state(ResultState::ERR) {}
 
 template<typename Ok, typename Err>

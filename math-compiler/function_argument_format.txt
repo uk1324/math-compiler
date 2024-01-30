@@ -1,0 +1,19 @@
+Ways of passing arguments.
+
+No arguments passed. The function generates the arguments by for example looping over a range. The problem with this is that it limits what you can do. If you have 2 parameters then the user would need to specify how they range. You may want to keep one argument constant and the other changing if you are computing some function for a row for example. The to fix these issues would be to allow the user to write the exact for loops they want. It might be also useful to allow the user to pass arguments to those functions like arrays. This would be the most flexible solution, but would require a lot of work to implement. For example a register allocator for normal registers would also be needed.
+
+The simplest thing I could do would be to allow the user to only specifiy one vector of argument vectors like x0 x1 x2 x3 y0 y1 y2 y3... . This would be the simplest thing to implement and it would allow the user to loop however they want, the issue is that a function call would need to be made for every single element.
+
+A bit better solution might be to allow the user to pass arrays of argument vectors. This would be much simpler to implement than the first option. The only issue is that you would need to allocate the memory for all arguments. You might allocate memory only for for example 100 arguments and call the function multiple times. This is better than the second option. The second option is a special case of this option with the array length = 1. This would also allow easily to be used on random non generated data. For example if you are writing a function grapher you might want to add points where the adaptive algorithm detected not enought points. These points could be added to a list and then computed using this function.
+
+I think the most efficient way for the data to be aligned for algorithm to process is might be something like this.
+Example for 2 parameters.
+x0 x1 x2 x3 y0 y1 y2 y3 x4 x5 x6 x7 y4 y5 y6 y7 ...
+
+The loop would look something like this
+float* data;
+for (int i = 0; i < n; i++) {
+	// do computation
+	data += size_of_parameter_vector
+}
+This data layout is nice, because you don't have to change the code inside 'do computation' on any loop the need to access a single pointer so there is no need to implement an allocation algorithm.

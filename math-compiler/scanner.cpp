@@ -126,10 +126,7 @@ bool Scanner::eof() {
 }
 
 Token Scanner::makeToken(TokenType type) {
-	const auto length = currentCharIndex - currentTokenStartIndex;
-	ASSERT_NOT_NEGATIVE(length);
-	ASSERT_NOT_NEGATIVE(currentTokenStartIndex);
-	Token token(type, source.substr(static_cast<usize>(currentTokenStartIndex), static_cast<usize>(length)));
+	Token token(type, SourceLocation::fromStartEnd(currentTokenStartIndex, currentCharIndex));
 	currentTokenStartIndex = currentCharIndex;
 	return token;
 }
