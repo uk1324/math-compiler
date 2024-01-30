@@ -18,16 +18,14 @@ void CodeGenerator::initialize() {
 const std::vector<u8>& CodeGenerator::compile(const std::vector<IrOp>& irCode) {
 	initialize();
 
-	//emitAddssRegXmmRegXmm(ModRMRegisterXmm::XMM0, ModRMRegisterXmm::XMM5);
-
-	//emitPushReg64(ModRMRegisterX64::RBP);
-	//emitVmovapsToRegYmmFromRegYmm(ModRMRegisterXmm::XMM1, ModRMRegisterXmm::XMM15);
-	/*emitVmovapsToMemReg32DispI32FromRegYmm(ModRMRegisterX86::CX, 5, ModRMRegisterXmm::XMM5);
-	emitVmovapsToRegYmmFromMemReg32DispI32(ModRMRegisterXmm::XMM5, ModRMRegisterX86::CX, 5);*/
-	emitVaddpsRegYmmRegYmmRegYmm(ModRMRegisterXmm::XMM5, ModRMRegisterXmm::XMM6, ModRMRegisterXmm::XMM7);
-	emitVsubpsRegYmmRegYmmRegYmm(ModRMRegisterXmm::XMM6, ModRMRegisterXmm::XMM7, ModRMRegisterXmm::XMM8);
-	emitVmulpsRegYmmRegYmmRegYmm(ModRMRegisterXmm::XMM7, ModRMRegisterXmm::XMM8, ModRMRegisterXmm::XMM9);
-	emitVdivpsRegYmmRegYmmRegYmm(ModRMRegisterXmm::XMM8, ModRMRegisterXmm::XMM9, ModRMRegisterXmm::XMM10);
+	emitPushReg64(ModRMRegisterX64::RBP);
+	emitJmpRipRelative(-3);
+	emitJmpRipRelative(2150);
+	emitJlRipRelative(-3);
+	emitJlRipRelative(2150);
+	emitCmpReg32Reg32(ModRMRegisterX86::CX, ModRMRegisterX86::SI);
+	emitAddReg32Imm32(ModRMRegisterX86::CX, 51);
+	emitXorReg32Reg32(ModRMRegisterX86::AX, ModRMRegisterX86::AX);
 	/*for (const auto& op : irCode) {
 		std::visit(overloaded{
 			[&](const LoadConstantOp& op) { loadConstantOp(op); },
@@ -71,29 +69,29 @@ void CodeGenerator::patchExecutableCodeRipAddresses(u8* code, const u8* data) co
 void CodeGenerator::loadConstantOp(const LoadConstantOp& op) {
 	//emitMovssToMemReg32DispI32FromRegXmm()
 	/*const auto baseOffset = stackAllocate(sizeof(op.constant), alignof(op.constant));*/
-	const auto location = getRegisterLocation(op.destination);
+	/*const auto location = getRegisterLocation(op.destination);
 	movssToRegXmmConstant32(ModRMRegisterXmm::XMM0, op.constant);
-	movssToRegisterLocationFromRegXmm(location, ModRMRegisterXmm::XMM0);
+	movssToRegisterLocationFromRegXmm(location, ModRMRegisterXmm::XMM0);*/
 }
 
 void CodeGenerator::addOp(const AddOp& op) {
-	const auto lhs = getRegisterLocation(op.lhs);
+	/*const auto lhs = getRegisterLocation(op.lhs);
 	const auto rhs = getRegisterLocation(op.rhs);
 	movssToRegXmmFromRegisterLocation(ModRMRegisterXmm::XMM0, lhs);
 	movssToRegXmmFromRegisterLocation(ModRMRegisterXmm::XMM1, rhs);
 	emitAddssRegXmmRegXmm(ModRMRegisterXmm::XMM0, ModRMRegisterXmm::XMM1);
 	const auto destination = getRegisterLocation(op.destination);
-	movssToRegisterLocationFromRegXmm(destination, ModRMRegisterXmm::XMM0);
+	movssToRegisterLocationFromRegXmm(destination, ModRMRegisterXmm::XMM0);*/
 }
 
 void CodeGenerator::multiplyOp(const MultiplyOp& op) {
-	const auto lhs = getRegisterLocation(op.lhs);
+	/*const auto lhs = getRegisterLocation(op.lhs);
 	const auto rhs = getRegisterLocation(op.rhs);
 	movssToRegXmmFromRegisterLocation(ModRMRegisterXmm::XMM0, lhs);
 	movssToRegXmmFromRegisterLocation(ModRMRegisterXmm::XMM1, rhs);
 	emitMulssRegXmmRegXmm(ModRMRegisterXmm::XMM0, ModRMRegisterXmm::XMM1);
 	const auto destination = getRegisterLocation(op.destination);
-	movssToRegisterLocationFromRegXmm(destination, ModRMRegisterXmm::XMM0);
+	movssToRegisterLocationFromRegXmm(destination, ModRMRegisterXmm::XMM0);*/
 }
 
 void CodeGenerator::emitU8(u8 value) {
@@ -185,7 +183,7 @@ void CodeGenerator::emitModRmReg32DispI32Reg32(ModRMRegisterX86 registerWithAddr
 
 static constexpr u8 ADD_REG_REG_OP_CODE_BYTE = 0x01;
 
-void CodeGenerator::emitAddRegisterToRegister32(ModRMRegisterX86 rhs, ModRMRegisterX86 lhs) {
+void CodeGenerator::emitAddRegister32ToRegister32(ModRMRegisterX86 rhs, ModRMRegisterX86 lhs) {
 	emitU8(ADD_REG_REG_OP_CODE_BYTE);
 	emitU8(encodeModRmDirectAddressingByte(lhs, rhs));
 }
@@ -398,6 +396,45 @@ void CodeGenerator::emitVmulpsRegYmmRegYmmRegYmm(ModRMRegisterXmm destination, M
 
 void CodeGenerator::emitVdivpsRegYmmRegYmmRegYmm(ModRMRegisterXmm destination, ModRMRegisterXmm lhs, ModRMRegisterXmm rhs) {
 	emitInstructionRegYmmRegYmmRegYmm(0x5E, destination, lhs, rhs);
+}
+
+void CodeGenerator::emitJmpRipRelative(i32 displacement) {
+	if (displacement >= INT8_MIN && displacement <= INT8_MAX) {
+		emitU8(0xEB);
+		emitI8(static_cast<i8>(displacement));
+	} else {
+		emitU8(0xE9);
+		emitI32(displacement);
+	}
+}
+
+void CodeGenerator::emitJlRipRelative(i32 displacement) {
+	if (displacement >= INT8_MIN && displacement <= INT8_MAX) {
+		emitU8(0x7C);
+		emitI8(static_cast<i8>(displacement));
+	}
+	else {
+		emitU8(0x0F);
+		emitU8(0x8C);
+		emitI32(displacement);
+	}
+}
+
+void CodeGenerator::emitCmpReg32Reg32(ModRMRegisterX86 a, ModRMRegisterX86 b) {
+	emitU8(0x39);
+	emitU8(encodeModRmDirectAddressingByte(b, a));
+}
+
+void CodeGenerator::emitAddReg32Imm32(ModRMRegisterX86 destination, u32 immediate) {
+	// TODO: The code could be shorted for specific destination registers read the manual.
+	emitU8(0x81);
+	emitU8(encodeModRmByte(0b00, 0b000, 0b101));
+	emitU32(immediate);
+}
+
+void CodeGenerator::emitXorReg32Reg32(ModRMRegisterX86 lhs, ModRMRegisterX86 rhs) {
+	emitU8(0x33);
+	emitU8(encodeModRmDirectAddressingByte(lhs, rhs));
 }
 
 CodeGenerator::BaseOffset CodeGenerator::stackAllocate(i32 size, i32 aligment) {

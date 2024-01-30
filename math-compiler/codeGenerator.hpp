@@ -13,12 +13,12 @@
 
 /*
 
-void perform_calculations(float* input, float* output);
+void perform_calculations(const float* input, float* output);
 
 extern const int INPUT_BATCH_SIZE;
 extern const int OUTPUT_BATCH_SIZE;
 
-void function(float* input, float* output, int outputBatchCount) {
+void function(const float* input, float* output, int outputBatchCount) {
 	for (int i = 0; i < outputBatchCount; i++) {
 		perform_calculations(input, output);
 
@@ -26,6 +26,21 @@ void function(float* input, float* output, int outputBatchCount) {
 		output += OUTPUT_BATCH_SIZE;
 	}
 }
+*/
+
+/*
+mov some_free_register, 0 // Could do this using xor
+jmp loop_check
+loop_start:
+
+// loop content
+
+add integer_input_register[0], INPUT_BATCH_SIZE
+add integer_input_register[1], OUTPUT_BATCH_SIZE
+loop_check:
+cmp some_free_register, integer_input_register[2]
+jl loop_start
+ret
 
 */
 struct CodeGenerator {
@@ -97,6 +112,21 @@ struct CodeGenerator {
 		XMM15 = static_cast<u8>(ModRMRegisterX64::R15),
 	};
 
+	/*
+	windows integer arguments
+	rcx, rdx, r8, r9
+
+	system v integer arguments
+	rdi, rsi, rdx, rcx, r8, r9
+	*/
+
+	static constexpr ModRMRegisterX64 INTEGER_FUNCTION_INPUT_REGISTERS[]{
+		ModRMRegisterX64::RCX,
+		ModRMRegisterX64::RDX,
+		ModRMRegisterX64::R8,
+		ModRMRegisterX64::R9,
+	};
+
 	[[nodiscard]] static u8 encodeModRmDirectAddressingByte(u8 g, u8 e);
 	[[nodiscard]] static u8 encodeModRmDirectAddressingByte(ModRMRegisterXmm g, ModRMRegisterXmm e);
 	[[nodiscard]] static u8 encodeModRmDirectAddressingByte(ModRMRegisterX86 g, ModRMRegisterX86 e);
@@ -111,7 +141,7 @@ struct CodeGenerator {
 
 	void emitModRmReg32DispI32Reg32(ModRMRegisterX86 registerWithAddress, i32 displacement, ModRMRegisterX86 reg);
 
-	void emitAddRegisterToRegister32(ModRMRegisterX86 rhs, ModRMRegisterX86 lhs);
+	void emitAddRegister32ToRegister32(ModRMRegisterX86 rhs, ModRMRegisterX86 lhs);
 	void emitAddRegisterToRegister64(ModRMRegisterX64 rhs, ModRMRegisterX64 lhs);
 	void emitMovssRegToRegXmm(ModRMRegisterXmm destination, ModRMRegisterXmm source);
 
@@ -148,6 +178,15 @@ struct CodeGenerator {
 	void emitVsubpsRegYmmRegYmmRegYmm(ModRMRegisterXmm destination, ModRMRegisterXmm lhs, ModRMRegisterXmm rhs);
 	void emitVmulpsRegYmmRegYmmRegYmm(ModRMRegisterXmm destination, ModRMRegisterXmm lhs, ModRMRegisterXmm rhs);
 	void emitVdivpsRegYmmRegYmmRegYmm(ModRMRegisterXmm destination, ModRMRegisterXmm lhs, ModRMRegisterXmm rhs);
+
+	void emitJmpRipRelative(i32 displacement);
+	void emitJlRipRelative(i32 displacement);
+
+	void emitCmpReg32Reg32(ModRMRegisterX86 a, ModRMRegisterX86 b);
+
+	void emitAddReg32Imm32(ModRMRegisterX86 destination, u32 immediate);
+
+	void emitXorReg32Reg32(ModRMRegisterX86 lhs, ModRMRegisterX86 rhs);
 
 	struct RipRelativeImmediate32Allocation {
 		float value;
