@@ -12,6 +12,7 @@ void IrCompiler::initialize(std::span<const FunctionParameter> parameters, IrCom
 	generatedIrCode.clear();
 	this->parameters = parameters;
 	this->reporter = reporter;
+	allocatedRegistersCount = parameters.size();
 }
 
 std::optional<const std::vector<IrOp>*> IrCompiler::compile(

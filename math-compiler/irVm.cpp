@@ -9,13 +9,13 @@
 		} \
 	} while (false)
 
-Result<Real, const std::string&> IrVm::execute(const std::vector<IrOp>& instructions, std::span<const float> arguments) {
+Result<Real, std::string> IrVm::execute(const std::vector<IrOp>& instructions, std::span<const float> arguments) {
 	initialize(arguments);
 	for (const auto& op : instructions) {
 		if (const auto returnOp = std::get_if<ReturnOp>(&op)) {
 			if (!registerExists(returnOp->returnedRegister)) {
 				error("return instruction register doesn't exist");
-				return ResultErr<const std::string&>(errorMessage);
+				return ResultErr(std::string(errorMessage));
 				//return ResultErr(errorMessage);
 			}
 			return registers[returnOp->returnedRegister];
@@ -24,7 +24,7 @@ Result<Real, const std::string&> IrVm::execute(const std::vector<IrOp>& instruct
 	}
 	// Code didn't have a return.
 	error("code doesn't have a return instruction");
-	return ResultErr<const std::string&>(errorMessage);
+	return ResultErr(std::string(errorMessage));
 	//return ResultErr(errorMessage);
 }
 

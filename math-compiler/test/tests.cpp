@@ -89,19 +89,17 @@ void runTests() {
 				printIrCode(std::cout, **irCode);
 #endif
 
-				const auto output = irVm.execute(**irCode);
-				if (!output.has_value()) {
+				const auto output = irVm.execute(**irCode, arguments);
+				if (!output.isOk()) {
 					printFailed(name);
 					put("ir vm runtime error");
-				}
-				else if (*output != expectedOutput) {
+				} else if (output.ok() != expectedOutput) {
 					printFailed(name);
 					std::cout << "ir vm error: ";
-					std::cout << "expected '" << expectedOutput << "' got '" << *output << "'\n";
+					std::cout << "expected '" << expectedOutput << "' got '" << output.ok() << "'\n";
 					evaluationError = true;
 				}
-			}
-			else {
+			} else {
 				printFailed(name);
 				std::cout << "ir compiler error: ";
 				return;

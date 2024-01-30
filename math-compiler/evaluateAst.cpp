@@ -72,5 +72,7 @@ Result<Real, std::string> getVariable(const State& state, std::string_view ident
 			return state.arguments[i];
 		}
 	}
-	return ResultErr(format("variable '%' does not exist", identifier));
+	// Compiler was complaining the it could convert identifier to std::string or std::string_view. Also it said that it might be because of constness. but this works I guess. Already tried the basic things that might solve it but it didin'didn't work so I am using this.
+	const std::string_view& a = identifier;
+	return ResultErr(format("variable '%' does not exist", a));
 }

@@ -31,13 +31,15 @@ void debugOutputToken(const Token& token, std::string_view originalSource) {
 void test() {
 	/*std::string_view source = "2 + 2";*/
 	/*std::string_view source = "1 + 2 * 3";*/
-	std::string_view source = "xyz + 4(x + y)z";
-	//std::string_view source = "xy";
+	//std::string_view source = "xyz + 4(x + y)z";
+	////std::string_view source = "xy";
 	FunctionParameter parameters[] { { "x" }, { "y" }, { "z" } };
 	float arguments[] = { 1.0f, 2.0f, 4.0f };
+// 
 	//std::string_view source = "(2 + 3) * 4";
 	/*std::string_view source = "0.5772156649";*/
 	//std::vector<Func
+	std::string_view source = "x + 1";
 
 	std::ostream& outputStream = std::cerr;
 
@@ -73,6 +75,9 @@ void test() {
 	const auto irCode = compiler.compile(*ast, parameters, compilerReporter);
 	if (irCode.has_value()) {
 		printIrCode(std::cout, **irCode);
+	} else {
+		put("ir compiler error");
+		return;
 	}
 
 	IrVm vm;
@@ -80,8 +85,8 @@ void test() {
 
 	CodeGenerator codeGenerator;
 	auto machineCode = codeGenerator.compile(**irCode);
-	const auto out = executeFunction(codeGenerator, machineCode, codeGenerator.data);
-	put("out = %", out);
+	/*const auto out = executeFunction(codeGenerator, machineCode, codeGenerator.data);
+	put("out = %", out);*/
 
 	std::ofstream bin("test.txt", std::ios::out | std::ios::binary);
 	bin.write(reinterpret_cast<const char*>(machineCode.data()), machineCode.size());

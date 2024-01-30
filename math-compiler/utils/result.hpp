@@ -28,6 +28,7 @@
 
 template<typename Err>
 struct ResultErr {
+	// Only making the move constructor available so you have to explicitly copy objects.
 	explicit ResultErr(Err&& err);
 
 	Err err_;
@@ -36,6 +37,8 @@ struct ResultErr {
 enum class ResultState : u8 {
 	OK, ERR
 };
+
+// If I want to support references then I could specialize the template and for example store the flag inside one of the pointers. There are 3 possible combinations <Ref, NonRef>, <NonRef, Ref>, <Ref, Ref>. Also there is std::reference_wrapper.
 
 template<typename Ok, typename Err>
 class [[nodiscard]] Result {
@@ -263,5 +266,7 @@ void Result<Ok, Err>::destructUnion() {
 template<typename Err>
 ResultErr<Err>::ResultErr(Err&& err)
 	: err_(err) {}
+
+
 
 #undef RESULT_ASSERT

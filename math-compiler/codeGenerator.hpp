@@ -3,6 +3,13 @@
 #include "ir.hpp"
 #include <unordered_map>
 
+// Vex prefix described on page 538 on the intel manual.
+// also https://wiki.osdev.org/X86-64_Instruction_Encoding#VEX.2FXOP_opcodes
+// If you for example have 
+// VEX.128.0F.WIG 28 /r 
+// 0F probably refers to the value of the m-mmmm field (this isn't the actual value of the field read the manual to find the values).
+// the l bit of the prefix decides wether it is a 128 or 256 bit instruction
+// the /r mean the modrm field
 struct CodeGenerator {
 	CodeGenerator();
 	void initialize();
@@ -60,7 +67,16 @@ struct CodeGenerator {
 		XMM4 = static_cast<u8>(ModRMRegisterX86::SP),
 		XMM5 = static_cast<u8>(ModRMRegisterX86::BP),
 		XMM6 = static_cast<u8>(ModRMRegisterX86::SI),
-		XMM7 = static_cast<u8>(ModRMRegisterX86::DI)
+		XMM7 = static_cast<u8>(ModRMRegisterX86::DI),
+		// TODO: Not all function handle arguments with indicies bigger than 7
+		XMM8 = static_cast<u8>(ModRMRegisterX64::R8),
+		XMM9 = static_cast<u8>(ModRMRegisterX64::R9),
+		XMM10 = static_cast<u8>(ModRMRegisterX64::R10),
+		XMM11 = static_cast<u8>(ModRMRegisterX64::R11),
+		XMM12 = static_cast<u8>(ModRMRegisterX64::R12),
+		XMM13 = static_cast<u8>(ModRMRegisterX64::R13),
+		XMM14 = static_cast<u8>(ModRMRegisterX64::R14),
+		XMM15 = static_cast<u8>(ModRMRegisterX64::R15),
 	};
 
 	[[nodiscard]] static u8 encodeModRmDirectAddressingByte(u8 g, u8 e);
@@ -98,6 +114,8 @@ struct CodeGenerator {
 	void emitPushReg64(ModRMRegisterX64 reg);
 	void emitPopReg64(ModRMRegisterX64 reg);
 
+	void emitVmovapsToRegYmmFromRegYmm(ModRMRegisterXmm destination, ModRMRegisterXmm source);
+
 	struct RipRelativeImmediate32Allocation {
 		float value;
 		i64 ripOffsetBytesCodeIndex; // ripOffset is at code.data() + ripOffsetBytesCodeIndex
@@ -121,6 +139,9 @@ struct CodeGenerator {
 	};
 	std::unordered_map<Register, RegisterLocation> registerLocations;
 	RegisterLocation getRegisterLocation(Register reg);
+
+	void emit2ByteVex(bool r, u8 vvvv, bool l, u8 pp);
+	void emit3ByteVex(bool r, bool x, bool b, u8 m_mmmm, bool w, u8 vvvv, bool l, u8 pp);
 
 	void movssToRegisterLocationFromRegXmm(const RegisterLocation& to, ModRMRegisterXmm from);
 	void movssToRegXmmFromRegisterLocation(ModRMRegisterXmm to, const RegisterLocation& from);

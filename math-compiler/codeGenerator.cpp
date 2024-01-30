@@ -18,10 +18,11 @@ void CodeGenerator::initialize() {
 const std::vector<u8>& CodeGenerator::compile(const std::vector<IrOp>& irCode) {
 	initialize();
 
-	emitAddssRegXmmRegXmm(ModRMRegisterXmm::XMM0, ModRMRegisterXmm::XMM5);
+	//emitAddssRegXmmRegXmm(ModRMRegisterXmm::XMM0, ModRMRegisterXmm::XMM5);
 
-	emitPushReg64(ModRMRegisterX64::RBP);
-	for (const auto& op : irCode) {
+	//emitPushReg64(ModRMRegisterX64::RBP);
+	emitVmovapsToRegYmmFromRegYmm(ModRMRegisterXmm::XMM1, ModRMRegisterXmm::XMM15);
+	/*for (const auto& op : irCode) {
 		std::visit(overloaded{
 			[&](const LoadConstantOp& op) { loadConstantOp(op); },
 			[&](const AddOp& op) { addOp(op); },
@@ -36,7 +37,9 @@ const std::vector<u8>& CodeGenerator::compile(const std::vector<IrOp>& irCode) {
 				emitRet();
 			}
 		}, op);
-	}
+	}*/
+
+	emitRet();
 	return code;
 }
 
@@ -171,17 +174,26 @@ void CodeGenerator::emitAddRegisterToRegister32(ModRMRegisterX86 rhs, ModRMRegis
 	emitU8(encodeModRmDirectAddressingByte(lhs, rhs));
 }
 
+template<typename T>
+T takeFirst3Bits(T r) {
+	return static_cast<T>(0b111 & static_cast<u8>(r));
+
+}
+
+template<typename T>
+bool take4thBit(T r) {
+	// Assumes bits after the fourth one are set to zero.
+	return static_cast<u8>(r) >> 3;
+};
+
 void CodeGenerator::emitAddRegisterToRegister64(ModRMRegisterX64 rhs, ModRMRegisterX64 lhs) {
-	auto takeFirst3Bits = [](ModRMRegisterX64 r) -> ModRMRegisterX86 {
-		return static_cast<ModRMRegisterX86>(0b111 & static_cast<u8>(r));
-	};
-	auto take4thBit = [](ModRMRegisterX64 r) -> bool {
-		// Assumes bits after the fourth one are set to zero.
-		return static_cast<u8>(r) >> 3;
-	};
+	
 	emitU8(encodeRexPrefixByte(true, take4thBit(rhs), false, take4thBit(lhs)));
 	emitU8(ADD_REG_REG_OP_CODE_BYTE);
-	emitU8(encodeModRmDirectAddressingByte(takeFirst3Bits(lhs), takeFirst3Bits(rhs)));
+	emitU8(encodeModRmDirectAddressingByte(
+		static_cast<ModRMRegisterX86>(takeFirst3Bits(lhs)), 
+		static_cast<ModRMRegisterX86>(takeFirst3Bits(rhs))
+	));
 }
 
 void CodeGenerator::emitMovssRegToRegXmm(ModRMRegisterXmm destination, ModRMRegisterXmm source) {
@@ -265,6 +277,35 @@ void CodeGenerator::emitPopReg64(ModRMRegisterX64 reg) {
 	emitU8(0x58 + static_cast<u8>(reg));
 }
 
+void CodeGenerator::emitVmovapsToRegYmmFromRegYmm(ModRMRegisterXmm destination, ModRMRegisterXmm source) {
+	//emitU8(0xC4);
+	///*emitU8(0);
+	//emitU8(0);*/
+	//emitU8(0xFF);
+	//emitU8(0x0F);
+	//emitU8(0x28);
+	//emitU8(encodeModRmDirectAddressingByte(destination, source));
+
+
+	//emitU8(0xC5);
+	//emitU8(0b11111100);
+	//// 11111100
+	//emitU8(0x29);
+
+
+	/*emitU8(0x45);
+	emitU8(0xF0);*/
+	const auto destination4thBit = take4thBit(destination);
+	const auto source4thBit = take4thBit(source);
+	if (source4thBit == 0) {
+		emit2ByteVex(!source4thBit, 0b1111, 1, 0b00);
+	} else {
+		emit3ByteVex(!source4thBit, 0, !destination4thBit, 0b000001, 0, 0b1111, 1, 0b00);
+	}
+	emitU8(0x29);
+	emitU8(encodeModRmDirectAddressingByte(takeFirst3Bits(source), takeFirst3Bits(destination)));
+}
+
 CodeGenerator::BaseOffset CodeGenerator::stackAllocate(i32 size, i32 aligment) {
 	const BaseOffset result{ .baseOffset = -stackMemoryAllocated };
 	stackMemoryAllocated += size;
@@ -317,4 +358,25 @@ void CodeGenerator::movssToRegXmmFromRegisterLocation(ModRMRegisterXmm to, const
 //	emitU8(ebpDisplacement);
 //}
 
+void CodeGenerator::emit2ByteVex(bool r, u8 vvvv, bool l, u8 pp) {
+	emitU8(0xC5);
+	emitU8(
+		(u8(r) << 7) | 
+		(vvvv << 3) | 
+		(u8(l) << 2) |
+		u8(pp));
+}
 
+void CodeGenerator::emit3ByteVex(bool r, bool x, bool b, u8 m_mmmm, bool w, u8 vvvv, bool l, u8 pp) {
+	emitU8(0xC4);
+	emitU8(
+		(u8(r) << 7) |
+		(u8(x) << 6) |
+		(u8(b) << 5) |
+		m_mmmm);
+	emitU8(
+		(u8(w) << 7) |
+		(vvvv << 3) |
+		(u8(l) << 2) |
+		u8(pp));
+}

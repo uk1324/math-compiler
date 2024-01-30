@@ -11,7 +11,7 @@ struct IrVm {
 		OK, ERROR
 	};
 
-	Result<Real, const std::string&> execute(const std::vector<IrOp>& instructions, std::span<const float> arguments);
+	Result<Real, std::string> execute(const std::vector<IrOp>& instructions, std::span<const float> arguments);
 	void initialize(std::span<const float> arguments);
 	Status executeOp(const IrOp& op);
 	void executeLoadConstantOp(const LoadConstantOp& op);
