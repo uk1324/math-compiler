@@ -34,7 +34,7 @@ void test() {
 	//std::string_view source = "xyz + 4(x + y)z";
 	////std::string_view source = "xy";
 	FunctionParameter parameters[] { { "x" }, { "y" }, { "z" } };
-	float arguments[] = { 1.0f, 2.0f, 4.0f };
+	float arguments[] = { 11.0f, 2.0f, 4.0f };
 // 
 	//std::string_view source = "(2 + 3) * 4";
 	/*std::string_view source = "0.5772156649";*/
@@ -85,8 +85,9 @@ void test() {
 
 	CodeGenerator codeGenerator;
 	auto machineCode = codeGenerator.compile(**irCode, parameters);
-	//const auto out = executeFunction(codeGenerator, machineCode, codeGenerator.data);
-	//put("out = %", out);
+
+	const auto out = executeFunction(codeGenerator, machineCode, codeGenerator.data, arguments);
+	put("out = %", out);
 
 	std::ofstream bin("test.txt", std::ios::out | std::ios::binary);
 	bin.write(reinterpret_cast<const char*>(machineCode.data()), machineCode.size());

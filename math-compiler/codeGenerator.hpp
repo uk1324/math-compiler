@@ -75,6 +75,8 @@ struct CodeGenerator {
 	a:
 	...
 	Then the size of the relative distance of a depends on the size of relative distance of b and vice versa. Not sure how this could be optimized, but another simpler method might be to take the maximum possible distance based on the number of jumps between the label and the jump and base the size of the jump displacement on that. The simplest thing would be to always emit the biggest instruction size unless you know already know the size of the operand when emmiting the instruction.
+
+	I guess one way that might work might be first emmiting all the instructions with the max size then iterating untill nothing changes and replacing the bigger sizes with smaller ones. I don't think anything should break, because the distance can only get smaller if you make the operands of outher instructions smaller.
 	*/
 	void patchJumps();
 
@@ -218,11 +220,10 @@ struct CodeGenerator {
 	};
 
 	struct JumpInfo {
-		JumpType type;
-		i64 source;
+		i64 instructionSize;
+		i64 displacementBytesCodeOffset;
 	};
-	// Doesn't actually emit any code. For the jump to actually be emited it must be patched.
-	[[nodiscard]] JumpInfo emitJump(JumpType type) const;
+	[[nodiscard]] JumpInfo emitJump(JumpType type);
 	void emitAndPatchJump(JumpType type, i64 jumpDestination);
 	void patchJump(const JumpInfo& info, i64 jumpDestination);
 	i64 currentCodeLocation() const;
