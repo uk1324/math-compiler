@@ -84,9 +84,9 @@ void test() {
 	vm.execute(**irCode, arguments);
 
 	CodeGenerator codeGenerator;
-	auto machineCode = codeGenerator.compile(**irCode);
-	/*const auto out = executeFunction(codeGenerator, machineCode, codeGenerator.data);
-	put("out = %", out);*/
+	auto machineCode = codeGenerator.compile(**irCode, parameters);
+	//const auto out = executeFunction(codeGenerator, machineCode, codeGenerator.data);
+	//put("out = %", out);
 
 	std::ofstream bin("test.txt", std::ios::out | std::ios::binary);
 	bin.write(reinterpret_cast<const char*>(machineCode.data()), machineCode.size());

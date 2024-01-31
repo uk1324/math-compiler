@@ -1,7 +1,9 @@
 #pragma once
 
 #include "ir.hpp"
+#include "input.hpp"
 #include <unordered_map>
+#include <span>
 
 // Vex prefix described on page 538 on the intel manual.
 // also https://wiki.osdev.org/X86-64_Instruction_Encoding#VEX.2FXOP_opcodes
@@ -11,15 +13,21 @@
 // the l bit of the prefix decides wether it is a 128 or 256 bit instruction
 // the /r mean the modrm field
 
+// Decoding REX.W + 81 /0 id
+// Set the REX.W = 1
+// emit 0x81
+// /0 mean that the modrm.reg = 0b000
+// id mean immediate double word.
+
 /*
 
 void perform_calculations(const float* input, float* output);
 
-extern const int INPUT_BATCH_SIZE;
-extern const int OUTPUT_BATCH_SIZE;
+extern const i64 INPUT_BATCH_SIZE;
+extern const i64 OUTPUT_BATCH_SIZE;
 
-void function(const float* input, float* output, int outputBatchCount) {
-	for (int i = 0; i < outputBatchCount; i++) {
+void function(const float* input, float* output, i64 outputBatchCount) {
+	for (i64 i = 0; i < outputBatchCount; i++) {
 		perform_calculations(input, output);
 
 		input += INPUT_BATCH_SIZE;
@@ -37,17 +45,39 @@ loop_start:
 
 add integer_input_register[0], INPUT_BATCH_SIZE
 add integer_input_register[1], OUTPUT_BATCH_SIZE
+inc some_free_register
 loop_check:
 cmp some_free_register, integer_input_register[2]
 jl loop_start
 ret
 
 */
+
+// TODO: Could create an assembler class.
+// Could emit struct instead of emiting code directly so the assembly could be optimized using peephole optimization.
+// The patching of jumps would still need to work the way it is currently implemented, because if there is a forward jump then the relative distance is still unknown so the jump must be patched after all the code is emmited.
+
+// TODO: Maybe make a function that just returns the lower part of a register64 and return a register32 with error checking.
 struct CodeGenerator {
 	CodeGenerator();
 	void initialize();
 
-	const std::vector<u8>& compile(const std::vector<IrOp>& irCode);
+	const std::vector<u8>& compile(const std::vector<IrOp>& irCode, std::span<const FunctionParameter> parameters);
+
+	// Emmiting jumps after the code has been generated is can be difficult in some situations.
+	/*
+	For example if you have something like this
+	b:
+	...
+	jmp a
+	...
+	jmp b
+	a:
+	...
+	Then the size of the relative distance of a depends on the size of relative distance of b and vice versa. Not sure how this could be optimized, but another simpler method might be to take the maximum possible distance based on the number of jumps between the label and the jump and base the size of the jump displacement on that. The simplest thing would be to always emit the biggest instruction size unless you know already know the size of the operand when emmiting the instruction.
+	*/
+	void patchJumps();
+
 	void patchExecutableCodeRipAddresses(u8* code, const u8* data) const;
 
 	void loadConstantOp(const LoadConstantOp& op);
@@ -179,14 +209,43 @@ struct CodeGenerator {
 	void emitVmulpsRegYmmRegYmmRegYmm(ModRMRegisterXmm destination, ModRMRegisterXmm lhs, ModRMRegisterXmm rhs);
 	void emitVdivpsRegYmmRegYmmRegYmm(ModRMRegisterXmm destination, ModRMRegisterXmm lhs, ModRMRegisterXmm rhs);
 
-	void emitJmpRipRelative(i32 displacement);
-	void emitJlRipRelative(i32 displacement);
+	/*void emitJmpRipRelative(i32 displacement);
+	void emitJlRipRelative(i32 displacement);*/
+
+	enum class JumpType {
+		UNCONDITONAL,
+		SIGNED_LESS
+	};
+
+	struct JumpInfo {
+		JumpType type;
+		i64 source;
+	};
+	// Doesn't actually emit any code. For the jump to actually be emited it must be patched.
+	[[nodiscard]] JumpInfo emitJump(JumpType type) const;
+	void emitAndPatchJump(JumpType type, i64 jumpDestination);
+	void patchJump(const JumpInfo& info, i64 jumpDestination);
+	i64 currentCodeLocation() const;
+
+	struct JumpToPatch {
+		JumpInfo jump;
+		i64 jumpDestination;
+	};
+	std::vector<JumpToPatch> jumpsToPatch;
 
 	void emitCmpReg32Reg32(ModRMRegisterX86 a, ModRMRegisterX86 b);
+	void emitCmpReg64Reg64(ModRMRegisterX64 a, ModRMRegisterX64 b);
 
-	void emitAddReg32Imm32(ModRMRegisterX86 destination, u32 immediate);
+	void emitAddReg32Imm32(ModRMRegisterX86 destination, i32 immediate);
+	void emitAddReg64Imm32(ModRMRegisterX64 destination, i32 immediate);
 
+	void emitIncReg32(ModRMRegisterX86 x);
+	void emitIncReg64(ModRMRegisterX64 x);
+
+	// TODO: ModRMRegisterX86 is stupid, because you can't use the lower parts of r8, r9, ... regsiters in these functions.
+	// Should probably create some general register type and constrain some function to only take a subset of register by creating another type like Register4Bit and Register3Bit idk.
 	void emitXorReg32Reg32(ModRMRegisterX86 lhs, ModRMRegisterX86 rhs);
+	void emitXorReg64Reg64(ModRMRegisterX64 lhs, ModRMRegisterX64 rhs);
 
 	struct RipRelativeImmediate32Allocation {
 		float value;

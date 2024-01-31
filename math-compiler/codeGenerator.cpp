@@ -1,6 +1,7 @@
 #include "codeGenerator.hpp"
 #include "utils/overloaded.hpp"
 #include "utils/asserts.hpp"
+#include <algorithm>
 
 CodeGenerator::CodeGenerator() {
 	initialize();
@@ -13,19 +14,30 @@ void CodeGenerator::initialize() {
 	stackAllocations.clear();
 	stackMemoryAllocated = 0;
 	registerLocations.clear();
+	jumpsToPatch.clear();
 }
 
-const std::vector<u8>& CodeGenerator::compile(const std::vector<IrOp>& irCode) {
+#include <iostream>
+
+const std::vector<u8>& CodeGenerator::compile(const std::vector<IrOp>& irCode, std::span<const FunctionParameter> parameters) {
 	initialize();
 
+	const auto inputArrayRegister = INTEGER_FUNCTION_INPUT_REGISTERS[0];
+	const auto outputArrayRegister = INTEGER_FUNCTION_INPUT_REGISTERS[1];
+	const auto arraySizeRegister = INTEGER_FUNCTION_INPUT_REGISTERS[2];
+
 	emitPushReg64(ModRMRegisterX64::RBP);
-	emitJmpRipRelative(-3);
-	emitJmpRipRelative(2150);
-	emitJlRipRelative(-3);
-	emitJlRipRelative(2150);
-	emitCmpReg32Reg32(ModRMRegisterX86::CX, ModRMRegisterX86::SI);
-	emitAddReg32Imm32(ModRMRegisterX86::CX, 51);
-	emitXorReg32Reg32(ModRMRegisterX86::AX, ModRMRegisterX86::AX);
+
+	const auto someFreeRegister = INTEGER_FUNCTION_INPUT_REGISTERS[2];
+
+	const auto indexRegister = ModRMRegisterX64::RAX;
+
+	emitXorReg64Reg64(indexRegister, indexRegister);
+
+	const auto jumpToLoopConditionCheck = emitJump(JumpType::UNCONDITONAL);
+
+	const auto loopStartLocation = currentCodeLocation();
+
 	/*for (const auto& op : irCode) {
 		std::visit(overloaded{
 			[&](const LoadConstantOp& op) { loadConstantOp(op); },
@@ -43,8 +55,106 @@ const std::vector<u8>& CodeGenerator::compile(const std::vector<IrOp>& irCode) {
 		}, op);
 	}*/
 
+	const auto registerSize = 8 * sizeof(float);
+	emitAddReg64Imm32(inputArrayRegister, parameters.size() * registerSize);
+	emitAddReg64Imm32(outputArrayRegister, registerSize);
+	emitIncReg64(indexRegister);
+
+	const auto loopConditionCheckLocation = currentCodeLocation();
+	patchJump(jumpToLoopConditionCheck, loopConditionCheckLocation);
+
+
+	emitCmpReg64Reg64(indexRegister, arraySizeRegister);
+	emitAndPatchJump(JumpType::SIGNED_LESS, loopStartLocation);
+
 	emitRet();
+
+	patchJumps();
+
 	return code;
+}
+
+void CodeGenerator::patchJumps() {
+	std::sort(jumpsToPatch.begin(), jumpsToPatch.end(), [](const JumpToPatch& a, const JumpToPatch& b) {
+		return a.jump.source < b.jump.source;
+	});
+
+	i64 accumulatedOffsets = 0;
+	for (const auto& toPatch : jumpsToPatch) {
+		// @Performance of insert?
+		auto insertU8 = [&](i64 offset, u8 value) {
+			code.insert(code.begin() + toPatch.jump.source + offset + accumulatedOffsets, value);
+		};
+
+		auto insertI8 = [&](i64 offset, i8 value) {
+			insertU8(offset, std::bit_cast<u8>(value));
+		};
+
+		auto insertU32 = [&](i64 offset, u32 value) {
+			const auto bytes = reinterpret_cast<u8*>(&value);
+			insertU8(offset, bytes[0]);
+			insertU8(offset + 1, bytes[1]);
+			insertU8(offset + 2, bytes[2]);
+			insertU8(offset + 3, bytes[3]);
+		};
+
+		auto insertI32 = [&](i64 offset, i32 value) {
+			insertU32(offset, std::bit_cast<u32>(value));
+		};
+
+		auto printCode = [&]() {
+			std::cout << std::hex;
+			for (int i = 0; i < code.size(); i++) {
+				std::cout << static_cast<u32>(code[i]) << ' ';
+			}
+			std::cout << '\n';
+			std::cout << std::dec;
+		};
+
+		// encoding jumps
+		// https://stackoverflow.com/questions/14889643/how-encode-a-relative-short-jmp-in-x86
+		auto displacement = accumulatedOffsets + toPatch.jumpDestination - toPatch.jump.source;
+
+		i64 instructionSize;
+
+		switch (toPatch.jump.type) {
+		case JumpType::UNCONDITONAL: {
+			const auto i8instructionSize = 2;
+			const auto i8Displacement = displacement - i8instructionSize;
+			if (displacement >= INT8_MIN && displacement <= INT8_MAX) {
+				instructionSize = i8instructionSize;
+				insertU8(0, 0xEB);
+				insertI8(1, static_cast<i8>(i8Displacement));
+			} else {
+				instructionSize = 5;
+				insertU8(0, 0xE9);
+				insertI32(1, static_cast<i32>(displacement - instructionSize));
+			}
+			break;
+		}
+		case JumpType::SIGNED_LESS: {
+			const auto i8instructionSize = 2;
+			const auto i8Displacement = displacement - i8instructionSize;
+			if (displacement >= INT8_MIN && displacement <= INT8_MAX) {
+				instructionSize = i8instructionSize;
+				insertU8(0, 0x7C);
+				insertI8(1, static_cast<i8>(i8Displacement));
+			}
+			else {
+				instructionSize = 6;
+				insertU8(0, 0x0F);
+				insertU8(1, 0x8C);
+				insertI32(2, static_cast<i32>(displacement - instructionSize));
+			}
+			break;
+		}
+
+		default:
+			ASSERT_NOT_REACHED();
+			return;
+		}
+		accumulatedOffsets += instructionSize;
+	}
 }
 
 void CodeGenerator::patchExecutableCodeRipAddresses(u8* code, const u8* data) const {
@@ -398,26 +508,49 @@ void CodeGenerator::emitVdivpsRegYmmRegYmmRegYmm(ModRMRegisterXmm destination, M
 	emitInstructionRegYmmRegYmmRegYmm(0x5E, destination, lhs, rhs);
 }
 
-void CodeGenerator::emitJmpRipRelative(i32 displacement) {
-	if (displacement >= INT8_MIN && displacement <= INT8_MAX) {
-		emitU8(0xEB);
-		emitI8(static_cast<i8>(displacement));
-	} else {
-		emitU8(0xE9);
-		emitI32(displacement);
-	}
+//void CodeGenerator::emitJmpRipRelative(i32 displacement) {
+//	if (displacement >= INT8_MIN && displacement <= INT8_MAX) {
+//		emitU8(0xEB);
+//		emitI8(static_cast<i8>(displacement));
+//	} else {
+//		emitU8(0xE9);
+//		emitI32(displacement);
+//	}
+//}
+//
+//void CodeGenerator::emitJlRipRelative(i32 displacement) {
+//	if (displacement >= INT8_MIN && displacement <= INT8_MAX) {
+//		emitU8(0x7C);
+//		emitI8(static_cast<i8>(displacement));
+//	}
+//	else {
+//		emitU8(0x0F);
+//		emitU8(0x8C);
+//		emitI32(displacement);
+//	}
+//}
+
+CodeGenerator::JumpInfo CodeGenerator::emitJump(JumpType type) const {
+	return JumpInfo{
+		.type = type,
+		.source = currentCodeLocation(),
+	};
 }
 
-void CodeGenerator::emitJlRipRelative(i32 displacement) {
-	if (displacement >= INT8_MIN && displacement <= INT8_MAX) {
-		emitU8(0x7C);
-		emitI8(static_cast<i8>(displacement));
-	}
-	else {
-		emitU8(0x0F);
-		emitU8(0x8C);
-		emitI32(displacement);
-	}
+void CodeGenerator::emitAndPatchJump(JumpType type, i64 jumpDestination) {
+	const auto jump = emitJump(type);
+	patchJump(jump, jumpDestination);
+}
+
+void CodeGenerator::patchJump(const JumpInfo& info, i64 jumpDestination) {
+	jumpsToPatch.push_back(JumpToPatch{
+		.jump = info,
+		.jumpDestination = jumpDestination
+	});
+}
+
+i64 CodeGenerator::currentCodeLocation() const {
+	return code.size();
 }
 
 void CodeGenerator::emitCmpReg32Reg32(ModRMRegisterX86 a, ModRMRegisterX86 b) {
@@ -425,16 +558,41 @@ void CodeGenerator::emitCmpReg32Reg32(ModRMRegisterX86 a, ModRMRegisterX86 b) {
 	emitU8(encodeModRmDirectAddressingByte(b, a));
 }
 
-void CodeGenerator::emitAddReg32Imm32(ModRMRegisterX86 destination, u32 immediate) {
-	// TODO: The code could be shorted for specific destination registers read the manual.
+void CodeGenerator::emitCmpReg64Reg64(ModRMRegisterX64 a, ModRMRegisterX64 b) {
+	emitU8(encodeRexPrefixByte(1, take4thBit(a), 0, take4thBit(b)));
+	emitCmpReg32Reg32(static_cast<ModRMRegisterX86>(takeFirst3Bits(a)), static_cast<ModRMRegisterX86>(takeFirst3Bits(b)));
+}
+
+void CodeGenerator::emitAddReg32Imm32(ModRMRegisterX86 destination, i32 immediate) {
+	// TODO: The code could be shorted for specific destination registers. Read the manual.
 	emitU8(0x81);
-	emitU8(encodeModRmByte(0b00, 0b000, 0b101));
+	emitU8(encodeModRmByte(0b11 /* Use register direct addressing */, 0b000, static_cast<u8>(destination)));
 	emitU32(immediate);
+}
+
+void CodeGenerator::emitAddReg64Imm32(ModRMRegisterX64 destination, i32 immediate) {
+	emitU8(encodeRexPrefixByte(1, take4thBit(destination), 0, 0));
+	emitAddReg32Imm32(static_cast<ModRMRegisterX86>(takeFirst3Bits(destination)), immediate);
+}
+
+void CodeGenerator::emitIncReg32(ModRMRegisterX86 x) {
+	emitU8(0xFF);
+	emitU8(encodeModRmByte(0b11, 0b000, static_cast<u8>(x)));
+}
+
+void CodeGenerator::emitIncReg64(ModRMRegisterX64 x) {
+	emitU8(encodeRexPrefixByte(1, 0, 0, take4thBit(x)));
+	emitIncReg32(static_cast<ModRMRegisterX86>(takeFirst3Bits(x)));
 }
 
 void CodeGenerator::emitXorReg32Reg32(ModRMRegisterX86 lhs, ModRMRegisterX86 rhs) {
 	emitU8(0x33);
 	emitU8(encodeModRmDirectAddressingByte(lhs, rhs));
+}
+
+void CodeGenerator::emitXorReg64Reg64(ModRMRegisterX64 lhs, ModRMRegisterX64 rhs) {
+	emitU8(encodeRexPrefixByte(1, take4thBit(rhs), 0, take4thBit(lhs)));
+	emitXorReg32Reg32(static_cast<ModRMRegisterX86>(takeFirst3Bits(rhs)), static_cast<ModRMRegisterX86>(takeFirst3Bits(lhs)));
 }
 
 CodeGenerator::BaseOffset CodeGenerator::stackAllocate(i32 size, i32 aligment) {

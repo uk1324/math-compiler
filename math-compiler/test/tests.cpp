@@ -107,7 +107,7 @@ void runTests() {
 
 			{
 				ASSERT(irCode.has_value());
-				const auto code = codeGenerator.compile(**irCode);
+				const auto code = codeGenerator.compile(**irCode, parameters);
 				const auto output = executeFunction(codeGenerator, code, codeGenerator.data);
 				if (output != expectedOutput) {
 					printFailed(name);
