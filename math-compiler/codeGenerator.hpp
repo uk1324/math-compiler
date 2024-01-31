@@ -59,41 +59,6 @@ ret
 
 // TODO: Maybe make a function that just returns the lower part of a register64 and return a register32 with error checking.
 struct CodeGenerator {
-	CodeGenerator();
-	void initialize();
-
-	const std::vector<u8>& compile(const std::vector<IrOp>& irCode, std::span<const FunctionParameter> parameters);
-
-	// Emmiting jumps after the code has been generated is can be difficult in some situations.
-	/*
-	For example if you have something like this
-	b:
-	...
-	jmp a
-	...
-	jmp b
-	a:
-	...
-	Then the size of the relative distance of a depends on the size of relative distance of b and vice versa. Not sure how this could be optimized, but another simpler method might be to take the maximum possible distance based on the number of jumps between the label and the jump and base the size of the jump displacement on that. The simplest thing would be to always emit the biggest instruction size unless you know already know the size of the operand when emmiting the instruction.
-
-	I guess one way that might work might be first emmiting all the instructions with the max size then iterating untill nothing changes and replacing the bigger sizes with smaller ones. I don't think anything should break, because the distance can only get smaller if you make the operands of outher instructions smaller.
-	*/
-	void patchJumps();
-
-	void patchExecutableCodeRipAddresses(u8* code, const u8* data) const;
-
-	void loadConstantOp(const LoadConstantOp& op);
-	void addOp(const AddOp& op);
-	void multiplyOp(const MultiplyOp& op);
-
-	void emitU8(u8 value);
-	void emitI8(i8 value);
-	void emitU32(u32 value);
-	void emitI32(u32 value);
-	void emitRet();
-	void dataEmitU8(u8 value);
-	void dataEmitU32(u32 value);
-
 	enum class ModRMRegisterX86 : u8 {
 		AX = 0b000,
 		CX = 0b001,
@@ -159,6 +124,57 @@ struct CodeGenerator {
 		ModRMRegisterX64::R9,
 	};
 
+	CodeGenerator();
+	void initialize();
+
+	const std::vector<u8>& compile(const std::vector<IrOp>& irCode, std::span<const FunctionParameter> parameters);
+
+	// Emmiting jumps after the code has been generated is can be difficult in some situations.
+	/*
+	For example if you have something like this
+	b:
+	...
+	jmp a
+	...
+	jmp b
+	a:
+	...
+	Then the size of the relative distance of a depends on the size of relative distance of b and vice versa. Not sure how this could be optimized, but another simpler method might be to take the maximum possible distance based on the number of jumps between the label and the jump and base the size of the jump displacement on that. The simplest thing would be to always emit the biggest instruction size unless you know already know the size of the operand when emmiting the instruction.
+
+	I guess one way that might work might be first emmiting all the instructions with the max size then iterating untill nothing changes and replacing the bigger sizes with smaller ones. I don't think anything should break, because the distance can only get smaller if you make the operands of outher instructions smaller.
+	*/
+	void computeRegisterLastUsage(const std::vector<IrOp>& irCode);
+	std::unordered_map<Register, i64> registerToLastUsage;
+
+	struct StackLocation {
+		i64 baseOffset;
+	};
+
+	struct ConstantRegisterOffsetLocation {
+		// Can be RIP
+		ModRMRegisterX64 registerWithAddress;
+	};
+
+	/*struct DataLocation {
+		std::variant<
+	};*/
+
+	void patchJumps();
+
+	void patchExecutableCodeRipAddresses(u8* code, const u8* data) const;
+
+	void loadConstantOp(const LoadConstantOp& op);
+	void addOp(const AddOp& op);
+	void multiplyOp(const MultiplyOp& op);
+
+	void emitU8(u8 value);
+	void emitI8(i8 value);
+	void emitU32(u32 value);
+	void emitI32(u32 value);
+	void emitRet();
+	void dataEmitU8(u8 value);
+	void dataEmitU32(u32 value);
+
 	[[nodiscard]] static u8 encodeModRmDirectAddressingByte(u8 g, u8 e);
 	[[nodiscard]] static u8 encodeModRmDirectAddressingByte(ModRMRegisterXmm g, ModRMRegisterXmm e);
 	[[nodiscard]] static u8 encodeModRmDirectAddressingByte(ModRMRegisterX86 g, ModRMRegisterX86 e);
@@ -202,9 +218,14 @@ struct CodeGenerator {
 
 	void emitInstructionRegYmmRegYmmRegYmm(u8 opCode, ModRMRegisterXmm destination, ModRMRegisterXmm lhs, ModRMRegisterXmm rhs);
 
+	//void emitVmovssToRegXmmFromRipOffset()
+
 	void emitVmovapsToRegYmmFromRegYmm(ModRMRegisterXmm destination, ModRMRegisterXmm source);
 	void emitVmovapsToMemReg32DispI32FromRegYmm(ModRMRegisterX86 regWithDestinationAddress, i32 addressDisplacement, ModRMRegisterXmm source);
 	void emitVmovapsToRegYmmFromMemReg32DispI32(ModRMRegisterXmm destination, ModRMRegisterX86 regWithSourceAddress, i32 addressDisplacement);
+	void loadRegYmmConstant32(ModRMRegisterXmm destination, float immediate);
+
+	void emitShufpsYmm(ModRMRegisterXmm ymm1, ModRMRegisterXmm ymm2, ModRMRegisterXmm ymm3, u8 immediate);
 
 	void emitVaddpsRegYmmRegYmmRegYmm(ModRMRegisterXmm destination, ModRMRegisterXmm lhs, ModRMRegisterXmm rhs);
 	void emitVsubpsRegYmmRegYmmRegYmm(ModRMRegisterXmm destination, ModRMRegisterXmm lhs, ModRMRegisterXmm rhs);
@@ -255,25 +276,25 @@ struct CodeGenerator {
 	};
 	std::vector<RipRelativeImmediate32Allocation> ripRelativeImmediate32Allocations;
 	
-	struct StackAllocation {
-		i32 baseOffset;
-		i32 byteSize;
-	};
-	std::vector<StackAllocation> stackAllocations;
-	i32 stackMemoryAllocated;
-	struct BaseOffset {
-		i32 baseOffset;
-	};
-	BaseOffset stackAllocate(i32 size, i32 aligment);
+	//struct StackAllocation {
+	//	i32 baseOffset;
+	//	i32 byteSize;
+	//};
+	//std::vector<StackAllocation> stackAllocations;
+	//i32 stackMemoryAllocated;
+	//struct BaseOffset {
+	//	i32 baseOffset;
+	//};
+	//BaseOffset stackAllocate(i32 size, i32 aligment);
 
-	struct RegisterLocation {
-		BaseOffset location;
-	};
-	std::unordered_map<Register, RegisterLocation> registerLocations;
-	RegisterLocation getRegisterLocation(Register reg);
+	//struct RegisterLocation {
+	//	BaseOffset location;
+	//};
+	//std::unordered_map<Register, RegisterLocation> registerLocations;
+	//RegisterLocation getRegisterLocation(Register reg);
 
-	void movssToRegisterLocationFromRegXmm(const RegisterLocation& to, ModRMRegisterXmm from);
-	void movssToRegXmmFromRegisterLocation(ModRMRegisterXmm to, const RegisterLocation& from);
+	/*void movssToRegisterLocationFromRegXmm(const RegisterLocation& to, ModRMRegisterXmm from);
+	void movssToRegXmmFromRegisterLocation(ModRMRegisterXmm to, const RegisterLocation& from);*/
 
 	std::vector<u8> code;
 	std::vector<u8> data;
