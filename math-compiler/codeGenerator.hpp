@@ -4,6 +4,8 @@
 #include "input.hpp"
 #include <unordered_map>
 #include <span>
+#include <optional>
+#include <bitset>
 
 // Vex prefix described on page 538 on the intel manual.
 // also https://wiki.osdev.org/X86-64_Instruction_Encoding#VEX.2FXOP_opcodes
@@ -108,6 +110,22 @@ struct CodeGenerator {
 		XMM14 = static_cast<u8>(ModRMRegisterX64::R14),
 		XMM15 = static_cast<u8>(ModRMRegisterX64::R15),
 	};
+	static constexpr i64 XMM_REGISTER_COUNT = 16;
+
+	enum class Register8Bit {
+		AH,
+		AL,
+		BH,
+		BL,
+		CH,
+		CL,
+		SPL,
+		BPL,
+		DIL,
+		SIL,
+		DH,
+		DL
+	};
 
 	/*
 	windows integer arguments
@@ -125,7 +143,7 @@ struct CodeGenerator {
 	};
 
 	CodeGenerator();
-	void initialize();
+	void initialize(std::span<const FunctionParameter> parameters);
 
 	const std::vector<u8>& compile(const std::vector<IrOp>& irCode, std::span<const FunctionParameter> parameters);
 
@@ -143,21 +161,45 @@ struct CodeGenerator {
 
 	I guess one way that might work might be first emmiting all the instructions with the max size then iterating untill nothing changes and replacing the bigger sizes with smaller ones. I don't think anything should break, because the distance can only get smaller if you make the operands of outher instructions smaller.
 	*/
+	i64 currentInstructionIndex = 0;
+
+	std::span<const FunctionParameter> parameters;
+
 	void computeRegisterLastUsage(const std::vector<IrOp>& irCode);
 	std::unordered_map<Register, i64> registerToLastUsage;
 
-	struct StackLocation {
-		i64 baseOffset;
+	struct RegisterConstantOffsetLocation {
+		ModRMRegisterX86 registerWithAddress;
+		i64 offset;
 	};
 
-	struct ConstantRegisterOffsetLocation {
-		// Can be RIP
-		ModRMRegisterX64 registerWithAddress;
+	struct ConstantLocation {
+		float value;
+	};
+	using MemoryLocation = std::variant<RegisterConstantOffsetLocation, ConstantLocation>;
+
+	struct DataLocation {
+		// The state where both are std::nullopt shouldn't happen.
+		std::optional<MemoryLocation> memoryLocation;
+		std::optional<ModRMRegisterXmm> registerLocation;
 	};
 
-	/*struct DataLocation {
-		std::variant<
-	};*/
+	static constexpr i64 YMM_REGISTER_SIZE = 8 * sizeof(float);
+
+
+	std::unordered_map<Register, DataLocation> registerToLocation;
+	std::optional<Register> registerAllocations[XMM_REGISTER_COUNT];
+	// It might make sense to use a priority queue so certain registers are allocated over others.
+
+	void movToYmmFromMemoryLocation(ModRMRegisterXmm destination, const MemoryLocation& memoryLocation);
+
+	static constexpr i64 CALLER_SAVED_REGISTER_COUNT = 5;
+	std::bitset<XMM_REGISTER_COUNT - CALLER_SAVED_REGISTER_COUNT> calleSavedRegisters;
+	
+	// Could also make functions that return a register or a memory location.
+	// Also there could be a version that allocates 2 data locations at once that could be used for commutative operations.
+	ModRMRegisterXmm getRegisterLocationHelper(Register reg);
+	ModRMRegisterXmm getRegisterLocation(Register reg);
 
 	void patchJumps();
 
@@ -166,6 +208,7 @@ struct CodeGenerator {
 	void loadConstantOp(const LoadConstantOp& op);
 	void addOp(const AddOp& op);
 	void multiplyOp(const MultiplyOp& op);
+	void returnOp(const ReturnOp& op);
 
 	void emitU8(u8 value);
 	void emitI8(i8 value);
@@ -186,6 +229,9 @@ struct CodeGenerator {
 	[[nodiscard]] static u8 encodeModRmReg32DispI32Reg32(ModRMRegisterX86 registerWithAddress, ModRMRegisterX86 reg);
 
 	[[nodiscard]] static u8 encodeRexPrefixByte(bool w, bool r, bool x, bool b);
+
+	void emitMovToReg32FromReg32(ModRMRegisterX86 destination, ModRMRegisterX86 source);
+	void emitMovToReg64FromReg64(ModRMRegisterX64 destination, ModRMRegisterX64 source);
 
 	void emitModRmReg32DispI32Reg32(ModRMRegisterX86 registerWithAddress, i32 displacement, ModRMRegisterX86 reg);
 
@@ -261,6 +307,9 @@ struct CodeGenerator {
 	void emitAddReg32Imm32(ModRMRegisterX86 destination, i32 immediate);
 	void emitAddReg64Imm32(ModRMRegisterX64 destination, i32 immediate);
 
+	void emitSubReg32Imm32(ModRMRegisterX86 destination, i32 immediate);
+	void emitSubReg64Imm32(ModRMRegisterX64 destination, i32 immediate);
+
 	void emitIncReg32(ModRMRegisterX86 x);
 	void emitIncReg64(ModRMRegisterX64 x);
 
@@ -269,6 +318,8 @@ struct CodeGenerator {
 	void emitXorReg32Reg32(ModRMRegisterX86 lhs, ModRMRegisterX86 rhs);
 	void emitXorReg64Reg64(ModRMRegisterX64 lhs, ModRMRegisterX64 rhs);
 
+	void emitAndReg8Imm8(Register8Bit destination, u8 immediate);
+
 	struct RipRelativeImmediate32Allocation {
 		float value;
 		i64 ripOffsetBytesCodeIndex; // ripOffset is at code.data() + ripOffsetBytesCodeIndex
@@ -276,16 +327,16 @@ struct CodeGenerator {
 	};
 	std::vector<RipRelativeImmediate32Allocation> ripRelativeImmediate32Allocations;
 	
-	//struct StackAllocation {
-	//	i32 baseOffset;
-	//	i32 byteSize;
-	//};
-	//std::vector<StackAllocation> stackAllocations;
-	//i32 stackMemoryAllocated;
-	//struct BaseOffset {
-	//	i32 baseOffset;
-	//};
-	//BaseOffset stackAllocate(i32 size, i32 aligment);
+	struct StackAllocation {
+		i32 baseOffset;
+		i32 byteSize;
+	};
+	std::vector<StackAllocation> stackAllocations;
+	i32 stackMemoryAllocated;
+	struct BaseOffset {
+		i32 baseOffset;
+	};
+	BaseOffset stackAllocate(i32 size, i32 aligment);
 
 	//struct RegisterLocation {
 	//	BaseOffset location;
