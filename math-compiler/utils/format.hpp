@@ -4,7 +4,7 @@
 #include <sstream>
 
 template<typename ...Args>
-std::string format(const char* format, const Args&... args) {
+std::string format(const char* format, Args&&... args) {
 	// @Performance: Maybe have a static threadlocal variable that returns a const reference. Or use my custon stringstream that allows moving the string out of the stream.
 	std::stringstream stream;
 	putnn(stream, format, args...);

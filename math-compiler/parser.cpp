@@ -24,6 +24,9 @@ std::optional<Ast> Parser::parse(const std::vector<Token>& tokens, std::string_v
 			return std::nullopt;
 			// Unexpected peek().type.
 			//ASSERT(peek().type == TokenType::END_OF_FILE);
+		} else if (peek().type != TokenType::END_OF_SOURCE) {
+			reporter->onError(UnexpectedTokenParserError{ .token = peek() });
+			return std::nullopt;
 		}
 		return Ast{
 			.root = root
@@ -191,6 +194,10 @@ void Parser::advance() {
 		return;
 	}
 	currentTokenIndex++;
+}
+
+bool Parser::eof() {
+	return peek().type == TokenType::END_OF_SOURCE;
 }
 
 void Parser::throwError(const ParserError& error) {

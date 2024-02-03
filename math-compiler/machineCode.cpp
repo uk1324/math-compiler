@@ -49,7 +49,7 @@ void MachineCode::generateFrom(const AssemblyCode& assembly) {
 		const auto operandCodeOffset = code.data() + jump.displacemenOperandBytesCodeOffset;
 		const auto instructionFirstByte = jump.displacemenOperandBytesCodeOffset - (jump.instructionSize - sizeof(i32));
 		const auto displacement = destination - instructionFirstByte;
-		const i32 operand = displacement - jump.instructionSize;
+		const i32 operand = i32(displacement - jump.instructionSize);
 		memcpy(operandCodeOffset, &operand, sizeof(i32));
 	}
 }

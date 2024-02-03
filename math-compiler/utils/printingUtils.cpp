@@ -2,6 +2,10 @@
 #include "put.hpp"
 
 void highlightInText(std::ostream& output, std::string_view text, i64 textToHighlightStart, i64 textToHighlightLength) {
+	if (text.size() == 0) {
+		return;
+	}
+
 	i64 currentCharIndex = 0;
 	i64 printedCharsCount = 0;
 

@@ -165,6 +165,7 @@
     <ClCompile Include="token.cpp" />
     <ClCompile Include="ostreamParserMessageReporter.cpp" />
     <ClCompile Include="utils\asserts.cpp" />
+    <ClCompile Include="utils\fileIo.cpp" />
     <ClCompile Include="utils\printingUtils.cpp" />
     <ClCompile Include="utils\put.cpp" />
     <ClCompile Include="sourceInfo.cpp" />
@@ -194,6 +195,7 @@
     <ClInclude Include="ostreamScannerMessageReporter.hpp" />
     <ClInclude Include="evaluateAst.hpp" />
     <ClInclude Include="ostreamParserMessageReporter.hpp" />
+    <ClInclude Include="utils\fileIo.hpp" />
     <ClInclude Include="utils\format.hpp" />
     <ClInclude Include="utils\result.hpp" />
     <ClInclude Include="utils\ints.hpp" />

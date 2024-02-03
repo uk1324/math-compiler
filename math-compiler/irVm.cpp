@@ -18,9 +18,12 @@ Result<Real, std::string> IrVm::execute(const std::vector<IrOp>& instructions, s
 				return ResultErr(std::string(errorMessage));
 				//return ResultErr(errorMessage);
 			}
-			return registers[returnOp->returnedRegister];
+			return getRegister(returnOp->returnedRegister);
 		}
 		const auto status = executeOp(op);
+		if (status == Status::ERROR) {
+			return ResultErr(std::string(errorMessage));
+		}
 	}
 	// Code didn't have a return.
 	error("code doesn't have a return instruction");
@@ -52,7 +55,6 @@ IrVm::Status IrVm::executeOp(const IrOp& op) {
 void IrVm::executeLoadConstantOp(const LoadConstantOp& op) {
 	allocateRegisterIfNotExists(op.destination);
 	setRegister(op.destination, op.constant);
-	registers[op.destination] = op.constant;
 }
 
 // Should the destination register exist before compiling this instruction or is it a compiler error?
@@ -81,19 +83,21 @@ void IrVm::allocateRegisterIfNotExists(Register index) {
 }
 
 bool IrVm::registerExists(Register index) {
-	return index < static_cast<i64>(registers.size());
+	return (index < i64(registers.size())) ||
+		(index < i64(arguments.size()));
 }
 
 void IrVm::setRegister(Register index, Real value) {
-	if (index < arguments.size()) {
+	if (index < i64(arguments.size())) {
 		// Arguments can't be changed.
 		ASSERT_NOT_REACHED();
 		return;
 	}
+	registers[index] = value;
 }
 
 const Real& IrVm::getRegister(Register index) const {
-	if (index < arguments.size()) {
+	if (index < i64(arguments.size())) {
 		return arguments[index];
 	}
 	return registers[index];

@@ -24,8 +24,11 @@ enum class RegYmm {
 	YMM8, YMM9, YMM10, YMM11, YMM12, YMM13, YMM14, YMM15
 };
 
+static constexpr i64 YMM_REGISTER_COUNT = 16;
+
 u8 regIndex(Reg64 reg);
 u8 regIndex(RegYmm reg);
+RegYmm regYmmFromIndex(u8 index);
 
 using InstructionLabel = i32;
 const auto INSTRUCTION_LABEL_NONE = ~0;
@@ -86,6 +89,7 @@ struct MovR64R64 {
 	Reg64 source;
 };
 
+// https://stackoverflow.com/questions/10665547/how-to-load-a-single-32-bit-floating-point-into-all-eight-positions-within-an-av
 struct VbroadcastssLbl {
 	RegYmm destination;
 	DataLabel source;

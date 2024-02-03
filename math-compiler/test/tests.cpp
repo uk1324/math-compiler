@@ -13,6 +13,16 @@
 #include "../utils/pritningUtils.hpp"
 #include "../utils/put.hpp"
 #include "../utils/setDifference.hpp"
+#include "../utils/fileIo.hpp"
+
+bool outputMachineCodeToFile = false;
+
+std::string generateExpression(i64 depth, i64 maxDepth) {
+	if (depth == maxDepth) {
+		return format("x_%", depth);
+	}
+	return ::format("(x_% + %)", depth, generateExpression(depth + 1, maxDepth));
+}
 
 void runTests() {
 	Scanner scanner;
@@ -39,8 +49,8 @@ void runTests() {
 		std::string_view name,
 		std::string_view source,
 		Real expectedOutput,
-		std::span<const FunctionParameter> parameters = std::span<const FunctionParameter>(),
-		std::span<const float> arguments = std::span<const float>()) {
+		const std::vector<FunctionParameter>& parameters = std::vector<FunctionParameter>(),
+		const std::vector<float>& arguments = std::vector<float>()) {
 			scannerReporter.reporter.source = source;
 			parserReporter.reporter.source = source;
 			//std::cout << "RUNNING TEST " << name " ";
@@ -73,11 +83,11 @@ void runTests() {
 				if (output != expectedOutput) {
 					printFailed(name);
 					put("ast interpreter error:");
-					if (output.ok()) {
-						//put("expected '%' got '%'", expectedOutput, output.ok());
+					if (output.isOk()) {
+						put("expected '%' got '%'", expectedOutput, output.ok());
 					}
 					else {
-						//put("message: %", output.err());
+						put("message: %", output.err());
 					}
 					evaluationError = true;
 				}
@@ -85,9 +95,9 @@ void runTests() {
 
 			const auto irCode = irCompiler.compile(*ast, parameters, irCompilerReporter);
 			if (irCode.has_value()) {
-#ifdef DEBUG_PRINT_GENERATED_IR_CODE
+				#ifdef DEBUG_PRINT_GENERATED_IR_CODE
 				printIrCode(std::cout, **irCode);
-#endif
+				#endif
 
 				const auto output = irVm.execute(**irCode, arguments);
 				if (!output.isOk()) {
@@ -108,6 +118,9 @@ void runTests() {
 			{
 				ASSERT(irCode.has_value());
 				const auto machineCode = codeGenerator.compile(**irCode, parameters);
+				if (outputMachineCodeToFile) {
+					outputToFile("test.txt", machineCode.code);
+				}
 				/*const auto output = executeFunction(codeGenerator, code, codeGenerator.data, arguments);*/
 				const auto output = executeFunction(machineCode, arguments);
 				if (output != expectedOutput) {
@@ -138,7 +151,6 @@ void runTests() {
 			scannerReporter.reporter.source = source;
 			parserReporter.reporter.source = source;
 			irCompilerReporter.reporter.source = source;
-
 
 			auto tokens = scanner.parse(source, &scannerReporter);
 
@@ -195,6 +207,40 @@ void runTests() {
 	runTestExpected("multiplication precedence", "2 + 3 * 4", 14);
 	runTestExpected("parens", "(2 + 3) * 4", 20);
 	runTestExpected("implicit multiplication", "4(2 + 3)", 20);
+	runTestExpected("variable loading", "x", 3.14f, { { "x" } }, { { 3.14f } });
+	runTestExpected(
+		"more variables", 
+		"xyz + 4(x + y)z", 
+		296, 
+		{ { { "x" }, { "y" }, { "z" } } },
+		{ { 11.0f, 2.0f, 4.0f } });
+	{
+		std::vector<std::string> variableNames;
+		std::vector<FunctionParameter> parameters;
+		std::vector<float> arguments;
+		const auto variableCount = 64;
+		for (int i = 0; i < variableCount; i++) {
+			variableNames.push_back(format("x_%", i));
+			arguments.push_back(1.0f);
+		}
+		for (int i = 0; i < variableCount; i++) {
+			parameters.push_back({ variableNames[i] });
+		}
+		std::stringstream source;
+		for (int i = 0; i < variableCount; i++) {
+			putnn(source, "x_% + ", i);
+		}
+		for (int i = variableCount - 1; i >= 0; i--) {
+			putnn(source, "x_%", i);
+			if (i != 0) {
+				putnn(source, " + ");
+			}
+		}
+
+		outputMachineCodeToFile = true;
+		runTestExpected("a lot of variables", source.str(), 128.0f, parameters, arguments);
+		outputMachineCodeToFile = false;
+	}
 
 	runTestExpectedErrors(
 		"illegal character",

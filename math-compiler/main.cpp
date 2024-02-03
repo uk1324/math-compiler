@@ -2,6 +2,7 @@
 #include "scanner.hpp"
 #include "parser.hpp"
 #include "utils/asserts.hpp"
+#include "utils/fileIo.hpp"
 #include "printAst.hpp"
 #include "evaluateAst.hpp"
 #include "utils/pritningUtils.hpp"
@@ -29,9 +30,10 @@ void debugOutputToken(const Token& token, std::string_view originalSource) {
 #include "bashPath.hpp"
 
 void test() {
-	/*std::string_view source = "2 + 2";*/
+	std::string_view source = "2 + 2";
 	/*std::string_view source = "1 + 2 * 3";*/
-	std::string_view source = "xyz + 4(x + y)z";
+	//std::string_view source = "xyz + 4(x + y)z";
+	//std::string_view source = "2 + 2";
 	//std::string_view source = "xy";
 	//std::string_view source = "x + 1";
 	FunctionParameter parameters[] { { "x" }, { "y" }, { "z" } };
@@ -81,16 +83,13 @@ void test() {
 		return;
 	}
 
-	IrVm vm;
-	vm.execute(**irCode, arguments);
+	/*IrVm vm;
+	vm.execute(**irCode, arguments);*/
 
 	CodeGenerator codeGenerator;
 	auto machineCode = codeGenerator.compile(**irCode, parameters);
 
-	{
-		std::ofstream bin("test.txt", std::ios::out | std::ios::binary);
-		bin.write(reinterpret_cast<const char*>(machineCode.code.data()), machineCode.code.size());
-	}
+	outputToFile("test.txt", machineCode.code);
 
 	const auto out = executeFunction(machineCode, arguments);
 	put("out = %", out);
@@ -99,6 +98,6 @@ void test() {
 
 // https://stackoverflow.com/questions/4911993/how-to-generate-and-run-native-code-dynamically
 int main(void) {
-	test();
-	//runTests();
+	//test();
+	runTests();
 }

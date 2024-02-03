@@ -81,6 +81,14 @@ Token Scanner::number() {
 }
 
 Token Scanner::identifier(u8 firstChar) {
+	if (!match('_')) {
+		return makeToken(TokenType::IDENTIFIER);
+	}
+
+	while (!eof() && (isAlpha(peek()) || isDigit(peek()))) {
+		advance();
+	}
+
 	return makeToken(TokenType::IDENTIFIER);
 }
 

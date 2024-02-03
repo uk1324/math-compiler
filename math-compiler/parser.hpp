@@ -30,6 +30,7 @@ struct Parser {
 	bool match(TokenType type);
 	void expect(TokenType type);
 	void advance();
+	bool eof();
 	[[noreturn]] void throwError(const ParserError& error);
 
 	std::string_view tokenSource(const Token& token) const;

@@ -1,6 +1,13 @@
 #include "assemblyCode.hpp"
 #include "utils/overloaded.hpp"
 
+void AssemblyCode::reset() {
+	nextInstructionLabel = std::nullopt;
+	allocatedLabelsCount = 0;
+	instructions.clear();
+	dataEntries.clear();
+}
+
 void AssemblyCode::ret(i64 offset) {
 	insert(Ret{}, offset);
 }
@@ -105,7 +112,7 @@ InstructionLabel AssemblyCode::allocateLabel() {
 }
 
 DataLabel AssemblyCode::allocateData(float value) {
-	const DataLabel label = dataEntries.size();
+	const DataLabel label = i32(dataEntries.size());
 	dataEntries.push_back(DataEntry{ .value = value});
 	return label;
 }
@@ -116,4 +123,8 @@ u8 regIndex(Reg64 reg) {
 
 u8 regIndex(RegYmm reg) {
 	return u8(reg);
+}
+
+RegYmm regYmmFromIndex(u8 index) {
+	return RegYmm(index);
 }

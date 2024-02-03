@@ -7,6 +7,8 @@
 struct AssemblyCode {
 	static constexpr i64 OFFSET_LAST = -1;
 	
+	void reset();
+
 	void ret(i64 offset = OFFSET_LAST);
 
 	void push(Reg64 reg, i64 offset = OFFSET_LAST);
