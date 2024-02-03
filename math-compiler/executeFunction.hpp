@@ -1,11 +1,12 @@
 #pragma once
 
 #include "codeGenerator.hpp"
+#include "machineCode.hpp"
 
 struct alignas(32) YmmArgument {
 	float x[8];
 };
 
-void executeFunction(const CodeGenerator& codeGenerator, const std::vector<u8>& code, const std::vector<u8>& data, const float* inputArray, float* outputArray, i64 arrayElementCount);
+void executeFunction(const MachineCode& machineCode, const float* inputArray, float* outputArray, i64 arrayElementCount);
 
-Real executeFunction(const CodeGenerator& codeGenerator, const std::vector<u8>& code, const std::vector<u8>& data, std::span<const float> arguments);
+Real executeFunction(const MachineCode& machineCode, std::span<const float> arguments);

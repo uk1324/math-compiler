@@ -2,6 +2,8 @@
 
 #include "ir.hpp"
 #include "input.hpp"
+//#include "assemblyCode.hpp"
+#include "machineCode.hpp"
 #include <unordered_map>
 #include <span>
 #include <optional>
@@ -135,17 +137,24 @@ struct CodeGenerator {
 	rdi, rsi, rdx, rcx, r8, r9
 	*/
 
-	static constexpr ModRMRegisterX64 INTEGER_FUNCTION_INPUT_REGISTERS[]{
+	static constexpr Reg64 INTEGER_FUNCTION_INPUT_REGISTERS[]{
+		Reg64::RCX,
+		Reg64::RDX,
+		Reg64::R8,
+		Reg64::R9,
+	};
+	/*static constexpr ModRMRegisterX64 INTEGER_FUNCTION_INPUT_REGISTERS[]{
 		ModRMRegisterX64::RCX,
 		ModRMRegisterX64::RDX,
 		ModRMRegisterX64::R8,
 		ModRMRegisterX64::R9,
-	};
+	};*/
 
 	CodeGenerator();
 	void initialize(std::span<const FunctionParameter> parameters);
 
-	const std::vector<u8>& compile(const std::vector<IrOp>& irCode, std::span<const FunctionParameter> parameters);
+	/*const std::vector<u8>& compile(const std::vector<IrOp>& irCode, std::span<const FunctionParameter> parameters);*/
+	MachineCode compile(const std::vector<IrOp>& irCode, std::span<const FunctionParameter> parameters);
 
 	// Emmiting jumps after the code has been generated is can be difficult in some situations.
 	/*
@@ -169,7 +178,7 @@ struct CodeGenerator {
 	std::unordered_map<Register, i64> registerToLastUsage;
 
 	struct RegisterConstantOffsetLocation {
-		ModRMRegisterX86 registerWithAddress;
+		Reg64 registerWithAddress;
 		i64 offset;
 	};
 
@@ -181,7 +190,7 @@ struct CodeGenerator {
 	struct DataLocation {
 		// The state where both are std::nullopt shouldn't happen.
 		std::optional<MemoryLocation> memoryLocation;
-		std::optional<ModRMRegisterXmm> registerLocation;
+		std::optional<RegYmm> registerLocation;
 	};
 
 	static constexpr i64 YMM_REGISTER_SIZE = 8 * sizeof(float);
@@ -191,15 +200,17 @@ struct CodeGenerator {
 	std::optional<Register> registerAllocations[XMM_REGISTER_COUNT];
 	// It might make sense to use a priority queue so certain registers are allocated over others.
 
-	void movToYmmFromMemoryLocation(ModRMRegisterXmm destination, const MemoryLocation& memoryLocation);
+	void movToYmmFromMemoryLocation(RegYmm destination, const MemoryLocation& memoryLocation);
 
 	static constexpr i64 CALLER_SAVED_REGISTER_COUNT = 5;
 	std::bitset<XMM_REGISTER_COUNT - CALLER_SAVED_REGISTER_COUNT> calleSavedRegisters;
 	
 	// Could also make functions that return a register or a memory location.
 	// Also there could be a version that allocates 2 data locations at once that could be used for commutative operations.
-	ModRMRegisterXmm getRegisterLocationHelper(Register reg);
-	ModRMRegisterXmm getRegisterLocation(Register reg);
+	/*ModRMRegisterXmm getRegisterLocationHelper(Register reg);
+	ModRMRegisterXmm getRegisterLocation(Register reg);*/
+	RegYmm getRegisterLocationHelper(Register reg);
+	RegYmm getRegisterLocation(Register reg);
 
 	void patchJumps();
 
@@ -210,78 +221,78 @@ struct CodeGenerator {
 	void multiplyOp(const MultiplyOp& op);
 	void returnOp(const ReturnOp& op);
 
-	void emitU8(u8 value);
-	void emitI8(i8 value);
-	void emitU32(u32 value);
-	void emitI32(u32 value);
-	void emitRet();
-	void dataEmitU8(u8 value);
-	void dataEmitU32(u32 value);
+	//void emitU8(u8 value);
+	//void emitI8(i8 value);
+	//void emitU32(u32 value);
+	//void emitI32(u32 value);
+	//void emitRet();
+	//void dataEmitU8(u8 value);
+	//void dataEmitU32(u32 value);
 
-	[[nodiscard]] static u8 encodeModRmDirectAddressingByte(u8 g, u8 e);
-	[[nodiscard]] static u8 encodeModRmDirectAddressingByte(ModRMRegisterXmm g, ModRMRegisterXmm e);
-	[[nodiscard]] static u8 encodeModRmDirectAddressingByte(ModRMRegisterX86 g, ModRMRegisterX86 e);
+	//[[nodiscard]] static u8 encodeModRmDirectAddressingByte(u8 g, u8 e);
+	//[[nodiscard]] static u8 encodeModRmDirectAddressingByte(ModRMRegisterXmm g, ModRMRegisterXmm e);
+	//[[nodiscard]] static u8 encodeModRmDirectAddressingByte(ModRMRegisterX86 g, ModRMRegisterX86 e);
 
-	[[nodiscard]] static u8 encodeModRmByte(u8 mod /* 2 bit */, u8 reg /* 3 bit */, u8 rm /* 3 bit */);
+	//[[nodiscard]] static u8 encodeModRmByte(u8 mod /* 2 bit */, u8 reg /* 3 bit */, u8 rm /* 3 bit */);
 
-	// <registerWithAddress> + disp8]
-	[[nodiscard]] static u8 encodeModRmReg32DispI8Reg32(ModRMRegisterX86 registerWithAddress, ModRMRegisterX86 reg);
-	[[nodiscard]] static u8 encodeModRmReg32DispI32Reg32(ModRMRegisterX86 registerWithAddress, ModRMRegisterX86 reg);
+	//// <registerWithAddress> + disp8]
+	//[[nodiscard]] static u8 encodeModRmReg32DispI8Reg32(ModRMRegisterX86 registerWithAddress, ModRMRegisterX86 reg);
+	//[[nodiscard]] static u8 encodeModRmReg32DispI32Reg32(ModRMRegisterX86 registerWithAddress, ModRMRegisterX86 reg);
 
-	[[nodiscard]] static u8 encodeRexPrefixByte(bool w, bool r, bool x, bool b);
+	//[[nodiscard]] static u8 encodeRexPrefixByte(bool w, bool r, bool x, bool b);
 
-	void emitMovToReg32FromReg32(ModRMRegisterX86 destination, ModRMRegisterX86 source);
-	void emitMovToReg64FromReg64(ModRMRegisterX64 destination, ModRMRegisterX64 source);
+	//void emitMovToReg32FromReg32(ModRMRegisterX86 destination, ModRMRegisterX86 source);
+	//void emitMovToReg64FromReg64(ModRMRegisterX64 destination, ModRMRegisterX64 source);
 
-	void emitModRmReg32DispI32Reg32(ModRMRegisterX86 registerWithAddress, i32 displacement, ModRMRegisterX86 reg);
+	//void emitModRmReg32DispI32Reg32(ModRMRegisterX86 registerWithAddress, i32 displacement, ModRMRegisterX86 reg);
 
-	void emitAddRegister32ToRegister32(ModRMRegisterX86 rhs, ModRMRegisterX86 lhs);
-	void emitAddRegisterToRegister64(ModRMRegisterX64 rhs, ModRMRegisterX64 lhs);
-	void emitMovssRegToRegXmm(ModRMRegisterXmm destination, ModRMRegisterXmm source);
+	//void emitAddRegister32ToRegister32(ModRMRegisterX86 rhs, ModRMRegisterX86 lhs);
+	//void emitAddRegisterToRegister64(ModRMRegisterX64 rhs, ModRMRegisterX64 lhs);
+	//void emitMovssRegToRegXmm(ModRMRegisterXmm destination, ModRMRegisterXmm source);
 
-	void emitAddssRegXmmRegXmm(ModRMRegisterXmm lhs, ModRMRegisterXmm rhs);
-	void emitMulssRegXmmRegXmm(ModRMRegisterXmm lhs, ModRMRegisterXmm rhs);
+	//void emitAddssRegXmmRegXmm(ModRMRegisterXmm lhs, ModRMRegisterXmm rhs);
+	//void emitMulssRegXmmRegXmm(ModRMRegisterXmm lhs, ModRMRegisterXmm rhs);
 
-	// !!!!!!!!!!!!!!! TODO: Read about addressing.
+	//// !!!!!!!!!!!!!!! TODO: Read about addressing.
 
-	// TODO: Doesn't work with ESP 0b100 in the table
-	void emitMovssToRegXmmFromMemReg32DispI8(ModRMRegisterXmm destination, ModRMRegisterX86 regWithSourceAddress, i8 addressDisplacement);
-	void emitMovssToRegXmmFromMemReg32DispI32(ModRMRegisterXmm destination, ModRMRegisterX86 regWithSourceAddress, i32 addressDisplacement);
+	//// TODO: Doesn't work with ESP 0b100 in the table
+	//void emitMovssToRegXmmFromMemReg32DispI8(ModRMRegisterXmm destination, ModRMRegisterX86 regWithSourceAddress, i8 addressDisplacement);
+	//void emitMovssToRegXmmFromMemReg32DispI32(ModRMRegisterXmm destination, ModRMRegisterX86 regWithSourceAddress, i32 addressDisplacement);
 
-	void emitMovssToMemReg32DispI8FromRegXmm(ModRMRegisterX86 regWithDestinationAddress, i8 addressDisplacement, ModRMRegisterXmm source);
-	void emitMovssToMemReg32DispI32FromRegXmm(ModRMRegisterX86 regWithDestinationAddress, i32 addressDisplacement, ModRMRegisterXmm source);
-	//void emitMovsMemEbp32ToReg(u32 ebpDisplacement, ModRMRegisterXmm source);
-	//void emitMovsMemToRegXmm(ModRMRegisterXmm destination, ModRMRegisterXmm source);
-	/*void allocateImmediateAndEmitRipOffset32(float constant);*/
-	void movssToRegXmmConstant32(ModRMRegisterXmm destination, float immediate);
+	//void emitMovssToMemReg32DispI8FromRegXmm(ModRMRegisterX86 regWithDestinationAddress, i8 addressDisplacement, ModRMRegisterXmm source);
+	//void emitMovssToMemReg32DispI32FromRegXmm(ModRMRegisterX86 regWithDestinationAddress, i32 addressDisplacement, ModRMRegisterXmm source);
+	////void emitMovsMemEbp32ToReg(u32 ebpDisplacement, ModRMRegisterXmm source);
+	////void emitMovsMemToRegXmm(ModRMRegisterXmm destination, ModRMRegisterXmm source);
+	///*void allocateImmediateAndEmitRipOffset32(float constant);*/
+	//void movssToRegXmmConstant32(ModRMRegisterXmm destination, float immediate);
 
-	void emitPushReg64(ModRMRegisterX64 reg);
-	void emitPopReg64(ModRMRegisterX64 reg);
+	//void emitPushReg64(ModRMRegisterX64 reg);
+	//void emitPopReg64(ModRMRegisterX64 reg);
 
-	void emit2ByteVex(bool r, u8 vvvv, bool l, u8 pp);
-	void emit3ByteVex(bool r, bool x, bool b, u8 m_mmmm, bool w, u8 vvvv, bool l, u8 pp);
-	void emitRegYmmRegYmmVexByte(ModRMRegisterXmm a, ModRMRegisterXmm b);
+	//void emit2ByteVex(bool r, u8 vvvv, bool l, u8 pp);
+	//void emit3ByteVex(bool r, bool x, bool b, u8 m_mmmm, bool w, u8 vvvv, bool l, u8 pp);
+	//void emitRegYmmRegYmmVexByte(ModRMRegisterXmm a, ModRMRegisterXmm b);
 
-	void emitInstructionRegYmmRegYmmRegYmm(u8 opCode, ModRMRegisterXmm destination, ModRMRegisterXmm lhs, ModRMRegisterXmm rhs);
+	//void emitInstructionRegYmmRegYmmRegYmm(u8 opCode, ModRMRegisterXmm destination, ModRMRegisterXmm lhs, ModRMRegisterXmm rhs);
 
-	//void emitVmovssToRegXmmFromRipOffset()
+	////void emitVmovssToRegXmmFromRipOffset()
 
-	void emitVmovapsToRegYmmFromRegYmm(ModRMRegisterXmm destination, ModRMRegisterXmm source);
-	void emitVmovapsToMemReg32DispI32FromRegYmm(ModRMRegisterX86 regWithDestinationAddress, i32 addressDisplacement, ModRMRegisterXmm source);
-	void emitVmovapsToRegYmmFromMemReg32DispI32(ModRMRegisterXmm destination, ModRMRegisterX86 regWithSourceAddress, i32 addressDisplacement);
-	void loadRegYmmConstant32(ModRMRegisterXmm destination, float immediate);
+	//void emitVmovapsToRegYmmFromRegYmm(ModRMRegisterXmm destination, ModRMRegisterXmm source);
+	//void emitVmovapsToMemReg32DispI32FromRegYmm(ModRMRegisterX86 regWithDestinationAddress, i32 addressDisplacement, ModRMRegisterXmm source);
+	//void emitVmovapsToRegYmmFromMemReg32DispI32(ModRMRegisterXmm destination, ModRMRegisterX86 regWithSourceAddress, i32 addressDisplacement);
+	//void loadRegYmmConstant32(ModRMRegisterXmm destination, float immediate);
 
-	void emitShufpsYmm(ModRMRegisterXmm ymm1, ModRMRegisterXmm ymm2, ModRMRegisterXmm ymm3, u8 immediate);
+	//void emitShufpsYmm(ModRMRegisterXmm ymm1, ModRMRegisterXmm ymm2, ModRMRegisterXmm ymm3, u8 immediate);
 
-	void emitVaddpsRegYmmRegYmmRegYmm(ModRMRegisterXmm destination, ModRMRegisterXmm lhs, ModRMRegisterXmm rhs);
-	void emitVsubpsRegYmmRegYmmRegYmm(ModRMRegisterXmm destination, ModRMRegisterXmm lhs, ModRMRegisterXmm rhs);
-	void emitVmulpsRegYmmRegYmmRegYmm(ModRMRegisterXmm destination, ModRMRegisterXmm lhs, ModRMRegisterXmm rhs);
-	void emitVdivpsRegYmmRegYmmRegYmm(ModRMRegisterXmm destination, ModRMRegisterXmm lhs, ModRMRegisterXmm rhs);
+	//void emitVaddpsRegYmmRegYmmRegYmm(ModRMRegisterXmm destination, ModRMRegisterXmm lhs, ModRMRegisterXmm rhs);
+	//void emitVsubpsRegYmmRegYmmRegYmm(ModRMRegisterXmm destination, ModRMRegisterXmm lhs, ModRMRegisterXmm rhs);
+	//void emitVmulpsRegYmmRegYmmRegYmm(ModRMRegisterXmm destination, ModRMRegisterXmm lhs, ModRMRegisterXmm rhs);
+	//void emitVdivpsRegYmmRegYmmRegYmm(ModRMRegisterXmm destination, ModRMRegisterXmm lhs, ModRMRegisterXmm rhs);
 
 	/*void emitJmpRipRelative(i32 displacement);
 	void emitJlRipRelative(i32 displacement);*/
 
-	enum class JumpType {
+	/*enum class JumpType {
 		UNCONDITONAL,
 		SIGNED_LESS
 	};
@@ -311,14 +322,14 @@ struct CodeGenerator {
 	void emitSubReg64Imm32(ModRMRegisterX64 destination, i32 immediate);
 
 	void emitIncReg32(ModRMRegisterX86 x);
-	void emitIncReg64(ModRMRegisterX64 x);
+	void emitIncReg64(ModRMRegisterX64 x);*/
 
 	// TODO: ModRMRegisterX86 is stupid, because you can't use the lower parts of r8, r9, ... regsiters in these functions.
 	// Should probably create some general register type and constrain some function to only take a subset of register by creating another type like Register4Bit and Register3Bit idk.
-	void emitXorReg32Reg32(ModRMRegisterX86 lhs, ModRMRegisterX86 rhs);
+	/*void emitXorReg32Reg32(ModRMRegisterX86 lhs, ModRMRegisterX86 rhs);
 	void emitXorReg64Reg64(ModRMRegisterX64 lhs, ModRMRegisterX64 rhs);
 
-	void emitAndReg8Imm8(Register8Bit destination, u8 immediate);
+	void emitAndReg8Imm8(Register8Bit destination, u8 immediate);*/
 
 	struct RipRelativeImmediate32Allocation {
 		float value;
@@ -347,6 +358,8 @@ struct CodeGenerator {
 	/*void movssToRegisterLocationFromRegXmm(const RegisterLocation& to, ModRMRegisterXmm from);
 	void movssToRegXmmFromRegisterLocation(ModRMRegisterXmm to, const RegisterLocation& from);*/
 
-	std::vector<u8> code;
-	std::vector<u8> data;
+	AssemblyCode a;
+
+	/*std::vector<u8> code;
+	std::vector<u8> data;*/
 };

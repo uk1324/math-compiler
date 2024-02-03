@@ -141,6 +141,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="assemblyCode.cpp" />
     <ClCompile Include="ast.cpp" />
     <ClCompile Include="astAllocator.cpp" />
     <ClCompile Include="codeGenerator.cpp" />
@@ -148,6 +149,7 @@
     <ClCompile Include="ir.cpp" />
     <ClCompile Include="irCompiler.cpp" />
     <ClCompile Include="irVm.cpp" />
+    <ClCompile Include="machineCode.cpp" />
     <ClCompile Include="ostreamIrCompilerMessageReporter.cpp" />
     <ClCompile Include="ostreamScannerMessageReporter.cpp" />
     <ClCompile Include="evaluateAst.cpp" />
@@ -168,6 +170,8 @@
     <ClCompile Include="sourceInfo.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="assemblyCode.hpp" />
+    <ClInclude Include="assemblyInstruction.hpp" />
     <ClInclude Include="codeGenerator.hpp" />
     <ClInclude Include="bashPath.hpp" />
     <ClInclude Include="executeFunction.hpp" />
@@ -176,6 +180,7 @@
     <ClInclude Include="irCompiler.hpp" />
     <ClInclude Include="irCompilerMessageReporter.hpp" />
     <ClInclude Include="irVm.hpp" />
+    <ClInclude Include="machineCode.hpp" />
     <ClInclude Include="ostreamIrCompilerMessageReporter.hpp" />
     <ClInclude Include="os\os.hpp" />
     <ClInclude Include="test.hpp" />
@@ -205,6 +210,7 @@
     <ClInclude Include="utils\setDifference.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="assembler.txt" />
     <Text Include="function_argument_format.txt" />
     <Text Include="notes.txt" />
   </ItemGroup>

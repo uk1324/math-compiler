@@ -1,0 +1,33 @@
+Things that an assembler needs to be able to handle.
+Jump instructions.
+Rip relative operands.
+Emmiting instruction in the middle of code. This can mess with the above.
+
+The problem is that when the code is being emmited the location of jumps and rip relative loads are not know yet. The information about this has to be kept somewhere. One option is to keep the unknown operands as for example labels and another is to keep a reference to each instruction that refers to a certain label. The former option seems more flexible because it for example allows removing instructions (which is done for example in peephole optimization) without having to modify anything like you would need to do in the latter option. For example if you were removing a instruction then you would need to go over every jump instruction and check if that instruction is in between or after the jump and subtract the right values from the operands.
+
+When using labels emmiting instructions in the middle of code isn't really a problem. This feature is useful for example when emmiting the function prologue. Before the code is generated you don't know how much stack memory will need to be allocated so the beginning can only be generated after the rest of the code is generated. Not sure what is the most performant way to implement this. It might be better to have 2 vectors of code and then combine them (this would also require reallocating labels), because inserting into the beginning of the vector is an O(n) operation.
+
+Storing labels:
+- Store label with instruction
+struct LabeledInstruction {
+	Label label;
+	Instruction instruction;
+}
+- Have a map from label to instruction
+* Instructions are in an array
+std::map<Label, i64>
+* There is an extra level of indirection (actual pointer or relative to some allocator (for example block allocator))
+std::map<Label, InstructionPtr>
+* Labels can only be inserted at the beginning of a basic block. Basic block are stored separately.
+
+Another issue is how to categorize instructions. When emmiting I think the naming the function just like they are called in assembler might be fine. For example just making an overload of mov for different operands and not naming it movToReg64FromReg64 or movToRg64FromMemDisp32. Not sure what is the best way to categorize the instructions when storing them as structs in memory.
+
+Distinguishing sizes of operands for example mov r32 r32 would be different from mov r64 r64.
+Distinguishing operand types for example mov r32 m32 would be different from mov r32 r32 even though both have the same opcode only the modrm byte changes. In this case it is distinguishing addressing modes (direct addressing, relative addressing and so on).
+
+
+
+
+Manual imporant sections
+ModR/M 2.1.3
+Addressing forms table 2.1

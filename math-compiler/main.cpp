@@ -32,8 +32,8 @@ void test() {
 	/*std::string_view source = "2 + 2";*/
 	/*std::string_view source = "1 + 2 * 3";*/
 	std::string_view source = "xyz + 4(x + y)z";
-	//std::string_view source = "xyz";
-	////std::string_view source = "xy";
+	//std::string_view source = "xy";
+	//std::string_view source = "x + 1";
 	FunctionParameter parameters[] { { "x" }, { "y" }, { "z" } };
 	float arguments[] = { 11.0f, 2.0f, 4.0f };
 // 
@@ -89,10 +89,10 @@ void test() {
 
 	{
 		std::ofstream bin("test.txt", std::ios::out | std::ios::binary);
-		bin.write(reinterpret_cast<const char*>(machineCode.data()), machineCode.size());
+		bin.write(reinterpret_cast<const char*>(machineCode.code.data()), machineCode.code.size());
 	}
 
-	const auto out = executeFunction(codeGenerator, machineCode, codeGenerator.data, arguments);
+	const auto out = executeFunction(machineCode, arguments);
 	put("out = %", out);
 	/*bin.write(reinterpret_cast<const char*>(buffer), machineCode.size());*/
 }
