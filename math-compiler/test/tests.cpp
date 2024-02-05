@@ -24,8 +24,11 @@ std::string generateExpression(i64 depth, i64 maxDepth) {
 	}
 	return ::format("(x_% + %)", depth, generateExpression(depth + 1, maxDepth));
 }
+struct TestRunner {
+	TestRunner();
 
-void runTests() {
+	bool printIrGeneratedCode = false;
+
 	Scanner scanner;
 	Parser parser;
 
@@ -36,187 +39,61 @@ void runTests() {
 
 	std::stringstream output;
 
-	TestingScannerErrorReporter scannerReporter(output, std::string_view());
-	TestingParserMessageReporter parserReporter(output, std::string_view());
-	TestingIrCompilerMessageReporter irCompilerReporter(output, std::string_view());
+	TestingScannerErrorReporter scannerReporter;
+	TestingParserMessageReporter parserReporter;
+	TestingIrCompilerMessageReporter irCompilerReporter;
 
-	auto printFailed = [](std::string_view name) {
-		put(TERMINAL_COLOR_RED "[FAILED] " TERMINAL_COLOR_RESET "%", name);
-	};
-	auto printPassed = [](std::string_view name) {
-		put(TERMINAL_COLOR_GREEN "[PASSED] " TERMINAL_COLOR_RESET "%", name);
-	};
+	void printPassed(std::string_view name);
+	void printFailed(std::string_view name);
 
-	auto runTestExpected = [&](
+	void expectedHelper(
 		std::string_view name,
 		std::string_view source,
 		Real expectedOutput,
 		const std::vector<FunctionParameter>& parameters = std::vector<FunctionParameter>(),
-		const std::vector<float>& arguments = std::vector<float>()) {
-			scannerReporter.reporter.source = source;
-			parserReporter.reporter.source = source;
-			//std::cout << "RUNNING TEST " << name " ";
-			auto tokens = scanner.parse(source, &scannerReporter);
-			if (scannerReporter.errorHappened) {
-				printFailed(name);
-				std::cout << "scanner error: \n" << output.str();
-				output.clear();
-				scannerReporter.reset();
-				return;
-			}
-			auto ast = parser.parse(tokens, source, &parserReporter);
-			if (!ast.has_value() && !parserReporter.errorHappened) {
-				ASSERT_NOT_REACHED();
-				return;
-			}
+		const std::vector<float>& arguments = std::vector<float>());
 
-			if (parserReporter.errorHappened) {
-				printFailed(name);
-				std::cout << "parser error: \n" << output.str();
-				output.clear();
-				parserReporter.reset();
-				return;
-			}
+	void expected(
+		std::string_view name,
+		std::string_view source,
+		Real expectedOutput,
+		const std::vector<FunctionParameter>& parameters = std::vector<FunctionParameter>(),
+		const std::vector<float>& arguments = std::vector<float>());
 
-			bool evaluationError = false;
-
-			{
-				const auto output = evaluateAst(ast->root, parameters, arguments);
-				if (output != expectedOutput) {
-					printFailed(name);
-					put("ast interpreter error:");
-					if (output.isOk()) {
-						put("expected '%' got '%'", expectedOutput, output.ok());
-					}
-					else {
-						put("message: %", output.err());
-					}
-					evaluationError = true;
-				}
-			}
-
-			const auto irCode = irCompiler.compile(*ast, parameters, irCompilerReporter);
-
-			if (!irCode.has_value()) {
-				printFailed(name);
-				put("ir compiler error");
-				return;
-			}
-
-			#ifdef DEBUG_PRINT_GENERATED_IR_CODE
-			printIrCode(std::cout, **irCode);
-			#endif
-
-			auto optimizedCode = valueNumbering.run(**irCode, parameters);
-
-			const auto output = irVm.execute(optimizedCode, arguments);
-			put("removed instructions: %", i64((*irCode)->size()) - i64(optimizedCode.size()));
-
-			if (!output.isOk()) {
-				printFailed(name);
-				put("ir vm runtime error");
-			} else if (output.ok() != expectedOutput) {
-				printFailed(name);
-				std::cout << "ir vm error: ";
-				std::cout << "expected '" << expectedOutput << "' got '" << output.ok() << "'\n";
-				evaluationError = true;
-			}
-
-			{
-				ASSERT(irCode.has_value());
-				const auto machineCode = codeGenerator.compile(**irCode, parameters);
-				if (outputMachineCodeToFile) {
-					outputToFile("test.txt", machineCode.code);
-				}
-				/*const auto output = executeFunction(codeGenerator, code, codeGenerator.data, arguments);*/
-				const auto output = executeFunction(machineCode, arguments);
-				if (output != expectedOutput) {
-					printFailed(name);
-					put("evaluation error: ");
-					put("expected '%' got '%'", expectedOutput, output);
-					evaluationError = true;
-				}
-			}
-
-			if (evaluationError) {
-				return;
-			}
-
-			printPassed(name);
-	};
-
-	// I choose to ignore additional errors that were reported, because things like adding parser synchronization might add additional errors.
-	auto runTestExpectedErrors = [&](
+	void expectedErrorsHelper(
 		std::string_view name,
 		std::string_view source,
 		const std::vector<ScannerError>& expectedScannerErrors,
 		const std::vector<ParserError>& expectedParserErrors,
 		const std::vector<IrCompilerError>& expectedIrCompilerErrors,
 		std::span<const FunctionParameter> parameters = std::span<const FunctionParameter>(),
-		std::span<const float> arguments = std::span<const float>()) {
+		std::span<const float> arguments = std::span<const float>());
+	void expectedErrors(
+		std::string_view name,
+		std::string_view source,
+		const std::vector<ScannerError>& expectedScannerErrors,
+		const std::vector<ParserError>& expectedParserErrors,
+		const std::vector<IrCompilerError>& expectedIrCompilerErrors,
+		std::span<const FunctionParameter> parameters = std::span<const FunctionParameter>(),
+		std::span<const float> arguments = std::span<const float>());
 
-			scannerReporter.reporter.source = source;
-			parserReporter.reporter.source = source;
-			irCompilerReporter.reporter.source = source;
+	void reset();
+};
 
-			auto tokens = scanner.parse(source, &scannerReporter);
 
-			const auto scannerErrorsThatWereNotReported = setDifference(expectedScannerErrors, scannerReporter.errors);
-			if (scannerErrorsThatWereNotReported.size() != 0) {
-				printFailed(name);
-				put("% scanner errors were not reported", scannerErrorsThatWereNotReported.size());
-				put("output: \n%", output.str());
-				output.str("");
-				scannerReporter.reset();
-				return;
-			}
+void runTests() {
+	TestRunner t;
 
-			auto ast = parser.parse(tokens, source, &parserReporter);
-			if (!scannerReporter.errorHappened && !ast.has_value() && !parserReporter.errorHappened) {
-				ASSERT_NOT_REACHED();
-				return;
-			}
+	// I choose to ignore additional errors that were reported, because things like adding parser synchronization might add additional errors.
 
-			if (!ast.has_value()) {
-				if (expectedIrCompilerErrors.size() == 0) {
-					printPassed(name);
-				}
-				return;
-			}
-
-			irCompiler.compile(*ast, parameters, irCompilerReporter);
-			const auto parserErrorsThatWereNotReported = setDifference(expectedParserErrors, parserReporter.errors);
-			if (parserErrorsThatWereNotReported.size() != 0) {
-				printFailed(name);
-				put("% parser errors were not reported", parserErrorsThatWereNotReported.size());
-				put("output: \n%", output.str());
-				output.str("");
-				parserReporter.reset();
-				return;
-			}
-
-			const auto irCompilerErrorsThatWereNotReported = setDifference(expectedIrCompilerErrors, irCompilerReporter.errors);
-			if (irCompilerErrorsThatWereNotReported.size() != 0) {
-				printFailed(name);
-				put("% ir compiler errors were not reported", parserErrorsThatWereNotReported.size());
-				put("output: \n%", output.str());
-				output.str("");
-				irCompilerReporter.reset();
-				return;
-			}
-
-			output.str("");
-			printPassed(name);
-	};
-
-	runTestExpected("constant addition", "2 + 2", 4);
-	runTestExpected("constant multiplication", "17 * 22", 374);
-	runTestExpected("multiplication precedence", "2 + 3 * 4", 14);
-	runTestExpected("parens", "(2 + 3) * 4", 20);
-	runTestExpected("implicit multiplication", "4(2 + 3)", 20);
-	runTestExpected("variable loading", "x", 3.14f, { { "x" } }, { { 3.14f } });
-	runTestExpected("duplicate expression", "(a + b) + (a + b)", 6.0f, { { "a" }, { "b" } }, { { 1.0f }, { 2.0f } });
-	runTestExpected(
+	t.expected("constant addition", "2 + 2", 4);
+	t.expected("constant multiplication", "17 * 22", 374);
+	t.expected("multiplication precedence", "2 + 3 * 4", 14);
+	t.expected("parens", "(2 + 3) * 4", 20);
+	t.expected("implicit multiplication", "4(2 + 3)", 20);
+	t.expected("variable loading", "x", 3.14f, { { "x" } }, { { 3.14f } });
+	t.expected("duplicate expression", "(a + b) + (a + b)", 6.0f, { { "a" }, { "b" } }, { { 1.0f }, { 2.0f } });
+	t.expected(
 		"more variables", 
 		"xyz + 4(x + y)z", 
 		296, 
@@ -245,12 +122,10 @@ void runTests() {
 			}
 		}
 
-		outputMachineCodeToFile = true;
-		runTestExpected("a lot of variables", source.str(), 128.0f, parameters, arguments);
-		outputMachineCodeToFile = false;
+		t.expected("a lot of variables", source.str(), 128.0f, parameters, arguments);
 	}
 
-	runTestExpectedErrors(
+	t.expectedErrors(
 		"illegal character",
 		"?2 + 2",
 		{ IllegalCharScannerError{.character = '?', .sourceOffset = 0 } },
@@ -258,7 +133,7 @@ void runTests() {
 		{}
 	);
 
-	runTestExpectedErrors(
+	t.expectedErrors(
 		"expected token",
 		"(2 + 2",
 		{},
@@ -272,7 +147,7 @@ void runTests() {
 	);
 
 	// This assumes that the last char is the last char in source of length 0.
-	runTestExpectedErrors(
+	t.expectedErrors(
 		"unexpected token",
 		"(2 + ",
 		{},
@@ -284,7 +159,7 @@ void runTests() {
 		{}
 	);
 
-	runTestExpectedErrors(
+	t.expectedErrors(
 		"undefined variable",
 		"x",
 		{},
@@ -296,4 +171,175 @@ void runTests() {
 			}
 		}
 	);
+}
+
+TestRunner::TestRunner()
+	: scannerReporter(output, std::string_view())
+	, parserReporter(output, std::string_view())
+	, irCompilerReporter(output, std::string_view()) {}
+
+void TestRunner::printPassed(std::string_view name) {
+	put(TERMINAL_COLOR_GREEN "[PASSED] " TERMINAL_COLOR_RESET "%", name);
+}
+
+void TestRunner::printFailed(std::string_view name) {
+	put(TERMINAL_COLOR_RED "[FAILED] " TERMINAL_COLOR_RESET "%", name);
+}
+
+void TestRunner::expectedHelper(std::string_view name, std::string_view source, Real expectedOutput, const std::vector<FunctionParameter>& parameters, const std::vector<float>& arguments) {
+	scannerReporter.reporter.source = source;
+	parserReporter.reporter.source = source;
+
+	auto tokens = scanner.parse(source, &scannerReporter);
+	if (scannerReporter.errorHappened) {
+		printFailed(name);
+		put("scanner error: %", output.str());
+		return;
+	}
+
+	auto ast = parser.parse(tokens, source, &parserReporter);
+	if (!ast.has_value() && !parserReporter.errorHappened) {
+		ASSERT_NOT_REACHED();
+		printFailed(name);
+		return;
+	}
+
+	if (parserReporter.errorHappened) {
+		printFailed(name);
+		put("parser error: %", output.str());
+		return;
+	}
+
+	{
+		const auto output = evaluateAst(ast->root, parameters, arguments);
+
+		if (output != expectedOutput) {
+			printFailed(name);
+			put("ast interpreter error:");
+			if (output.isOk()) {
+				put("expected '%' got '%'", expectedOutput, output.ok());
+			}
+			else {
+				put("message: %", output.err());
+			}
+			return;
+		}
+	}
+
+	const auto optIrCode = irCompiler.compile(*ast, parameters, irCompilerReporter);
+
+	if (!optIrCode.has_value()) {
+		printFailed(name);
+		put("ir compiler error");
+		return;
+	}
+
+	auto irCode = *optIrCode;
+
+	if (printIrGeneratedCode) {
+		printIrCode(std::cout, *irCode);
+	}
+
+	const auto optmizedIrCode = valueNumbering.run(*irCode, parameters);
+	irCode = &optmizedIrCode;
+
+	{
+		const auto output = irVm.execute(*irCode, arguments);
+		//put("removed instructions: %", i64((*irCode)->size()) - i64(optimizedCode.size()));
+
+		if (output.isErr()) {
+			printFailed(name);
+			put("ir vm runtime error: %", output.err());
+			return;
+		}
+
+		if (output.ok() != expectedOutput) {
+			printFailed(name);
+			put("ir vm error: ");
+			put("expected '%' got '%' ", expectedOutput, output.ok());
+			return;
+		}
+	}
+
+	{
+		const auto machineCode = codeGenerator.compile(*irCode, parameters);
+		if (outputMachineCodeToFile) {
+			outputToFile("test.txt", machineCode.code);
+		}
+
+		const auto output = executeFunction(machineCode, arguments);
+		if (output != expectedOutput) {
+			printFailed(name);
+			put("evaluation error: ");
+			put("expected '%' got '%'", expectedOutput, output);
+		}
+	}
+
+	printPassed(name);
+}
+
+void TestRunner::expected(std::string_view name, std::string_view source, Real expectedOutput, const std::vector<FunctionParameter>& parameters, const std::vector<float>& arguments) {
+
+	expectedHelper(name, source, expectedOutput, parameters, arguments);
+	reset();
+}
+
+void TestRunner::expectedErrorsHelper(std::string_view name, std::string_view source, const std::vector<ScannerError>& expectedScannerErrors, const std::vector<ParserError>& expectedParserErrors, const std::vector<IrCompilerError>& expectedIrCompilerErrors, std::span<const FunctionParameter> parameters, std::span<const float> arguments) {
+	auto tokens = scanner.parse(source, &scannerReporter);
+
+	const auto scannerErrorsThatWereNotReported = setDifference(expectedScannerErrors, scannerReporter.errors);
+	if (scannerErrorsThatWereNotReported.size() != 0) {
+		printFailed(name);
+		put("% scanner errors were not reported", scannerErrorsThatWereNotReported.size());
+		put("output: \n%", output.str());
+		return;
+	}
+
+	auto ast = parser.parse(tokens, source, &parserReporter);
+	if (!scannerReporter.errorHappened && !ast.has_value() && !parserReporter.errorHappened) {
+		ASSERT_NOT_REACHED();
+		return;
+	}
+
+	if (!ast.has_value()) {
+		if (expectedIrCompilerErrors.size() == 0) {
+			printPassed(name);
+		}
+		return;
+	}
+
+	irCompiler.compile(*ast, parameters, irCompilerReporter);
+	const auto parserErrorsThatWereNotReported = setDifference(expectedParserErrors, parserReporter.errors);
+	if (parserErrorsThatWereNotReported.size() != 0) {
+		printFailed(name);
+		put("% parser errors were not reported", parserErrorsThatWereNotReported.size());
+		put("output: \n%", output.str());
+		return;
+	}
+
+	const auto irCompilerErrorsThatWereNotReported = setDifference(expectedIrCompilerErrors, irCompilerReporter.errors);
+	if (irCompilerErrorsThatWereNotReported.size() != 0) {
+		printFailed(name);
+		put("% ir compiler errors were not reported", parserErrorsThatWereNotReported.size());
+		put("output: \n%", output.str());
+		return;
+	}
+
+	printPassed(name);
+}
+
+void TestRunner::expectedErrors(std::string_view name, std::string_view source, const std::vector<ScannerError>& expectedScannerErrors, const std::vector<ParserError>& expectedParserErrors, const std::vector<IrCompilerError>& expectedIrCompilerErrors, std::span<const FunctionParameter> parameters, std::span<const float> arguments) {
+	scannerReporter.reporter.source = source;
+	parserReporter.reporter.source = source;
+	irCompilerReporter.reporter.source = source;
+	expectedErrorsHelper(name, source, expectedScannerErrors, expectedParserErrors, expectedIrCompilerErrors, parameters, arguments);
+	reset();
+}
+
+void TestRunner::reset() {
+	output.str("");
+	// could add reset to the interface and just call it in (Parser|Scanner|Compiler)::initialize().
+	scannerReporter.reset();
+	parserReporter.reset();
+	irCompilerReporter.reset();
 }

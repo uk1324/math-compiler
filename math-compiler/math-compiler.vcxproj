@@ -185,7 +185,6 @@
     <ClInclude Include="machineCode.hpp" />
     <ClInclude Include="ostreamIrCompilerMessageReporter.hpp" />
     <ClInclude Include="os\os.hpp" />
-    <ClInclude Include="test.hpp" />
     <ClInclude Include="test\testingIrCompilerMessageReporter.hpp" />
     <ClInclude Include="test\testingParserMessageReporter.hpp" />
     <ClInclude Include="test\testingScannerMessageReporter.hpp" />

@@ -7,10 +7,6 @@
 #include "irCompilerMessageReporter.hpp"
 
 struct IrCompiler {
-	/*struct DataType {
-
-	};*/
-
 	struct ExprResult {
 		Register result;
 	};

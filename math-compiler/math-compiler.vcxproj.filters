@@ -197,9 +197,6 @@
     <ClInclude Include="os\os.hpp">
       <Filter>Pliki nagłówkowe</Filter>
     </ClInclude>
-    <ClInclude Include="test.hpp">
-      <Filter>Pliki nagłówkowe</Filter>
-    </ClInclude>
     <ClInclude Include="test\tests.hpp">
       <Filter>Pliki nagłówkowe</Filter>
     </ClInclude>

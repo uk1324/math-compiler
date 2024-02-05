@@ -104,6 +104,6 @@ void test() {
 
 // https://stackoverflow.com/questions/4911993/how-to-generate-and-run-native-code-dynamically
 int main(void) {
-	test();
-	//runTests();
+	//test();
+	runTests();
 }
