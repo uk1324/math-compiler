@@ -92,7 +92,6 @@ void runTests() {
 	t.expected("parens", "(2 + 3) * 4", 20);
 	t.expected("implicit multiplication", "4(2 + 3)", 20);
 	t.expected("variable loading", "x", 3.14f, { { "x" } }, { { 3.14f } });
-	t.expected("duplicate expression", "(a + b) + (a + b)", 6.0f, { { "a" }, { "b" } }, { { 1.0f }, { 2.0f } });
 	t.expected(
 		"more variables", 
 		"xyz + 4(x + y)z", 
@@ -124,6 +123,11 @@ void runTests() {
 
 		t.expected("a lot of variables", source.str(), 128.0f, parameters, arguments);
 	}
+
+	// Value numbering
+	t.expected("duplicate expression", "(a + b) + (a + b)", 6.0f, { { "a" }, { "b" } }, { { 1.0f }, { 2.0f } });
+	t.expected("multiplication by 1", "x * 1", 5.0f, { { "x" } }, { { 5.0f } });
+	t.expected("multiplication by 2", "x * 2", 10.0f, { { "x" } }, { { 5.0f } });
 
 	t.expectedErrors(
 		"illegal character",

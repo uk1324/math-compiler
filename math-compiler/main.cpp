@@ -31,14 +31,15 @@ void debugOutputToken(const Token& token, std::string_view originalSource) {
 void test() {
 	//std::string_view source = "2 + 2";
 	/*std::string_view source = "1 + 2 * 3";*/
-	//std::string_view source = "xyz + 4(x + y)z";
+	/*std::string_view source = "xyz + 4(x + y)z";*/
+	std::string_view source = "x + x";
 	//std::string_view source = "2 + 2";
 	//std::string_view source = "xy";
 	//std::string_view source = "x + 1";
 	FunctionParameter parameters[] { { "x" }, { "y" }, { "z" } };
 	float arguments[] = { 11.0f, 2.0f, 4.0f };
 // 
-	std::string_view source = "(x + y) + (x + y)";
+	//std::string_view source = "(x + y) + (x + y)";
 	/*std::string_view source = "0.5772156649";*/
 	//std::vector<Func
 	//std::string_view source = "x + y";

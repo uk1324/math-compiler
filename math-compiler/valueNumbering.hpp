@@ -5,6 +5,7 @@
 #include "utils/overloaded.hpp"
 #include "utils/hashCombine.hpp"
 #include <unordered_map>
+#include <optional>
 #include <span>
 
 namespace Lvn {
@@ -81,6 +82,14 @@ struct LocalValueNumbering {
 	};
 
 	BinaryOpData getBinaryOpData(Register destination, Register lhs, Register rhs);
+
+	struct CommutativeOpWithOneConstantData {
+		Register aRegister;
+		Lvn::ValueNumber a;
+		float b;
+	};
+	std::optional<CommutativeOpWithOneConstantData> getCommutativeOpWithOneConstantData(const BinaryOpData& d, Register lhsReg, Register rhsReg);
+
 	std::unordered_map<Register, Lvn::ValueNumber> regToValueNumberMap;
 	std::unordered_map<Lvn::Val, Lvn::ValueNumber> valToValueNumber;
 	std::unordered_map<Lvn::ValueNumber, Lvn::Val> valueNumberToVal;
