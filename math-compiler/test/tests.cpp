@@ -6,6 +6,7 @@
 #include "../codeGenerator.hpp"
 #include "../evaluateAst.hpp"
 #include "../executeFunction.hpp"
+#include "../valueNumbering.hpp"
 #include "testingParserMessageReporter.hpp"
 #include "testingScannerMessageReporter.hpp"
 #include "testingIrCompilerMessageReporter.hpp"
@@ -31,6 +32,7 @@ void runTests() {
 	IrCompiler irCompiler;
 	IrVm irVm;
 	CodeGenerator codeGenerator;
+	LocalValueNumbering valueNumbering;
 
 	std::stringstream output;
 
@@ -94,25 +96,30 @@ void runTests() {
 			}
 
 			const auto irCode = irCompiler.compile(*ast, parameters, irCompilerReporter);
-			if (irCode.has_value()) {
-				#ifdef DEBUG_PRINT_GENERATED_IR_CODE
-				printIrCode(std::cout, **irCode);
-				#endif
 
-				const auto output = irVm.execute(**irCode, arguments);
-				if (!output.isOk()) {
-					printFailed(name);
-					put("ir vm runtime error");
-				} else if (output.ok() != expectedOutput) {
-					printFailed(name);
-					std::cout << "ir vm error: ";
-					std::cout << "expected '" << expectedOutput << "' got '" << output.ok() << "'\n";
-					evaluationError = true;
-				}
-			} else {
+			if (!irCode.has_value()) {
 				printFailed(name);
-				std::cout << "ir compiler error: ";
+				put("ir compiler error");
 				return;
+			}
+
+			#ifdef DEBUG_PRINT_GENERATED_IR_CODE
+			printIrCode(std::cout, **irCode);
+			#endif
+
+			auto optimizedCode = valueNumbering.run(**irCode, parameters);
+
+			const auto output = irVm.execute(optimizedCode, arguments);
+			put("removed instructions: %", i64((*irCode)->size()) - i64(optimizedCode.size()));
+
+			if (!output.isOk()) {
+				printFailed(name);
+				put("ir vm runtime error");
+			} else if (output.ok() != expectedOutput) {
+				printFailed(name);
+				std::cout << "ir vm error: ";
+				std::cout << "expected '" << expectedOutput << "' got '" << output.ok() << "'\n";
+				evaluationError = true;
 			}
 
 			{
@@ -208,6 +215,7 @@ void runTests() {
 	runTestExpected("parens", "(2 + 3) * 4", 20);
 	runTestExpected("implicit multiplication", "4(2 + 3)", 20);
 	runTestExpected("variable loading", "x", 3.14f, { { "x" } }, { { 3.14f } });
+	runTestExpected("duplicate expression", "(a + b) + (a + b)", 6.0f, { { "a" }, { "b" } }, { { 1.0f }, { 2.0f } });
 	runTestExpected(
 		"more variables", 
 		"xyz + 4(x + y)z", 

@@ -13,6 +13,7 @@
 #include "irCompiler.hpp"
 #include "irVm.hpp"
 #include "codeGenerator.hpp"
+#include "valueNumbering.hpp"
 #include "executeFunction.hpp"
 #include "os/os.hpp"
 #include "test/tests.hpp"
@@ -27,10 +28,8 @@ void debugOutputToken(const Token& token, std::string_view originalSource) {
 	put("% % = % '%'", token.location.start, end, tokenTypeToStr(token.type), tokenSource);
 }
 
-#include "bashPath.hpp"
-
 void test() {
-	std::string_view source = "2 + 2";
+	//std::string_view source = "2 + 2";
 	/*std::string_view source = "1 + 2 * 3";*/
 	//std::string_view source = "xyz + 4(x + y)z";
 	//std::string_view source = "2 + 2";
@@ -39,7 +38,7 @@ void test() {
 	FunctionParameter parameters[] { { "x" }, { "y" }, { "z" } };
 	float arguments[] = { 11.0f, 2.0f, 4.0f };
 // 
-	//std::string_view source = "(2 + 3) * 4";
+	std::string_view source = "(x + y) + (x + y)";
 	/*std::string_view source = "0.5772156649";*/
 	//std::vector<Func
 	//std::string_view source = "x + y";
@@ -77,17 +76,24 @@ void test() {
 	IrCompiler compiler;
 	const auto irCode = compiler.compile(*ast, parameters, compilerReporter);
 	if (irCode.has_value()) {
+		put("original");
 		printIrCode(std::cout, **irCode);
 	} else {
 		put("ir compiler error");
 		return;
 	}
+	
+	LocalValueNumbering valueNumbering;
+	auto optimizedCode = valueNumbering.run(**irCode, parameters);
+
+	put("optimized");
+	printIrCode(std::cout, optimizedCode);
 
 	/*IrVm vm;
 	vm.execute(**irCode, arguments);*/
 
 	CodeGenerator codeGenerator;
-	auto machineCode = codeGenerator.compile(**irCode, parameters);
+	auto machineCode = codeGenerator.compile(optimizedCode, parameters);
 
 	outputToFile("test.txt", machineCode.code);
 
@@ -98,6 +104,6 @@ void test() {
 
 // https://stackoverflow.com/questions/4911993/how-to-generate-and-run-native-code-dynamically
 int main(void) {
-	//test();
-	runTests();
+	test();
+	//runTests();
 }

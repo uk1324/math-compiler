@@ -166,15 +166,16 @@
     <ClCompile Include="ostreamParserMessageReporter.cpp" />
     <ClCompile Include="utils\asserts.cpp" />
     <ClCompile Include="utils\fileIo.cpp" />
+    <ClCompile Include="utils\hashCombine.cpp" />
     <ClCompile Include="utils\printingUtils.cpp" />
     <ClCompile Include="utils\put.cpp" />
     <ClCompile Include="sourceInfo.cpp" />
+    <ClCompile Include="valueNumbering.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="assemblyCode.hpp" />
     <ClInclude Include="assemblyInstruction.hpp" />
     <ClInclude Include="codeGenerator.hpp" />
-    <ClInclude Include="bashPath.hpp" />
     <ClInclude Include="executeFunction.hpp" />
     <ClInclude Include="input.hpp" />
     <ClInclude Include="ir.hpp" />
@@ -197,6 +198,7 @@
     <ClInclude Include="ostreamParserMessageReporter.hpp" />
     <ClInclude Include="utils\fileIo.hpp" />
     <ClInclude Include="utils\format.hpp" />
+    <ClInclude Include="utils\hashCombine.hpp" />
     <ClInclude Include="utils\result.hpp" />
     <ClInclude Include="utils\ints.hpp" />
     <ClInclude Include="parser.hpp" />
@@ -210,6 +212,7 @@
     <ClInclude Include="utils\put.hpp" />
     <ClInclude Include="sourceInfo.hpp" />
     <ClInclude Include="utils\setDifference.hpp" />
+    <ClInclude Include="valueNumbering.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="assembler.txt" />
