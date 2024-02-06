@@ -1,13 +1,17 @@
 #include "valueNumbering.hpp"
+#include "floatingPoint.hpp"
 #include "utils/asserts.hpp"
+#include <bit>
 
 using namespace Lvn;
 
 void LocalValueNumbering::initialize(std::span<const FunctionParameter> parameters) {
 	regToValueNumberMap.clear();
+	allocatedValueNumbersCount = 0;
 	for (Register i = 0; i < Register(parameters.size()); i++) {
 		regToValueNumberMap[i] = i;
 	}
+	allocatedValueNumbersCount = parameters.size();
 	valToValueNumber.clear();
 	valueNumberToVal.clear();
 }
@@ -18,6 +22,7 @@ NaNs, Infinities, signs of zeros
 Constant propagation might remove signaling of NaN and Infinities.
 https://en.wikipedia.org/wiki/NaN
 https://people.eecs.berkeley.edu/~wkahan/ieee754status/IEEE754.PDF
+Look at the output of compilers
 */
 
 std::vector<IrOp> LocalValueNumbering::run(const std::vector<IrOp>& irCode, std::span<const FunctionParameter> parameters) {
@@ -26,13 +31,8 @@ std::vector<IrOp> LocalValueNumbering::run(const std::vector<IrOp>& irCode, std:
 	std::vector<IrOp> output;
 	bool performUnsafeOptimizations = false;
 
-
 	for (const auto& irOp : irCode) {
-		struct Computed {
-			ValueNumber destinationRegister;
-			ValueNumber destinationValueNumber;
-			Val value;
-		};
+		
 
 		std::optional<Computed> computed = std::visit(overloaded{
 			[this](const LoadConstantOp& op) -> std::optional<Computed> {
@@ -73,15 +73,45 @@ std::vector<IrOp> LocalValueNumbering::run(const std::vector<IrOp>& irCode, std:
 
 				return computed;
 			},
+			[this, &output, &performUnsafeOptimizations](const SubtractOp& op) -> std::optional<Computed> {
+				const auto d = getBinaryOpData(op.destination, op.lhs, op.rhs);
+				if (d.lhsConst != nullptr && d.rhsConst != nullptr) {
+					return Computed{
+						.destinationRegister = op.destination,
+						.destinationValueNumber = d.destinationVn,
+						.value = ConstantVal{ d.lhsConst->value - d.rhsConst->value }
+					};
+				} 
+				if (d.rhsConst != nullptr && d.rhsConst->value == 0.0f) {
+					regToValueNumberMap[op.destination] = d.lhsVn;
+					return std::nullopt;
+				} else if (performUnsafeOptimizations && d.lhsConst != nullptr && d.lhsConst->value == 0.0f) {
+					// Negation means flipping the sign bit https://en.wikipedia.org/wiki/IEEE_754-1985
+					// 0 - 0 = 0 but -(0) = -0
+					return computeNegation(output, op.rhs, d.destinationVn, op.destination);
+				} else if (performUnsafeOptimizations && d.lhsVn == d.rhsVn) {
+					// infty - infty = NaN
+					return Computed{
+						.destinationRegister = op.destination,
+						.destinationValueNumber = d.destinationVn,
+						.value = ConstantVal{ 0.0f }
+					};
+				}
+
+				return Computed{
+					.destinationRegister = op.destination,
+					.destinationValueNumber = d.destinationVn,
+					.value = SubtractVal(d.lhsVn, d.rhsVn)
+				};
+			},
 			[this, &performUnsafeOptimizations](const MultiplyOp& op) -> std::optional<Computed> {
 				const auto d = getBinaryOpData(op.destination, op.lhs, op.rhs);
 
 				if (d.lhsConst != nullptr && d.rhsConst != nullptr) {
-					const auto value = d.lhsConst->value * d.rhsConst->value;
 					return Computed{
 						.destinationRegister = op.destination,
 						.destinationValueNumber = d.destinationVn,
-						.value = ConstantVal{ value }
+						.value = ConstantVal{ d.lhsConst->value * d.rhsConst->value }
 					};
 				} 
 
@@ -98,8 +128,7 @@ std::vector<IrOp> LocalValueNumbering::run(const std::vector<IrOp>& irCode, std:
 				}
 
 				if (e->b == 1.0f) {
-					regToValueNumberMap[op.destination] = e->aRegister;
-					return std::nullopt;
+					return computeIdentity(op.destination, e->a);
 				} else if (performUnsafeOptimizations && e->b == 0.0f) {
 					// NaN * 0 = NaN
 					// 0 * Infinity = NaN
@@ -119,6 +148,78 @@ std::vector<IrOp> LocalValueNumbering::run(const std::vector<IrOp>& irCode, std:
 				}
 
 				return computed;
+			},
+			[this, &performUnsafeOptimizations](const DivideOp& op) -> std::optional<Computed> {
+				const auto d = getBinaryOpData(op.destination, op.lhs, op.rhs);
+
+				if (d.lhsConst != nullptr && d.rhsConst != nullptr) {
+					return Computed{
+						.destinationRegister = op.destination,
+						.destinationValueNumber = d.destinationVn,
+						.value = ConstantVal{ d.lhsConst->value / d.rhsConst->value }
+					};
+				}
+
+				if (d.rhsConst != nullptr && d.rhsConst->value == 1.0f) {
+					return computeIdentity(op.destination, d.lhsVn);
+				} else if (performUnsafeOptimizations && d.lhsVn == d.rhsVn) {
+					// 0 / 0 = NaN
+					// Infinity / Infinity = Nan
+					// Also rounding.
+					return Computed{
+						.destinationRegister = op.destination,
+						.destinationValueNumber = d.destinationVn,
+						.value = ConstantVal{ 1.0f }
+					};
+				}
+
+				return Computed{
+					.destinationRegister = op.destination,
+					.destinationValueNumber = d.destinationVn,
+					.value = DivideVal{ d.lhsVn, d.rhsVn }
+				};
+			},
+			[this](const XorOp& op) -> std::optional<Computed> {
+				const auto d = getBinaryOpData(op.destination, op.lhs, op.rhs);
+
+				if (d.lhsConst != nullptr && d.rhsConst != nullptr) {
+					const u32 a = std::bit_cast<u32>(d.lhsConst->value);
+					const u32 b = std::bit_cast<u32>(d.rhsConst->value);
+					const u32 result = a xor b;
+					const auto value = std::bit_cast<float>(result);
+					return Computed{
+						.destinationRegister = op.destination,
+						.destinationValueNumber = d.destinationVn,
+						.value = ConstantVal{ value }
+					};
+				}
+
+				const auto e = getCommutativeOpWithOneConstantData(d, op.lhs, op.rhs);
+
+				const Computed computed{
+					.destinationRegister = op.destination,
+					.destinationValueNumber = d.destinationVn,
+					.value = AddVal(d.lhsVn, d.rhsVn)
+				};
+
+				if (!e.has_value()) {
+					return computed;
+				}
+				return computed;
+			},
+			[this, &output](const NegateOp& op) -> std::optional<Computed> {
+				const auto destinationVn = regToValueNumber(op.destination);
+				const auto operandVn = regToValueNumber(op.operand);
+				const auto operandConst = tryGetConstant(operandVn);
+				if (operandConst != nullptr) {
+					return Computed{
+						.destinationRegister = op.destination,
+						.destinationValueNumber = destinationVn,
+						.value = ConstantVal{ -operandConst->value }
+					};
+				}
+				
+				return computeNegation(output, operandVn, destinationVn, op.destination);
 			},
 			[this, &output](const ReturnOp& op) -> std::optional<Computed> {
 				const ReturnOp newOp{ .returnedRegister = regToValueNumber(op.returnedRegister) };
@@ -148,8 +249,29 @@ std::vector<IrOp> LocalValueNumbering::run(const std::vector<IrOp>& irCode, std:
 					.rhs = val.rhs
 				});
 			},
+			[&output, &computed](const SubtractVal& val) {
+				output.push_back(SubtractOp{
+					.destination = computed->destinationValueNumber,
+					.lhs = val.lhs,
+					.rhs = val.rhs
+				});
+			},
 			[&output, &computed](const MultiplyVal& val) {
 				output.push_back(MultiplyOp{
+					.destination = computed->destinationValueNumber,
+					.lhs = val.lhs,
+					.rhs = val.rhs
+				});
+			},
+			[&output, &computed](const DivideVal& val) {
+				output.push_back(DivideOp{
+					.destination = computed->destinationValueNumber,
+					.lhs = val.lhs,
+					.rhs = val.rhs
+				});
+			},
+			[&output, &computed](const XorVal& val) {
+				output.push_back(XorOp{
 					.destination = computed->destinationValueNumber,
 					.lhs = val.lhs,
 					.rhs = val.rhs
@@ -172,7 +294,7 @@ ValueNumber LocalValueNumbering::regToValueNumber(Register reg) {
 	if (valueNumberIt != regToValueNumberMap.end()) {
 		return valueNumberIt->second;
 	}
-	ValueNumber valueNumber = regToValueNumberMap.size();
+	ValueNumber valueNumber = allocateValueNumber();
 	regToValueNumberMap[reg] = valueNumber;
 	return valueNumber;
 }
@@ -227,6 +349,42 @@ std::optional<LocalValueNumbering::CommutativeOpWithOneConstantData> LocalValueN
 	};
 }
 
+LocalValueNumbering::Computed LocalValueNumbering::computeNegation(std::vector<IrOp>& output, ValueNumber operand, ValueNumber destinationVn, Register destinationRegister) {
+	const auto maskConstant = std::bit_cast<float>(F32_SIGN_BIT_MASK);
+	const auto maskVn = getConstantValueNumber(output, maskConstant);
+	return Computed{
+		.destinationRegister = destinationRegister,
+		.destinationValueNumber = destinationVn,
+		.value = XorVal(operand, maskVn)
+	};
+}
+
+Lvn::ValueNumber LocalValueNumbering::getConstantValueNumber(std::vector<IrOp>& output, float constant) {
+	const auto val = ConstantVal{ .value = constant };
+	const auto valIt = valToValueNumber.find(val);
+	if (valIt != valToValueNumber.end()) {
+		const auto vn = valIt->second;
+		return vn;
+	}
+
+	const auto vn = allocateValueNumber();
+	output.push_back(LoadConstantOp{ .destination = vn, .constant = constant });
+	valToValueNumber.emplace(val, vn);
+	return vn;
+}
+
+std::nullopt_t LocalValueNumbering::computeIdentity(Register destinationRegister, Lvn::ValueNumber value) {
+	// If you refer to destinationRegister then you will be refering to value.
+	regToValueNumberMap[destinationRegister] = value;
+	return std::nullopt;
+}
+
+Lvn::ValueNumber LocalValueNumbering::allocateValueNumber() {
+	const auto vn = allocatedValueNumbersCount;
+	allocatedValueNumbersCount++;
+	return vn;
+}
+
 #define INITIALIZE_COMMUTATIVE_BINARY_OP() \
 	if (lhs <= rhs) { \
 		this->lhs = lhs; \
@@ -242,5 +400,9 @@ Lvn::AddVal::AddVal(ValueNumber lhs, ValueNumber rhs) {
 }
 
 Lvn::MultiplyVal::MultiplyVal(ValueNumber lhs, ValueNumber rhs) {
+	INITIALIZE_COMMUTATIVE_BINARY_OP();
+}
+
+Lvn::XorVal::XorVal(ValueNumber lhs, ValueNumber rhs) {
 	INITIALIZE_COMMUTATIVE_BINARY_OP();
 }

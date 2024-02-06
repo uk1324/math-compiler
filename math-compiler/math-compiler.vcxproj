@@ -177,6 +177,7 @@
     <ClInclude Include="assemblyInstruction.hpp" />
     <ClInclude Include="codeGenerator.hpp" />
     <ClInclude Include="executeFunction.hpp" />
+    <ClInclude Include="floatingPoint.hpp" />
     <ClInclude Include="input.hpp" />
     <ClInclude Include="ir.hpp" />
     <ClInclude Include="irCompiler.hpp" />

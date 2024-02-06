@@ -136,6 +136,12 @@ struct VdivpsYmmYmmYmm {
 	RegYmm rhs;
 };
 
+struct VxorpsYmmYmmYmm {
+	RegYmm destination;
+	RegYmm lhs;
+	RegYmm rhs;
+};
+
 using Instruction = std::variant<
 	Ret,
 	Push64,
@@ -155,7 +161,8 @@ using Instruction = std::variant<
 	VaddpsYmmYmmYmm,
 	VsubpsYmmYmmYmm,
 	VmulpsYmmYmmYmm,
-	VdivpsYmmYmmYmm
+	VdivpsYmmYmmYmm,
+	VxorpsYmmYmmYmm
 >;
 
 struct LabeledInstruction {

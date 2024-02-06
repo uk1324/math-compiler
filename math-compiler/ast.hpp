@@ -8,6 +8,7 @@
 enum class ExprType {
 	CONSTANT,
 	BINARY,
+	UNARY,
 	IDENTIFIER,
 };
 
@@ -26,8 +27,8 @@ struct ConstantExpr : public Expr {
 };
 
 enum class BinaryOpType {
-	PLUS,
-	MINUS,
+	ADD,
+	SUBTRACT,
 	MULTIPLY,
 	DIVIDE,
 };
@@ -37,6 +38,17 @@ struct BinaryExpr : public Expr {
 	Expr* lhs;
 	Expr* rhs;
 	BinaryOpType op;
+};
+
+enum class UnaryOpType {
+	NEGATE,
+};
+
+struct UnaryExpr : public Expr {
+	UnaryExpr(Expr* operand, UnaryOpType op, i64 start, i64 end);
+
+	Expr* operand;
+	UnaryOpType op;
 };
 
 struct IdentifierExpr : public Expr {

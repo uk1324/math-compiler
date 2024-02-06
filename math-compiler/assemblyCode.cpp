@@ -72,6 +72,10 @@ void AssemblyCode::vdivps(RegYmm destination, RegYmm lhs, RegYmm rhs, i64 offset
 	insert(VdivpsYmmYmmYmm{ .destination = destination, .lhs = lhs, .rhs = rhs }, OFFSET_LAST);
 }
 
+void AssemblyCode::vxorps(RegYmm destination, RegYmm lhs, RegYmm rhs, i64 offset) {
+	insert(VxorpsYmmYmmYmm{ .destination = destination, .lhs = lhs, .rhs = rhs }, OFFSET_LAST);
+}
+
 void AssemblyCode::jmp(InstructionLabel label, i64 offset) {
 	insert(JmpLbl{ .type = JmpType::UNCONDITONAL, .label = label }, offset);
 }

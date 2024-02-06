@@ -10,6 +10,11 @@ BinaryExpr::BinaryExpr(Expr* lhs, Expr* rhs, BinaryOpType op, i64 start, i64 end
 	, rhs(rhs)
 	, op(op) {}
 
+UnaryExpr::UnaryExpr(Expr* operand, UnaryOpType op, i64 start, i64 end)
+	: Expr(ExprType::UNARY, start, end)
+	, op(op)
+	, operand(operand){}
+
 IdentifierExpr::IdentifierExpr(std::string_view identifier, i64 start, i64 end)
 	: Expr(ExprType::IDENTIFIER, start, end)
 	, identifier(identifier) {}

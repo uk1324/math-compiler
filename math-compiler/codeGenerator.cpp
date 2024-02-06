@@ -1,6 +1,7 @@
 #include "codeGenerator.hpp"
 #include "utils/overloaded.hpp"
 #include "utils/asserts.hpp"
+#include "floatingPoint.hpp"
 #include <algorithm>
 
 CodeGenerator::CodeGenerator() {
@@ -46,7 +47,11 @@ MachineCode CodeGenerator::compile(const std::vector<IrOp>& irCode, std::span<co
 		std::visit(overloaded{
 			[&](const LoadConstantOp& op) { loadConstantOp(op); },
 			[&](const AddOp& op) { addOp(op); },
+			[&](const SubtractOp& op) { subtractOp(op); },
 			[&](const MultiplyOp& op) { multiplyOp(op); },
+			[&](const DivideOp& op) { divideOp(op); },
+			[&](const XorOp& op) { generate(op); },
+			[&](const NegateOp& op) { generate(op); },
 			[&](const ReturnOp& op) { returnOp(op); }
 		}, op);
 	}
@@ -103,6 +108,7 @@ void CodeGenerator::computeRegisterLastUsage(const std::vector<IrOp>& irCode) {
 		};
 
 		// TODO: Could make a function that takes a function and executes this input function on all of the registers of the irOp.
+		// TODO: Should the operand be added to the last usage?
 		auto& op = irCode[i];
 		std::visit(overloaded{
 			[&](const LoadConstantOp& op) {
@@ -113,10 +119,29 @@ void CodeGenerator::computeRegisterLastUsage(const std::vector<IrOp>& irCode) {
 				add(op.lhs);
 				add(op.rhs);
 			},
+			[&](const SubtractOp& op) {
+				add(op.destination);
+				add(op.lhs);
+				add(op.rhs);
+			},
 			[&](const MultiplyOp& op) {
 				add(op.destination);
 				add(op.lhs);
 				add(op.rhs);
+			},
+			[&](const DivideOp& op) {
+				add(op.destination);
+				add(op.lhs);
+				add(op.rhs);
+			},
+			[&](const XorOp& op) {
+				add(op.destination);
+				add(op.lhs);
+				add(op.rhs);
+			},
+			[&](const NegateOp& op) {
+				add(op.destination);
+				add(op.operand);
 			},
 			[&](const ReturnOp& op) {
 				add(op.returnedRegister);
@@ -140,11 +165,23 @@ void CodeGenerator::computeRegisterFirstAssigned(const std::vector<IrOp>& irCode
 			[&](const AddOp& op) {
 				add(op.destination);
 			},
+			[&](const SubtractOp& op) {
+				add(op.destination);
+			},
 			[&](const MultiplyOp& op) {
 				add(op.destination);
 			},
+			[&](const DivideOp& op) {
+				add(op.destination);
+			},
+			[&](const XorOp& op) {
+				add(op.destination);
+			},
+			[&](const NegateOp& op) {
+				add(op.destination);
+			},
 			[&](const ReturnOp& op) {
-				add(op.returnedRegister);
+
 			}
 		}, op);
 	}
@@ -190,64 +227,6 @@ RegYmm CodeGenerator::getRegisterLocationHelper(Register reg, std::span<const Re
 	}
 
 	return actualRegister;
-
-	/*auto loadParameter = [](i64 MemoryLocation& regMemoryLocation) {
-		const auto inputArrayReg = static_cast<Reg64>(inputArrayRegister);
-		const auto offset = reg * YMM_REGISTER_SIZE;
-		location.memoryLocation = RegisterConstantOffsetLocation{
-			.registerWithAddress = inputArrayReg,
-			.offset = offset,
-		};
-		a.vmovaps(*location.registerLocation, static_cast<Reg64>(inputArrayReg), offset);
-	};*/
-
-	//auto& location = virtualRegisterToLocation[reg];
-	//if (location.registerLocation.has_value()) {
-	//	return *location.registerLocation;
-	//} else {
-	//	struct SpilledRegister {
-	//		Register virtualRegister;
-	//		RegYmm actualRegister;
-	//	};
-	//	std::optional<SpilledRegister> registerThatWillGetSpilledIfNoFreeLocationIsFound;
-
-	//	// if both the registerLocation and the memoryLocation are null then it means that it is a newly allocated register with no value in it yet.
-	//	for (i64 i = 0; i < std::size(registerAllocations); i++) {
-	//		const auto actualRegister = static_cast<RegYmm>(i);
-	//		if (!registerAllocations[i].has_value()) {
-	//			registerAllocations[i] = reg;
-	//			location.registerLocation = actualRegister;
-	//			if (location.memoryLocation.has_value()) {
-	//				movToYmmFromMemoryLocation(*location.registerLocation, *location.memoryLocation);
-	//			} else if (virtualRegisterIsParameter(reg)) {
-	//				
-	//			}
-	//			return actualRegister;
-	//		} else if (!registerThatWillGetSpilledIfNoFreeLocationIsFound.has_value()) {
-	//			// TODO: Could spill the register based on some heuristic like spill the register that will be last used with the biggest distance from this instruction to this usage.
-	//			registerThatWillGetSpilledIfNoFreeLocationIsFound = SpilledRegister{
-	//				.virtualRegister = *registerAllocations[i],
-	//				.actualRegister = actualRegister,
-	//			};
-	//		}
-	//	}
-
-	//	// spill register onto stack.
-	//	ASSERT(registerThatWillGetSpilledIfNoFreeLocationIsFound.has_value());
-	//	const auto baseOffset = stackAllocate(YMM_REGISTER_SIZE, 32);
-	//	auto& spilledRegisterLocation = virtualRegisterToLocation[registerThatWillGetSpilledIfNoFreeLocationIsFound->virtualRegister];
-	//	if (!spilledRegisterLocation.memoryLocation.has_value()) {
-	//		spilledRegisterLocation.memoryLocation = RegisterConstantOffsetLocation{
-	//			.registerWithAddress = Reg64::RBP,
-	//			.offset = baseOffset.baseOffset
-	//		};
-	//		a.vmovaps(Reg64::RBP, baseOffset.baseOffset, registerThatWillGetSpilledIfNoFreeLocationIsFound->actualRegister);
-	//	}
-	//	location.registerLocation = spilledRegisterLocation.registerLocation;
-	//	registerAllocations[static_cast<i64>(*spilledRegisterLocation.registerLocation)] = reg;
-	//	spilledRegisterLocation.registerLocation = std::nullopt;
-	//	return *location.registerLocation;
-	//}
 }
 
 RegYmm CodeGenerator::getRegisterLocation(
@@ -318,6 +297,7 @@ void CodeGenerator::loadConstantOp(const LoadConstantOp& op) {
 	virtualRegisterToLocation[op.destination].memoryLocation = ConstantLocation{
 		.value = op.constant
 	};
+	// TODO: if equal to 0 then xor
 }
 
 void CodeGenerator::addOp(const AddOp& op) {
@@ -328,12 +308,46 @@ void CodeGenerator::addOp(const AddOp& op) {
 	a.vaddps(destination, lhs, rhs);
 }
 
+void CodeGenerator::subtractOp(const SubtractOp& op) {
+	const Register reserved[] = { op.lhs, op.rhs, op.destination };
+	const auto destination = getRegisterLocation(op.destination, reserved);
+	const auto lhs = getRegisterLocation(op.lhs, reserved);
+	const auto rhs = getRegisterLocation(op.rhs, reserved);
+	a.vsubps(destination, lhs, rhs);
+}
+
 void CodeGenerator::multiplyOp(const MultiplyOp& op) {
 	const Register reserved[] = { op.lhs, op.rhs, op.destination };
 	const auto destination = getRegisterLocation(op.destination, reserved);
 	const auto lhs = getRegisterLocation(op.lhs, reserved);
 	const auto rhs = getRegisterLocation(op.rhs, reserved);
 	a.vmulps(destination, lhs, rhs);
+}
+
+void CodeGenerator::divideOp(const DivideOp& op) {
+	const Register reserved[] = { op.lhs, op.rhs, op.destination };
+	const auto destination = getRegisterLocation(op.destination, reserved);
+	const auto lhs = getRegisterLocation(op.lhs, reserved);
+	const auto rhs = getRegisterLocation(op.rhs, reserved);
+	a.vdivps(destination, lhs, rhs);
+}
+
+void CodeGenerator::generate(const XorOp& op) {
+	const Register reserved[] = { op.lhs, op.rhs, op.destination };
+	const auto destination = getRegisterLocation(op.destination, reserved);
+	const auto lhs = getRegisterLocation(op.lhs, reserved);
+	const auto rhs = getRegisterLocation(op.rhs, reserved);
+	// There are multitple instructions that perform xor on ymm register not sure which one to use. xorps, xorpd, pxor
+	a.vxorps(destination, lhs, rhs);
+}
+
+void CodeGenerator::generate(const NegateOp& op) {
+	const Register reserved[] = { op.operand, op.destination };
+	const auto destination = getRegisterLocation(op.destination, reserved);
+	const auto operand = getRegisterLocation(op.operand, reserved);
+	const auto dataLabel = a.allocateData(std::bit_cast<float>(F32_SIGN_BIT_MASK));
+	a.vbroadcastss(destination, dataLabel);
+	a.vxorps(destination, destination, operand);
 }
 
 void CodeGenerator::returnOp(const ReturnOp& op) {

@@ -37,6 +37,8 @@ struct AssemblyCode {
 	void vmulps(RegYmm destination, RegYmm lhs, RegYmm rhs, i64 offset = OFFSET_LAST);
 	void vdivps(RegYmm destination, RegYmm lhs, RegYmm rhs, i64 offset = OFFSET_LAST);
 
+	void vxorps(RegYmm destination, RegYmm lhs, RegYmm rhs, i64 offset = OFFSET_LAST);
+
 	void jmp(InstructionLabel label, i64 offset = OFFSET_LAST);
 	// siged less
 	void jl(InstructionLabel label, i64 offset = OFFSET_LAST);

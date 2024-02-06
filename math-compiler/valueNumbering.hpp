@@ -18,6 +18,13 @@ namespace Lvn {
 		bool operator==(const AddVal&) const = default;
 	};
 
+	struct SubtractVal {
+		ValueNumber lhs;
+		ValueNumber rhs;
+
+		bool operator==(const SubtractVal&) const = default;
+	};
+
 	struct MultiplyVal {
 		MultiplyVal(ValueNumber lhs, ValueNumber rhs);
 		ValueNumber lhs;
@@ -26,16 +33,31 @@ namespace Lvn {
 		bool operator==(const MultiplyVal&) const = default;
 	};
 
+	struct DivideVal {
+		ValueNumber lhs;
+		ValueNumber rhs;
+
+		bool operator==(const DivideVal&) const = default;
+	};
+
+	struct XorVal {
+		XorVal(ValueNumber lhs, ValueNumber rhs);
+		ValueNumber lhs;
+		ValueNumber rhs;
+
+		bool operator==(const XorVal&) const = default;
+	};
+
 	struct ConstantVal {
 		Real value;
 
 		bool operator==(const ConstantVal&) const = default;
 	};
 
-	using Val = std::variant<AddVal, MultiplyVal, ConstantVal>;
+	using Val = std::variant<AddVal, SubtractVal, MultiplyVal, DivideVal, XorVal, ConstantVal>;
 
 	enum class OpType {
-		ADD, MULTIPLY,
+		ADD, SUBTRACT, MULTIPLY, DIVIDE, XOR,
 	};
 }
 
@@ -54,7 +76,10 @@ namespace std {
 
 			return std::visit(overloaded{
 				HASH_BINARY_OP(AddVal, ADD),
+				HASH_BINARY_OP(SubtractVal, SUBTRACT),
 				HASH_BINARY_OP(MultiplyVal, MULTIPLY),
+				HASH_BINARY_OP(DivideVal, DIVIDE),
+				HASH_BINARY_OP(XorVal, XOR),
 				[](const ConstantVal& e) -> usize {
 					return hash<Real>()(e.value);
 				}
@@ -90,6 +115,17 @@ struct LocalValueNumbering {
 	};
 	std::optional<CommutativeOpWithOneConstantData> getCommutativeOpWithOneConstantData(const BinaryOpData& d, Register lhsReg, Register rhsReg);
 
+	struct Computed {
+		Lvn::ValueNumber destinationRegister;
+		Lvn::ValueNumber destinationValueNumber;
+		Lvn::Val value;
+	};
+	Lvn::ValueNumber getConstantValueNumber(std::vector<IrOp>& output, float constant);
+	Computed computeNegation(std::vector<IrOp>& output, Lvn::ValueNumber operand, Lvn::ValueNumber destinationVn, Register destinationRegister);
+	std::nullopt_t computeIdentity(Register destinationRegister, Lvn::ValueNumber value);
+
+	Lvn::ValueNumber allocateValueNumber();
+	Lvn::ValueNumber allocatedValueNumbersCount = 0;
 	std::unordered_map<Register, Lvn::ValueNumber> regToValueNumberMap;
 	std::unordered_map<Lvn::Val, Lvn::ValueNumber> valToValueNumber;
 	std::unordered_map<Lvn::ValueNumber, Lvn::Val> valueNumberToVal;

@@ -54,11 +54,19 @@ Expr* Parser::plusOrMinusBinaryExpr() {
 		const auto end = peek().end();
 		switch (operatorTokenType) {
 		case TokenType::PLUS:
-			lhs = astAllocator.allocate<BinaryExpr>(lhs, rhs, BinaryOpType::PLUS, start, end);
+			lhs = astAllocator.allocate<BinaryExpr>(lhs, rhs, BinaryOpType::ADD, start, end);
 			break;
 
 		case TokenType::MINUS:
-			lhs = astAllocator.allocate<BinaryExpr>(lhs, rhs, BinaryOpType::MINUS, start, end);
+			lhs = astAllocator.allocate<BinaryExpr>(lhs, rhs, BinaryOpType::SUBTRACT, start, end);
+			break;
+
+		case TokenType::STAR:
+			lhs = astAllocator.allocate<BinaryExpr>(lhs, rhs, BinaryOpType::MULTIPLY, start, end);
+			break;
+
+		case TokenType::SLASH:
+			lhs = astAllocator.allocate<BinaryExpr>(lhs, rhs, BinaryOpType::DIVIDE, start, end);
 			break;
 
 		default:
@@ -126,12 +134,24 @@ Expr* Parser::primaryExpr() {
 		lhsStart = peek().start();
 		lhs = parenExprAfterMatch();
 	} else if (match(TokenType::IDENTIFIER)) {
-		const auto identifierToken = peekPrevious();
+		const auto& identifierToken = peekPrevious();
 		lhs = astAllocator.allocate<IdentifierExpr>(
 			tokenSource(identifierToken), 
 			identifierToken.start(), 
 			identifierToken.end());
 		lhsStart = identifierToken.start();
+	} else if (match(TokenType::MINUS)) {
+		// TODO: Not sure if this should be changed but -4x will parse to -(4 * x) and not (-4) * x. (I wrote this when I thought that the order is reversed but I guess -(4 * x) makes more sense thatn the other option. Don't think that will change the result but not sure. GCC treats the differently. I guess if x is NaN then the result might have different signs idk.
+		const auto start = peekPrevious().start();
+		lhsStart = start;
+		const auto& operand = primaryExpr();
+		const auto end = peek().end();
+		lhs = astAllocator.allocate<UnaryExpr>(
+			operand,
+			UnaryOpType::NEGATE,
+			start,
+			end
+		);
 	} else {
 		throwError(UnexpectedTokenParserError{ .token = peek() });
 	}

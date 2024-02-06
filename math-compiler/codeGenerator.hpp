@@ -147,7 +147,11 @@ struct CodeGenerator {
 
 	void loadConstantOp(const LoadConstantOp& op);
 	void addOp(const AddOp& op);
+	void subtractOp(const SubtractOp& op);
 	void multiplyOp(const MultiplyOp& op);
+	void divideOp(const DivideOp& op);
+	void generate(const XorOp& op);
+	void generate(const NegateOp& op);
 	void returnOp(const ReturnOp& op);
 
 	struct StackAllocation {

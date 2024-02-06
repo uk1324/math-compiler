@@ -307,6 +307,10 @@ void MachineCode::emit(const VdivpsYmmYmmYmm& i) {
 	emitInstructionYmmYmmYmm(0x5E, regIndex(i.destination), regIndex(i.lhs), regIndex(i.rhs));
 }
 
+void MachineCode::emit(const VxorpsYmmYmmYmm& i) {
+	emitInstructionYmmYmmYmm(0x57, regIndex(i.destination), regIndex(i.lhs), regIndex(i.rhs));
+}
+
 i64 MachineCode::currentLocation() {
 	return code.size();
 }

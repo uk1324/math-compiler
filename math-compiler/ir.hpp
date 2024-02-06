@@ -19,10 +19,33 @@ struct AddOp {
 	Register rhs;
 };
 
+struct SubtractOp {
+	Register destination;
+	Register lhs;
+	Register rhs;
+};
+
 struct MultiplyOp {
 	Register destination;
 	Register lhs;
 	Register rhs;
+};
+
+struct DivideOp {
+	Register destination;
+	Register lhs;
+	Register rhs;
+};
+
+struct XorOp {
+	Register destination;
+	Register lhs;
+	Register rhs;
+};
+
+struct NegateOp {
+	Register destination;
+	Register operand;
 };
 
 struct ReturnOp {
@@ -32,7 +55,11 @@ struct ReturnOp {
 using IrOp = std::variant<
 	LoadConstantOp,
 	AddOp,
+	SubtractOp,
 	MultiplyOp,
+	DivideOp,
+	XorOp,
+	NegateOp,
 	ReturnOp
 >;
 

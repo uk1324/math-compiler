@@ -92,6 +92,16 @@ void runTests() {
 	t.expected("parens", "(2 + 3) * 4", 20);
 	t.expected("implicit multiplication", "4(2 + 3)", 20);
 	t.expected("variable loading", "x", 3.14f, { { "x" } }, { { 3.14f } });
+	t.expected("addition", "x + y", 6.0f, { { "x" }, { "y" } }, { { 2.0f, 4.0f } });
+	t.expected("subtraction", "x - y", -2.0f, { { "x" }, { "y" } }, { { 2.0f, 4.0f } });
+	t.expected("multiplication", "x * y", 8.0f, { { "x" }, { "y" } }, { { 2.0f, 4.0f } });
+	t.expected("division ", "x / y", 0.5, { { "x" }, { "y" } }, { { 2.0f, 4.0f } });
+	t.expected("negation", "-x", -2.0f, { { "x" }, }, { { 2.0f } });
+	t.expected("constant addition", "2 + 4", 6.0f);
+	t.expected("constant subtraction", "2 - 4", -2.0f);
+	t.expected("constant multiplication", "2 * 4", 8.0f);
+	t.expected("constant division ", "2 / 4", 0.5);
+	t.expected("constant negation", "-2", -2.0f);
 	t.expected(
 		"more variables", 
 		"xyz + 4(x + y)z", 
@@ -128,6 +138,7 @@ void runTests() {
 	t.expected("duplicate expression", "(a + b) + (a + b)", 6.0f, { { "a" }, { "b" } }, { { 1.0f }, { 2.0f } });
 	t.expected("multiplication by 1", "x * 1", 5.0f, { { "x" } }, { { 5.0f } });
 	t.expected("multiplication by 2", "x * 2", 10.0f, { { "x" } }, { { 5.0f } });
+	t.expected("division by 1", "x / 1", 5.0f, { { "x" } }, { { 5.0f } });
 
 	t.expectedErrors(
 		"illegal character",
@@ -241,11 +252,17 @@ void TestRunner::expectedHelper(std::string_view name, std::string_view source, 
 	auto irCode = *optIrCode;
 
 	if (printIrGeneratedCode) {
+		put("original:");
 		printIrCode(std::cout, *irCode);
 	}
 
 	const auto optmizedIrCode = valueNumbering.run(*irCode, parameters);
 	irCode = &optmizedIrCode;
+
+	if (printIrGeneratedCode) {
+		put("optimized:");
+		printIrCode(std::cout, optmizedIrCode);
+	}
 
 	{
 		const auto output = irVm.execute(*irCode, arguments);

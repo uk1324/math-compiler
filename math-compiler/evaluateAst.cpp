@@ -10,6 +10,7 @@ struct State {
 
 static Result<Real, std::string> evaluateExpr(const State& state, const Expr* expr);
 static Result<Real, std::string> evaluateBinaryOp(const State& state, Real lhs, Real rhs, BinaryOpType op);
+static Result<Real, std::string> evaulateUnaryUp(const State& state, Real operand, UnaryOpType op);
 static Result<Real, std::string> getVariable(const State& state, std::string_view identifier);
 //static Real resolve;
 
@@ -38,6 +39,13 @@ Result<Real, std::string> evaluateExpr(const State& state, const Expr* expr) {
 		return evaluateBinaryOp(state, lhs.ok(), rhs.ok(), binaryExpr->op);
 	}
 
+	case UNARY: {
+		const auto unaryExpr = static_cast<const UnaryExpr*>(expr);
+		const auto operand = evaluateExpr(state, unaryExpr->operand);
+		TRY(operand);
+		return evaulateUnaryUp(state, operand.ok(), unaryExpr->op);
+	}
+
 	case CONSTANT: {
 		const auto constantExpr = static_cast<const ConstantExpr*>(expr);
 		return constantExpr->value;
@@ -55,15 +63,23 @@ Result<Real, std::string> evaluateExpr(const State& state, const Expr* expr) {
 
 Result<Real, std::string> evaluateBinaryOp(const State& state, Real lhs, Real rhs, BinaryOpType op) {
 	switch (op) {
-	case BinaryOpType::PLUS: return lhs + rhs;
-	case BinaryOpType::MINUS: return lhs - rhs;
+	case BinaryOpType::ADD: return lhs + rhs;
+	case BinaryOpType::SUBTRACT: return lhs - rhs;
 	case BinaryOpType::MULTIPLY: return lhs * rhs;
 	case BinaryOpType::DIVIDE: return lhs / rhs;
-
-	default:
-		ASSERT_NOT_REACHED();
-		return 0.0f;
 	}
+	ASSERT_NOT_REACHED();
+	return 0.0f;
+}
+
+Result<Real, std::string> evaulateUnaryUp(const State& state, Real operand, UnaryOpType op) {
+	switch (op) {
+		using enum UnaryOpType;
+	case NEGATE:
+		return -operand;
+	}
+	ASSERT_NOT_REACHED();
+	return 0.0f;
 }
 
 Result<Real, std::string> getVariable(const State& state, std::string_view identifier) {

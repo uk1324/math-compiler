@@ -14,9 +14,8 @@ Result<Real, std::string> IrVm::execute(const std::vector<IrOp>& instructions, s
 	for (const auto& op : instructions) {
 		if (const auto returnOp = std::get_if<ReturnOp>(&op)) {
 			if (!registerExists(returnOp->returnedRegister)) {
-				error("return instruction register doesn't exist");
+				registerDoesNotExistError(returnOp->returnedRegister);
 				return ResultErr(std::string(errorMessage));
-				//return ResultErr(errorMessage);
 			}
 			return getRegister(returnOp->returnedRegister);
 		}
@@ -44,7 +43,11 @@ IrVm::Status IrVm::executeOp(const IrOp& op) {
 			return Status::OK;
 		},
 		[&](const AddOp& op) { return executeAddOp(op); },
+		[&](const SubtractOp& op) { return executeOp(op); },
 		[&](const MultiplyOp& op) { return executeMultiplyOp(op); },
+		[&](const DivideOp& op) { return executeOp(op); },
+		[&](const XorOp& op) { return executeOp(op); },
+		[&](const NegateOp& op) { return executeOp(op); },
 		[&](const ReturnOp& op) {
 			ASSERT_NOT_REACHED();
 			return Status::ERROR;
@@ -59,8 +62,11 @@ void IrVm::executeLoadConstantOp(const LoadConstantOp& op) {
 
 // Should the destination register exist before compiling this instruction or is it a compiler error?
 #define BASIC_BINARY_OP(op_symbol) \
-	if (!registerExists(op.lhs) || !registerExists(op.rhs)) { \
-		return Status::ERROR; \
+	if (!registerExists(op.lhs)) { \
+		return registerDoesNotExistError(op.lhs); \
+	} \
+	if (!registerExists(op.rhs)) { \
+		return registerDoesNotExistError(op.rhs); \
 	} \
 	allocateRegisterIfNotExists(op.destination); \
 	setRegister(op.destination, getRegister(op.lhs) op_symbol getRegister(op.rhs)); \
@@ -70,8 +76,36 @@ IrVm::Status IrVm::executeAddOp(const AddOp& op) {
 	BASIC_BINARY_OP(+)
 }
 
+IrVm::Status IrVm::executeOp(const SubtractOp& op) {
+	BASIC_BINARY_OP(-);
+}
+
 IrVm::Status IrVm::executeMultiplyOp(const MultiplyOp& op) {
 	BASIC_BINARY_OP(*)
+}
+
+IrVm::Status IrVm::executeOp(const DivideOp& op) {
+	BASIC_BINARY_OP(/);
+}
+
+IrVm::Status IrVm::executeOp(const XorOp& op) {
+	if (!registerExists(op.lhs)) {
+		return registerDoesNotExistError(op.lhs);
+	}
+	if (!registerExists(op.rhs)) {
+		return registerDoesNotExistError(op.rhs);
+	}
+	allocateRegisterIfNotExists(op.destination);
+	setRegister(op.destination, std::bit_cast<float>(std::bit_cast<u32>(getRegister(op.lhs)) xor std::bit_cast<u32>(getRegister(op.rhs))));
+	return Status::OK;
+}
+
+IrVm::Status IrVm::executeOp(const NegateOp& op) {
+	allocateRegisterIfNotExists(op.destination);
+	if (!registerExists(op.operand)) {
+		return registerDoesNotExistError(op.operand);
+	}
+	setRegister(op.destination, -getRegister(op.operand));
 }
 
 void IrVm::allocateRegisterIfNotExists(Register index) {
@@ -94,6 +128,10 @@ void IrVm::setRegister(Register index, Real value) {
 		return;
 	}
 	registers[index] = value;
+}
+
+IrVm::Status IrVm::registerDoesNotExistError(Register reg) {
+	return error("r% doesn't exist", reg);
 }
 
 const Real& IrVm::getRegister(Register index) const {

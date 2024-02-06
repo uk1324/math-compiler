@@ -16,7 +16,11 @@ struct IrVm {
 	Status executeOp(const IrOp& op);
 	void executeLoadConstantOp(const LoadConstantOp& op);
 	Status executeAddOp(const AddOp& op);
+	Status executeOp(const SubtractOp& op);
 	Status executeMultiplyOp(const MultiplyOp& op);
+	Status executeOp(const DivideOp& op);
+	Status executeOp(const XorOp& op);
+	Status executeOp(const NegateOp& op);
 
 	void allocateRegisterIfNotExists(Register index);
 	bool registerExists(Register index);
@@ -26,6 +30,7 @@ struct IrVm {
 
 	template <typename ...Args>
 	Status error(const char* format, const Args&... args);
+	Status registerDoesNotExistError(Register reg);
 
 	std::string errorMessage;
 	std::vector<Real> registers;

@@ -41,6 +41,7 @@ IrCompiler::ExprResult IrCompiler::compileExpression(const Expr* expr) {
 	switch (expr->type) {
 		CASE_EXPR(CONSTANT, ConstantExpr);
 		CASE_EXPR(BINARY, BinaryExpr);
+		CASE_EXPR(UNARY, UnaryExpr);
 		CASE_EXPR(IDENTIFIER, IdentifierExpr);
 	
 	default:
@@ -63,27 +64,37 @@ IrCompiler::ExprResult IrCompiler::compileBinaryExpr(const BinaryExpr& expr) {
 	const auto rhs = compileExpression(expr.rhs);
 	const auto destination = allocateRegister();
 	switch (expr.op) {
-	case BinaryOpType::PLUS:
-		addOp(AddOp{
-			.destination = destination,
-			.lhs = lhs.result,
-			.rhs = rhs.result
-		});
+	case BinaryOpType::ADD:
+		addOp(AddOp{ .destination = destination, .lhs = lhs.result, .rhs = rhs.result });
+		break;
+
+	case BinaryOpType::SUBTRACT:
+		addOp(SubtractOp{ .destination = destination, .lhs = lhs.result, .rhs = rhs.result });
 		break;
 
 	case BinaryOpType::MULTIPLY:
-		addOp(MultiplyOp{
-			.destination = destination,
-			.lhs = lhs.result,
-			.rhs = rhs.result
-		});
+		addOp(MultiplyOp{ .destination = destination, .lhs = lhs.result, .rhs = rhs.result });
 		break;
 
-	default:
-		ASSERT_NOT_REACHED();
+	case BinaryOpType::DIVIDE:
+		addOp(DivideOp{ .destination = destination, .lhs = lhs.result, .rhs = rhs.result });
 		break;
 	}
 	
+	return ExprResult{ .result = destination };
+}
+
+IrCompiler::ExprResult IrCompiler::compileUnaryExpr(const UnaryExpr& expr) {
+	const auto operand = compileExpression(expr.operand);
+	const auto destination = allocateRegister();
+
+	switch (expr.op) {
+		using enum UnaryOpType;
+		case NEGATE:
+			addOp(NegateOp{ .destination = destination, .operand = operand.result });
+			break;
+	}
+
 	return ExprResult{ .result = destination };
 }
 

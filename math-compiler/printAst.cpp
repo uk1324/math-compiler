@@ -5,10 +5,10 @@
 void printBinaryOpType(BinaryOpType type) {
 	switch (type)
 	{
-	case BinaryOpType::PLUS:
+	case BinaryOpType::ADD:
 		std::cout << "+";
 		break;
-	case BinaryOpType::MINUS:
+	case BinaryOpType::SUBTRACT:
 		std::cout << "-";
 		break;
 	case BinaryOpType::MULTIPLY:
@@ -41,6 +41,28 @@ void printExpr(Expr* e, bool printExtraParens) {
 		}
 		break;
 	}
+
+	case ExprType::UNARY: {
+		const auto unaryExpr = static_cast<UnaryExpr*>(e);
+		if (printExtraParens) {
+			put("(");
+		}
+
+		switch (unaryExpr->op) {
+			using enum UnaryOpType;
+
+		case NEGATE:
+			put("-");
+			printExpr(unaryExpr->operand, printExtraParens);
+			break;
+		}
+
+		if (printExtraParens) {
+			put(")");
+		}
+		break;
+	}
+		
 
 	case ExprType::CONSTANT: {
 		const auto constantExpr = static_cast<ConstantExpr*>(e);

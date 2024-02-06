@@ -24,6 +24,7 @@ struct IrCompiler {
 	ExprResult compileExpression(const Expr* expr);
 	ExprResult compileConstantExpr(const ConstantExpr& expr);
 	ExprResult compileBinaryExpr(const BinaryExpr& expr);
+	ExprResult compileUnaryExpr(const UnaryExpr& expr);
 	void createRegistersForVariables();
 	ExprResult compileIdentifierExpr(const IdentifierExpr& expr);
 

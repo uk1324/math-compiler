@@ -70,6 +70,7 @@ struct MachineCode {
 	void emit(const VsubpsYmmYmmYmm& i);
 	void emit(const VmulpsYmmYmmYmm& i);
 	void emit(const VdivpsYmmYmmYmm& i);
+	void emit(const VxorpsYmmYmmYmm& i);
 
 	std::vector<u8> code;
 	i64 currentLocation();
