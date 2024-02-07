@@ -1,0 +1,6 @@
+Testing
+Generate random strings (with allowed characters or with not allowed characters)
+Valid inputs
+Valid inputs with corrupted or removed characters.
+
+To add support for other number formats could change Real to a tagged union. To prevent pointless errors could just promote values float to double if both are encoutered.

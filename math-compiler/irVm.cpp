@@ -106,6 +106,7 @@ IrVm::Status IrVm::executeOp(const NegateOp& op) {
 		return registerDoesNotExistError(op.operand);
 	}
 	setRegister(op.destination, -getRegister(op.operand));
+	return Status::OK;
 }
 
 void IrVm::allocateRegisterIfNotExists(Register index) {

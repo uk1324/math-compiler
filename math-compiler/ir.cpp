@@ -6,6 +6,10 @@ void printBinaryOp(std::ostream& out, const char* opName, Register lhs, Register
 	out << opName << " r" << destination << " <- r" << lhs << " r" << rhs << '\n';
 }
 
+bool registerIsParamter(std::span<const FunctionParameter> parameters, Register r) {
+	return r < parameters.size();
+}
+
 void printIrOp(std::ostream& out, const IrOp& op) {
 	std::visit(overloaded{
 		[&](const LoadConstantOp& load) {

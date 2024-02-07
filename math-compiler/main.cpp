@@ -14,6 +14,7 @@
 #include "irVm.hpp"
 #include "codeGenerator.hpp"
 #include "valueNumbering.hpp"
+#include "deadCodeElimination.hpp"
 #include "executeFunction.hpp"
 #include "os/os.hpp"
 #include "test/tests.hpp"
@@ -29,10 +30,10 @@ void debugOutputToken(const Token& token, std::string_view originalSource) {
 }
 
 void test() {
-	//std::string_view source = "2 + 2";
+	std::string_view source = "2 + 2 - 5 * 3x";
 	/*std::string_view source = "1 + 2 * 3";*/
 	/*std::string_view source = "xyz + 4(x + y)z";*/
-	std::string_view source = "x / y + -x";
+	//std::string_view source = "x / y + -x";
 	//std::string_view source = "2 + 2";
 	//std::string_view source = "xy";
 	//std::string_view source = "x + 1";
@@ -86,6 +87,9 @@ void test() {
 	
 	LocalValueNumbering valueNumbering;
 	auto optimizedCode = valueNumbering.run(**irCode, parameters);
+	const auto copy = optimizedCode;
+	DeadCodeElimination deadCodeElimination;
+	deadCodeElimination.run(copy, parameters, optimizedCode);
 
 	put("optimized");
 	printIrCode(std::cout, optimizedCode);

@@ -7,6 +7,7 @@
 #include "../evaluateAst.hpp"
 #include "../executeFunction.hpp"
 #include "../valueNumbering.hpp"
+#include "../deadCodeElimination.hpp"
 #include "testingParserMessageReporter.hpp"
 #include "testingScannerMessageReporter.hpp"
 #include "testingIrCompilerMessageReporter.hpp"
@@ -28,6 +29,7 @@ struct TestRunner {
 	TestRunner();
 
 	bool printIrGeneratedCode = false;
+	bool printRemovedInstructionCount = false;
 
 	Scanner scanner;
 	Parser parser;
@@ -36,6 +38,7 @@ struct TestRunner {
 	IrVm irVm;
 	CodeGenerator codeGenerator;
 	LocalValueNumbering valueNumbering;
+	DeadCodeElimination deadCodeElimination;
 
 	std::stringstream output;
 
@@ -256,12 +259,20 @@ void TestRunner::expectedHelper(std::string_view name, std::string_view source, 
 		printIrCode(std::cout, *irCode);
 	}
 
-	const auto optmizedIrCode = valueNumbering.run(*irCode, parameters);
+	auto optmizedIrCode = valueNumbering.run(*irCode, parameters);
 	irCode = &optmizedIrCode;
+
+	const auto copy = optmizedIrCode;
+	deadCodeElimination.run(copy, parameters, optmizedIrCode);
 
 	if (printIrGeneratedCode) {
 		put("optimized:");
 		printIrCode(std::cout, optmizedIrCode);
+	}
+
+
+	if (printRemovedInstructionCount) {
+		put("removed instruction count %", i64((*optIrCode)->size()) - i64(irCode->size()));
 	}
 
 	{

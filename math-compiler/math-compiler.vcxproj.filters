@@ -105,6 +105,9 @@
     <ClCompile Include="utils\hashCombine.cpp">
       <Filter>Pliki źródłowe</Filter>
     </ClCompile>
+    <ClCompile Include="deadCodeElimination.cpp">
+      <Filter>Pliki źródłowe</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scanner.hpp">
@@ -227,10 +230,14 @@
     <ClInclude Include="floatingPoint.hpp">
       <Filter>Pliki nagłówkowe</Filter>
     </ClInclude>
+    <ClInclude Include="deadCodeElimination.hpp">
+      <Filter>Pliki nagłówkowe</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="notes.txt" />
     <Text Include="function_argument_format.txt" />
     <Text Include="assembler.txt" />
+    <Text Include="ideas.txt" />
   </ItemGroup>
 </Project>

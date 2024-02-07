@@ -53,7 +53,7 @@ std::vector<IrOp> LocalValueNumbering::run(const std::vector<IrOp>& irCode, std:
 						.value = ConstantVal{ value }
 					};
 				}
-				
+
 				const auto e = getCommutativeOpWithOneConstantData(d, op.lhs, op.rhs);
 
 				const Computed computed{
@@ -70,6 +70,13 @@ std::vector<IrOp> LocalValueNumbering::run(const std::vector<IrOp>& irCode, std:
 					regToValueNumberMap[op.destination] = e->aRegister;
 					return std::nullopt;
 				}
+
+				// TODO: a + -x => a - x is used by compilers.
+				// Don't have a negation val could create it or just check it is a xor val and has the right operands.
+				/*const auto rhsValueIt = valueNumberToVal.find(d.rhsVn);
+				if (rhsValueIt != valueNumberToVal.end()) {
+					if (const auto negation = std::get_if<NegateOp)
+				}*/
 
 				return computed;
 			},

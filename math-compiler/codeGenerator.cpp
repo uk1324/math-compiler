@@ -97,10 +97,6 @@ MachineCode CodeGenerator::compile(const std::vector<IrOp>& irCode, std::span<co
 	return machineCode;
 }
 
-bool CodeGenerator::virtualRegisterIsParameter(Register reg) const {
-	return reg < i64(parameters.size());
-}
-
 void CodeGenerator::computeRegisterLastUsage(const std::vector<IrOp>& irCode) {
 	for (i64 i = 0; i < i64(irCode.size()); i++) {
 		auto add = [this, &i](Register reg) {
@@ -216,7 +212,7 @@ RegYmm CodeGenerator::getRegisterLocationHelper(Register reg, std::span<const Re
 
 	// if there is no memory location and no register location then it is (should be) a newly created virtual register with no value assigned to yet.
 
-	if (virtualRegisterIsParameter(reg)) {
+	if (registerIsParamter(parameters, reg)) {
 		const auto offset = reg * YMM_REGISTER_SIZE;
 		location.memoryLocation = RegisterConstantOffsetLocation{
 			.registerWithAddress = inputArrayRegister,

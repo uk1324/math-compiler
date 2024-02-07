@@ -101,8 +101,6 @@ struct CodeGenerator {
 	*/
 	i64 currentInstructionIndex = 0;
 
-	bool virtualRegisterIsParameter(Register reg) const;
-
 	std::span<const FunctionParameter> parameters;
 
 	void computeRegisterLastUsage(const std::vector<IrOp>& irCode);
