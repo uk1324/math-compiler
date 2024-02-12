@@ -65,19 +65,19 @@ MachineCode CodeGenerator::compile(const std::vector<IrOp>& irCode, std::span<co
 	a.cmp(indexRegister, arraySizeRegister);
 	a.jl(loopStartLabel);
 
-	// Prologue
+	// Prologue ang epilogue
 	{
 		const auto codeSizeAtStart = a.instructions.size();
 		auto offset = [&]() {
 			return a.instructions.size() - codeSizeAtStart;
 		};
 
-		a.push(Reg64::RBP, offset());
-		// Round down (because the stack grows down) to a multiple of 32.
-		a.and_(Reg8::BPL, 0b11100000, offset());
-
 		const auto stackMemoryAllocatedTotal = calleSavedRegisters.count() * YMM_REGISTER_SIZE + stackMemoryAllocated;
-		if (stackMemoryAllocatedTotal > 0) {
+		/*if (stackMemoryAllocatedTotal > 0)*/ {
+			a.push(Reg64::RBP, offset());
+			a.mov(Reg64::RBP, Reg64::RSP, offset());
+			// Round down (because the stack grows down) to a multiple of 32.
+			a.and_(Reg8::BPL, 0b11100000, offset());
 			a.sub(Reg64::RBP, u32(stackMemoryAllocatedTotal), offset());
 		}
 
@@ -90,7 +90,7 @@ MachineCode CodeGenerator::compile(const std::vector<IrOp>& irCode, std::span<co
 			if (calleSavedRegisters.test(i)) {
 				const auto source = regYmmFromIndex(u8(i + CALLER_SAVED_REGISTER_COUNT));
 				const auto allocation = stackAllocate(YMM_REGISTER_SIZE, 32);
-				a.vmovaps(Reg64::RBP, allocation.baseOffset, source, offset());
+		 		a.vmovaps(Reg64::RBP, allocation.baseOffset, source, offset());
 				savedRegisters.push_back(SavedRegister{ .reg = source, .baseOffset = allocation });
 			}
 		}
@@ -98,9 +98,12 @@ MachineCode CodeGenerator::compile(const std::vector<IrOp>& irCode, std::span<co
 		for (const auto& [reg, baseOffset] : savedRegisters) {
 			a.vmovaps(reg, Reg64::RBP, baseOffset.baseOffset);
 		}
+
+		/*if (stackMemoryAllocated > 0)*/ {
+			a.pop(Reg64::RBP);
+		}
+		a.ret();
 	}
-	a.pop(Reg64::RBP);
-	a.ret();
 
 	MachineCode machineCode;
 	machineCode.generateFrom(a);

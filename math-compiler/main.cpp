@@ -31,7 +31,7 @@ void debugOutputToken(const Token& token, std::string_view originalSource) {
 }
 
 void test() {
-	std::string_view source = "x_4 x_1 (x_1 x_3 x_1   *  x_0 x_3 (  91437.4 )x_2 x_2  )x_3  -x_2 ( (81(  6313.669  )x_2 x_3 x_2  /5(4813)))(  x_3 x_0 ( 45396)/ x_2 x_0  )x_2";
+	std::string_view source = "  (( 720(6.755 )/ ( 6  )   )((  x_1 (0446 )  +  x_3 ( 83.859  )x_3 x_3 ))(   ( 54380x_0 ( 4 )/  087.(  6012.  )  ))( (  3018+ (6.  )(093.)) )(   ( (  33897.9  )x_2 x_0 x_0 +  (  8.81 )x_0 x_1 ( 331.  )))  * x_0 ( (99281-  6546 ))x_2 (  x_2 x_0   -3.21x_0   )x_4  )";
 	/*std::string_view source = "1 + 2 * 3";*/
 	/*std::string_view source = "xyz + 4(x + y)z";*/
 	//std::string_view source = "x / y + -x";
@@ -40,7 +40,7 @@ void test() {
 	//std::string_view source = "x + 1";
 	//FunctionParameter parameters[] { { "x" }, { "y" }, { "z" } };
 	FunctionParameter parameters[] { { "x_0" }, { "x_1" }, { "x_2" }, { "x_3" }, { "x_4" } };
-	float arguments[] = { 1.0f, 2.0f, 3.0f, 4.0f, 5.0f };
+	float arguments[] = { -2.48761e-28, -2.26242e-16, 5.49618e-33, -1.06439e-11, 1.53095e-08 };
 // 
 	//std::string_view source = "(x + y) + (x + y)";
 	/*std::string_view source = "0.5772156649";*/
@@ -66,11 +66,7 @@ void test() {
 	if (ast.has_value()) {
 		printExpr(ast->root, true);
 		const auto outputRes = evaluateAst(ast->root, parameters, arguments);
-		if (outputRes.isErr()) {
-			put("evaluate ast error: %", outputRes.err());
-			return;
-		}
-		if (outputRes.ok()) {
+		if (outputRes.isOk()) {
 			put(" = %", outputRes.ok());
 		} else {
 			put("\nevaluation error: ", outputRes.err());

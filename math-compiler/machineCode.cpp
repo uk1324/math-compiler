@@ -247,9 +247,9 @@ void MachineCode::emit(const CmpR64R64& i) {
 void MachineCode::emit(const MovR64R64& i) {
 	const auto destination = regIndex(i.destination);
 	const auto source = regIndex(i.source);
-	emitRex(1, take4thBit(destination), 0, take4thBit(source));
+	emitRex(1, take4thBit(source), 0, take4thBit(destination));
 	emitU8(0x89);
-	emitModRmDirectAddressing(takeFirst3Bits(destination), takeFirst3Bits(source));
+	emitModRmDirectAddressing(takeFirst3Bits(source), takeFirst3Bits(destination));
 }
 
 void MachineCode::emit(const VbroadcastssLbl& i) {

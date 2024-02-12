@@ -17,6 +17,7 @@
 #include "../utils/format.hpp"
 #include "../utils/stringStream.hpp"
 #include "../utils/pritningUtils.hpp"
+#include "../utils/fileIo.hpp"
 
 struct FuzzTester {
 	FuzzTester();
@@ -78,8 +79,8 @@ void runFuzzTests() {
 	std::vector<float> arguments;
 	arguments.resize(paramters.size());
 	std::random_device engine;
-	std::uniform_int_distribution<u32> rng(0);
-
+	//std::uniform_int_distribution<u32> rng(0); // TODO: Come back to this.
+	std::uniform_int_distribution<u32> rng(0); 
 	for (int i = 0; i < 20; i++) {
 		for (i32 argumentIndex = 0; argumentIndex < paramters.size(); argumentIndex++) {
 			const auto value = std::bit_cast<float>(rng(engine));
@@ -147,11 +148,17 @@ FuzzTester::RunCorrectResult FuzzTester::runValidInput(const ValidInput& in) {
 	const auto machineCode = codeGenerator.compile(*irCode, in.parameters);
 	const auto machineCodeOutput = executeFunction(machineCode, in.arguments);
 
+	outputToFile("test.txt", machineCode.code);
+
 	const float expected = evaluateAstOutput.ok();
 	const float found = machineCodeOutput;
 
 	if (std::bit_cast<u32>(expected) != std::bit_cast<u32>(found)) {
 		put(output, "expected '%' found '%'", evaluateAstOutput.ok(), machineCodeOutput);
+		put("input =");
+		for (i32 i = 0; i < in.parameters.size(); i++) {
+			put("% = %", in.parameters[i].name, in.arguments[i]);
+		}
 		return RunCorrectResult::ERROR;
 	}
 	return RunCorrectResult::SUCCESS;
