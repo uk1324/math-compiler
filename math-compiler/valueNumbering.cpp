@@ -30,6 +30,7 @@ std::vector<IrOp> LocalValueNumbering::run(const std::vector<IrOp>& irCode, std:
 
 	std::vector<IrOp> output;
 	bool performUnsafeOptimizations = false;
+	bool ignoreNegativeZero = false;
 
 	for (const auto& irOp : irCode) {
 		
@@ -42,7 +43,7 @@ std::vector<IrOp> LocalValueNumbering::run(const std::vector<IrOp>& irCode, std:
 					.value = ConstantVal{ op.constant }
 				};
 			},
-			[this](const AddOp& op) -> std::optional<Computed> {
+			[this, &ignoreNegativeZero](const AddOp& op) -> std::optional<Computed> {
 				const auto d = getBinaryOpData(op.destination, op.lhs, op.rhs);
 
 				if (d.lhsConst != nullptr && d.rhsConst != nullptr) {
@@ -66,8 +67,9 @@ std::vector<IrOp> LocalValueNumbering::run(const std::vector<IrOp>& irCode, std:
 					return computed;
 				}
 
-				if (e->b == 0.0f) {
-					regToValueNumberMap[op.destination] = e->aRegister;
+				if (ignoreNegativeZero && e->b == 0.0f) {
+					// -0 + 0 = 0 not -0
+					regToValueNumberMap[op.destination] = e->a;
 					return std::nullopt;
 				}
 
@@ -144,7 +146,7 @@ std::vector<IrOp> LocalValueNumbering::run(const std::vector<IrOp>& irCode, std:
 						.destinationValueNumber = d.destinationVn,
 						.value = ConstantVal{ 0.0f }
 					};
-				} else if (e->b == 2.0f) {
+				} else if (performUnsafeOptimizations && e->b == 2.0f) { // Not sure if this is safe
 					// This might not be worth it.
 					// Based on https://www.agner.org/optimize/instruction_tables.pdf these instruction take around the same time, but based on this https://stackoverflow.com/questions/1146455/whats-the-relative-speed-of-floating-point-add-vs-floating-point-multiply depending on the sourounding context this might be beinficial or not.
 					return Computed{

@@ -31,7 +31,8 @@ void debugOutputToken(const Token& token, std::string_view originalSource) {
 }
 
 void test() {
-	std::string_view source = "( 6  )(6. )+x_4 (  7  )";
+	/*std::string_view source = "(9( (  (9)x_3 x_2 ( 45)x_3 *602x_1 ) )(    (  0.( 54.)( 6808.2)(  95591 )+(  71993)(0  )x_0 x_1 x_0   ) )  *  00(   (  821.87x_4 x_1 x_3 x_4  * 74219.x_1 ( 0798)( 13  )  ))(  ( x_2 x_1   *( 95.883)x_4  )  )x_1 x_0  )";*/
+	/*std::string_view source = "(9( (  (9)x_3 x_2 ( 45)x_3 *602x_1 ) )(    (  0 +(  0  )x_0 x_1 x_0   ) )  *  00(   (  821.87x_4 x_1 x_3 x_4  * 74219.x_1 ( 0798)( 13  )  ))(  ( x_2 x_1   *( 95.883)x_4  )  )x_1 x_0  )";*/
 	/*std::string_view source = "1 + 2 * 3";*/
 	/*std::string_view source = "xyz + 4(x + y)z";*/
 	//std::string_view source = "x / y + -x";
@@ -40,7 +41,7 @@ void test() {
 	//std::string_view source = "x + 1";
 	//FunctionParameter parameters[] { { "x" }, { "y" }, { "z" } };
 	FunctionParameter parameters[] { { "x_0" }, { "x_1" }, { "x_2" }, { "x_3" }, { "x_4" } };
-	float arguments[] = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+	float arguments[] = { std::bit_cast<float>(0xa28f2281), std::bit_cast<float>(0xc476778e), std::bit_cast<float>(0xf9cdc87d), std::bit_cast<float>(0x9c74a908), std::bit_cast<float>(0x134a100e), };
 // 
 	//std::string_view source = "(x + y) + (x + y)";
 	/*std::string_view source = "0.5772156649";*/
@@ -113,8 +114,8 @@ void test() {
 
 // https://stackoverflow.com/questions/4911993/how-to-generate-and-run-native-code-dynamically
 int main(void) {
-	//test();
-	runFuzzTests();
+	test();
+	//runFuzzTests();
 	//runTests();
 	// TODO: Write code that check when 2 functions return the same value (floating point comparasion and bitwise comparasion). Inputs could be arrays to make the generation of inputs easier. For inputs could use exacly representalbe numbers and not exacly representable numbers. Also iterate over all rounding modes.
 	//testSimdFunctions();

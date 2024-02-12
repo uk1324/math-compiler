@@ -82,7 +82,7 @@ void runFuzzTests() {
 	//std::random_device engine;
 	//std::uniform_int_distribution<u32> rng(0); // TODO: Come back to this.
 	std::uniform_int_distribution<u32> rng(0); 
-	for (int i = 0; i < 20; i++) {
+	for (int i = 0; i < 40000; i++) {
 		for (i32 argumentIndex = 0; argumentIndex < paramters.size(); argumentIndex++) {
 			const auto value = std::bit_cast<float>(rng(gen.rng));
 			arguments[argumentIndex] = value;
