@@ -86,14 +86,20 @@ MachineCode CodeGenerator::compile(const std::vector<IrOp>& irCode, std::span<co
 			BaseOffset baseOffset;
 		};
 		std::vector<SavedRegister> savedRegisters;
-		for (i64 i = 0; i < i64(calleSavedRegisters.size()); i++) {
+		for (u8 i = 0; i < YMM_REGISTER_COUNT; i++) {
+			const auto source = regYmmFromIndex(i);
+			const auto allocation = stackAllocate(YMM_REGISTER_SIZE, 32);
+			a.vmovaps(Reg64::RBP, allocation.baseOffset, source, offset());
+			savedRegisters.push_back(SavedRegister{ .reg = source, .baseOffset = allocation });
+		}
+		/*for (i64 i = 0; i < i64(calleSavedRegisters.size()); i++) {
 			if (calleSavedRegisters.test(i)) {
 				const auto source = regYmmFromIndex(u8(i + CALLER_SAVED_REGISTER_COUNT));
 				const auto allocation = stackAllocate(YMM_REGISTER_SIZE, 32);
 		 		a.vmovaps(Reg64::RBP, allocation.baseOffset, source, offset());
 				savedRegisters.push_back(SavedRegister{ .reg = source, .baseOffset = allocation });
 			}
-		}
+		}*/
 
 		for (const auto& [reg, baseOffset] : savedRegisters) {
 			a.vmovaps(reg, Reg64::RBP, baseOffset.baseOffset);

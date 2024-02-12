@@ -66,7 +66,8 @@ void runFuzzTests() {
 	StringStream out;
 
 	RandomInputGenerator gen;
-	gen.rng.seed(1);
+	const auto seed = 2;
+	gen.rng.seed(seed);
 	const auto parameterCount = 5;
 	std::vector<FunctionParameter> paramters;
 	out.clear();
@@ -78,13 +79,16 @@ void runFuzzTests() {
 	}
 	std::vector<float> arguments;
 	arguments.resize(paramters.size());
-	std::random_device engine;
+	//std::random_device engine;
 	//std::uniform_int_distribution<u32> rng(0); // TODO: Come back to this.
 	std::uniform_int_distribution<u32> rng(0); 
 	for (int i = 0; i < 20; i++) {
 		for (i32 argumentIndex = 0; argumentIndex < paramters.size(); argumentIndex++) {
-			const auto value = std::bit_cast<float>(rng(engine));
+			const auto value = std::bit_cast<float>(rng(gen.rng));
 			arguments[argumentIndex] = value;
+			if (i == 1) {
+				arguments[argumentIndex] = 0.0f;
+			}
 		}
 
 		const auto source = gen.generate(paramters);
@@ -118,6 +122,10 @@ void FuzzTester::initialize(std::string_view source) {
 FuzzTester::RunCorrectResult FuzzTester::runValidInput(const ValidInput& in) {
 	initialize(in.source);
 
+	for (i32 i = 0; i < in.parameters.size(); i++) {
+		put("% = %", in.parameters[i].name, in.arguments[i]);
+	}
+
 	auto tokens = scanner.parse(in.source, &scannerReporter);
 	auto ast = parser.parse(tokens, in.source, &parserReporter);
 	if (!ast.has_value()) {
@@ -146,9 +154,8 @@ FuzzTester::RunCorrectResult FuzzTester::runValidInput(const ValidInput& in) {
 	deadCodeElimination.run(copy, in.parameters, optmizedIrCode);
 
 	const auto machineCode = codeGenerator.compile(*irCode, in.parameters);
-	const auto machineCodeOutput = executeFunction(machineCode, in.arguments);
-
 	outputToFile("test.txt", machineCode.code);
+	const auto machineCodeOutput = executeFunction(machineCode, in.arguments);
 
 	const float expected = evaluateAstOutput.ok();
 	const float found = machineCodeOutput;
@@ -159,6 +166,10 @@ FuzzTester::RunCorrectResult FuzzTester::runValidInput(const ValidInput& in) {
 		for (i32 i = 0; i < in.parameters.size(); i++) {
 			put("% = %", in.parameters[i].name, in.arguments[i]);
 		}
+		for (i32 i = 0; i < in.parameters.size(); i++) {
+			std::cout << "std::bit_cast<float>(0x" << std::hex << std::bit_cast<u32>(in.arguments[i]) << "), " << std::dec;
+		}
+		std::cout << '\n';
 		return RunCorrectResult::ERROR;
 	}
 	return RunCorrectResult::SUCCESS;

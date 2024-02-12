@@ -31,7 +31,7 @@ void debugOutputToken(const Token& token, std::string_view originalSource) {
 }
 
 void test() {
-	std::string_view source = "  (( 720(6.755 )/ ( 6  )   )((  x_1 (0446 )  +  x_3 ( 83.859  )x_3 x_3 ))(   ( 54380x_0 ( 4 )/  087.(  6012.  )  ))( (  3018+ (6.  )(093.)) )(   ( (  33897.9  )x_2 x_0 x_0 +  (  8.81 )x_0 x_1 ( 331.  )))  * x_0 ( (99281-  6546 ))x_2 (  x_2 x_0   -3.21x_0   )x_4  )";
+	std::string_view source = "( 6  )(6. )+x_4 (  7  )";
 	/*std::string_view source = "1 + 2 * 3";*/
 	/*std::string_view source = "xyz + 4(x + y)z";*/
 	//std::string_view source = "x / y + -x";
@@ -40,7 +40,7 @@ void test() {
 	//std::string_view source = "x + 1";
 	//FunctionParameter parameters[] { { "x" }, { "y" }, { "z" } };
 	FunctionParameter parameters[] { { "x_0" }, { "x_1" }, { "x_2" }, { "x_3" }, { "x_4" } };
-	float arguments[] = { -2.48761e-28, -2.26242e-16, 5.49618e-33, -1.06439e-11, 1.53095e-08 };
+	float arguments[] = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
 // 
 	//std::string_view source = "(x + y) + (x + y)";
 	/*std::string_view source = "0.5772156649";*/
@@ -113,8 +113,8 @@ void test() {
 
 // https://stackoverflow.com/questions/4911993/how-to-generate-and-run-native-code-dynamically
 int main(void) {
-	test();
-	//runFuzzTests();
+	//test();
+	runFuzzTests();
 	//runTests();
 	// TODO: Write code that check when 2 functions return the same value (floating point comparasion and bitwise comparasion). Inputs could be arrays to make the generation of inputs easier. For inputs could use exacly representalbe numbers and not exacly representable numbers. Also iterate over all rounding modes.
 	//testSimdFunctions();

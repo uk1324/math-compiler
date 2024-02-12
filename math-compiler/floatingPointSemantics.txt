@@ -5,3 +5,5 @@ Could try to prove what peroperites infinite precision floating point numbers ha
 GCC floating point semantics: https://gcc.gnu.org/wiki/FloatingPointMath
 https://www.reddit.com/r/ProgrammingLanguages/comments/145kps7/could_numerical_operations_be_optimized_by_using/
 __builtin_assoc_barrier
+
+Even things like casting a value of a higher precision might not be doable at compile time, because of the rounding modes.

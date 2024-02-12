@@ -29,6 +29,7 @@ Real executeFunction(const MachineCode& machineCode, std::span<const float> argu
 		input[i].x[0] = arguments[i];
 	}
 	YmmArgument output;
+	output.x[0] = 123456;
 	executeFunction(machineCode, reinterpret_cast<float*>(input.data()), output.x, 1);
 	return output.x[0];
 }

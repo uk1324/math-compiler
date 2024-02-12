@@ -26,6 +26,7 @@ void DeadCodeElimination::run(const std::vector<IrOp>& input, std::span<const Fu
 	}
 
 	usefulRegisterWorklist.clear();
+	isInstructionMarkedUseful.clear();
 	isInstructionMarkedUseful.resize(input.size(), false);
 	for (i64 i = 0; i < input.size(); i++) {
 		const auto& irOp = input[i];
