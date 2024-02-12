@@ -42,4 +42,5 @@ TODO: Maybe implement error reporting like in GCC
 	  |     ^
 */
 
+// TODO: Maybe just change the color instead of using characters.
 void highlightInText(std::ostream& output, std::string_view text, i64 textToHighlightStart, i64 textToHighlightLength);

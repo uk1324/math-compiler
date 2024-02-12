@@ -134,8 +134,11 @@ bool Scanner::eof() {
 	return currentCharIndex >= static_cast<i64>(source.size());
 }
 
+#include "utils/put.hpp"
+
 Token Scanner::makeToken(TokenType type) {
 	Token token(type, SourceLocation::fromStartEnd(currentTokenStartIndex, currentCharIndex));
+	//put("'%'", source.substr(currentTokenStartIndex, currentCharIndex - currentTokenStartIndex));
 	currentTokenStartIndex = currentCharIndex;
 	return token;
 }

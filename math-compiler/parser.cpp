@@ -12,6 +12,7 @@ void Parser::initialize(const std::vector<Token>* tokens, std::string_view sourc
 	this->source = source;
 	currentTokenIndex = 0;
 	messageReporter = reporter;
+	astAllocator.reset();
 }
 
 std::optional<Ast> Parser::parse(const std::vector<Token>& tokens, std::string_view source, ParserMessageReporter* reporter) {

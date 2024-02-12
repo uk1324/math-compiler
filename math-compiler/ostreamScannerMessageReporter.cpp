@@ -10,7 +10,7 @@ OstreamScannerMessageReporter::OstreamScannerMessageReporter(std::ostream& outpu
 void OstreamScannerMessageReporter::onError(const ScannerError& error) {
 	std::visit(overloaded{
 		[&](const IllegalCharScannerError& e) {
-			put(output, "illegal character '%'", static_cast<char>(e.character));
+			put(output, "illegal character '%', code = '%'", static_cast<char>(e.character), static_cast<int>(e.character));
 			highlightInText(output, source, e.sourceOffset, 1);
 			put(output, "\n");
 		}

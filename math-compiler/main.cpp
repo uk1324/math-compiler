@@ -31,15 +31,16 @@ void debugOutputToken(const Token& token, std::string_view originalSource) {
 }
 
 void test() {
-	std::string_view source = "2 + 2 - 5 * 3x";
+	std::string_view source = "x_4 x_1 (x_1 x_3 x_1   *  x_0 x_3 (  91437.4 )x_2 x_2  )x_3  -x_2 ( (81(  6313.669  )x_2 x_3 x_2  /5(4813)))(  x_3 x_0 ( 45396)/ x_2 x_0  )x_2";
 	/*std::string_view source = "1 + 2 * 3";*/
 	/*std::string_view source = "xyz + 4(x + y)z";*/
 	//std::string_view source = "x / y + -x";
 	//std::string_view source = "2 + 2";
 	//std::string_view source = "xy";
 	//std::string_view source = "x + 1";
-	FunctionParameter parameters[] { { "x" }, { "y" }, { "z" } };
-	float arguments[] = { 11.0f, 2.0f, 4.0f };
+	//FunctionParameter parameters[] { { "x" }, { "y" }, { "z" } };
+	FunctionParameter parameters[] { { "x_0" }, { "x_1" }, { "x_2" }, { "x_3" }, { "x_4" } };
+	float arguments[] = { 1.0f, 2.0f, 3.0f, 4.0f, 5.0f };
 // 
 	//std::string_view source = "(x + y) + (x + y)";
 	/*std::string_view source = "0.5772156649";*/
@@ -51,13 +52,13 @@ void test() {
 	OstreamScannerMessageReporter scannerReporter(outputStream, source);
 	Scanner scanner;
 	const auto tokens = scanner.parse(source, &scannerReporter);
-	for (auto& token : tokens) {
-		debugOutputToken(token, source);
-		std::cout << "\n";
-		/*highlightInText(std::cout, source, tokenOffsetInSource(token, source), token.source.size());*/
-		highlightInText(std::cout, source, token.location.start, token.location.length);
-		std::cout << "\n";
-	} 
+	//for (auto& token : tokens) {
+	//	debugOutputToken(token, source);
+	//	std::cout << "\n";
+	//	/*highlightInText(std::cout, source, tokenOffsetInSource(token, source), token.source.size());*/
+	//	highlightInText(std::cout, source, token.location.start, token.location.length);
+	//	std::cout << "\n";
+	//} 
 
 	OstreamParserMessageReporter parserReporter(outputStream, source);
 	Parser parser;
@@ -65,6 +66,10 @@ void test() {
 	if (ast.has_value()) {
 		printExpr(ast->root, true);
 		const auto outputRes = evaluateAst(ast->root, parameters, arguments);
+		if (outputRes.isErr()) {
+			put("evaluate ast error: %", outputRes.err());
+			return;
+		}
 		if (outputRes.ok()) {
 			put(" = %", outputRes.ok());
 		} else {
@@ -113,8 +118,8 @@ void test() {
 // https://stackoverflow.com/questions/4911993/how-to-generate-and-run-native-code-dynamically
 int main(void) {
 	test();
+	//runFuzzTests();
 	//runTests();
 	// TODO: Write code that check when 2 functions return the same value (floating point comparasion and bitwise comparasion). Inputs could be arrays to make the generation of inputs easier. For inputs could use exacly representalbe numbers and not exacly representable numbers. Also iterate over all rounding modes.
 	//testSimdFunctions();
-	runFuzzTests();
 }

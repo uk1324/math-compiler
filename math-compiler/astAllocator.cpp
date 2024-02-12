@@ -8,6 +8,13 @@ AstAllocator::AstAllocator()
 
 }
 
+void AstAllocator::reset() {
+	for (auto& allocation : allocations) {
+		free(allocation);
+	}
+	allocations.clear();
+}
+
 void* AstAllocator::allocate(i64 size, i64 alignment) {
 	return malloc(size);
 	//if (first == nullptr) {

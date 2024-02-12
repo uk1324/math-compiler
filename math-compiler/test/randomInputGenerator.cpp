@@ -1,4 +1,5 @@
 #include "randomInputGenerator.hpp"
+#include "../utils/asserts.hpp"
 //#include <random>
 
 
@@ -112,6 +113,8 @@ void RandomInputGenerator::primaryExpr(i32 nesting) {
 
 void RandomInputGenerator::constantExpr(i32 nesting) {
 	const auto integerPartLength = randomInRangeInclusive(1, integerPartMaxLength);
+	ASSERT(integerPartLength > 0);
+
 	for (i32 i = 0; i < integerPartLength; i++) {
 		out << randomDigit();
 	}
@@ -147,7 +150,12 @@ void RandomInputGenerator::identifierExpr(i32 nesting) {
 		return;
 	}
 	// TODO: Maybe generate invalid variables.
-	out << parameters[randomFrom0To(parameters.size())].name;
+	const auto name = parameters[randomFrom0To(parameters.size())].name;
+	out << name;
+	if (isdigit(name.back())) {
+		out << ' ';
+	}
+
 }
 
 void RandomInputGenerator::whitespace() {
@@ -180,5 +188,6 @@ i32 RandomInputGenerator::randomInRangeInclusive(i32 includingStart, i32 includi
 
 char RandomInputGenerator::randomDigit() {
 	char digits[] = "1234567890";
-	return digits[randomFrom0To(std::size(digits))];
+	// -1 because of the null byte.
+	return digits[randomFrom0To(std::size(digits) - 1)];
 }

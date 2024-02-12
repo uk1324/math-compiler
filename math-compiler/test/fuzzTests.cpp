@@ -16,6 +16,7 @@
 #include "../utils/put.hpp"
 #include "../utils/format.hpp"
 #include "../utils/stringStream.hpp"
+#include "../utils/pritningUtils.hpp"
 
 struct FuzzTester {
 	FuzzTester();
@@ -28,7 +29,7 @@ struct FuzzTester {
 	LocalValueNumbering valueNumbering;
 	DeadCodeElimination deadCodeElimination;
 
-	std::stringstream output;
+	StringStream output;
 	OstreamScannerMessageReporter scannerReporter;
 	OstreamParserMessageReporter parserReporter;
 	OstreamIrCompilerMessageReporter irCompilerReporter;
@@ -64,6 +65,7 @@ void runFuzzTests() {
 	StringStream out;
 
 	RandomInputGenerator gen;
+	gen.rng.seed(1);
 	const auto parameterCount = 5;
 	std::vector<FunctionParameter> paramters;
 	out.clear();
@@ -86,10 +88,18 @@ void runFuzzTests() {
 
 		const auto source = gen.generate(paramters);
 		std::cout << source << '\n';
-		tester.runValidInput(FuzzTester::ValidInput{
+		const auto result = tester.runValidInput(FuzzTester::ValidInput{
 			.source = source,
 			.parameters = paramters,
+			.arguments = arguments
 		});
+		if (result == FuzzTester::RunCorrectResult::ERROR) {
+			put(TERMINAL_COLOR_RED "[FAILED] " TERMINAL_COLOR_RESET);
+			std::cout << tester.output.string();
+			return;
+		} else {
+			put(TERMINAL_COLOR_GREEN "[SUCCESS] " TERMINAL_COLOR_RESET);
+		}
 	}
 }
 
@@ -101,6 +111,7 @@ FuzzTester::FuzzTester()
 void FuzzTester::initialize(std::string_view source) {
 	scannerReporter.source = source;
 	irCompilerReporter.source = source;
+	output.string().clear();
 }
 
 FuzzTester::RunCorrectResult FuzzTester::runValidInput(const ValidInput& in) {
@@ -119,9 +130,10 @@ FuzzTester::RunCorrectResult FuzzTester::runValidInput(const ValidInput& in) {
 	const auto evaluateAstError = evaluateAstOutput.isErr();
 	const auto irCompilerError = !optIrCode.has_value();
 	if (evaluateAstError != irCompilerError) {
+		put("evaluation error mismatch");
 		return RunCorrectResult::ERROR;
 	}
-	if (evaluateAstError) {
+	if (evaluateAstError && irCompilerError) {
 		return RunCorrectResult::SUCCESS;
 	}
 
@@ -134,7 +146,12 @@ FuzzTester::RunCorrectResult FuzzTester::runValidInput(const ValidInput& in) {
 
 	const auto machineCode = codeGenerator.compile(*irCode, in.parameters);
 	const auto machineCodeOutput = executeFunction(machineCode, in.arguments);
-	if (machineCodeOutput != evaluateAstOutput) {
+
+	const float expected = evaluateAstOutput.ok();
+	const float found = machineCodeOutput;
+
+	if (std::bit_cast<u32>(expected) != std::bit_cast<u32>(found)) {
+		put(output, "expected '%' found '%'", evaluateAstOutput.ok(), machineCodeOutput);
 		return RunCorrectResult::ERROR;
 	}
 	return RunCorrectResult::SUCCESS;
