@@ -21,7 +21,7 @@ static const char* tokenTypeName(TokenType type) {
 	case TokenType::END_OF_SOURCE: return "end of source";
 
 	case TokenType::ERROR: 
-		// Error tokens should be ignored and not reporeted in expected.
+		// Error tokens should be ignored.
 		ASSERT_NOT_REACHED();
 		return nullptr;
 	}
@@ -40,6 +40,9 @@ void OstreamParserMessageReporter::onError(const ParserError& error) {
 			put(output, "unexpected %", tokenTypeName(e.token.type));
 		},
 		[&](const ExpectedTokenParserError& e) {
+			if (e.found.type == TokenType::ERROR) {
+				return;
+			}
 			const auto& location = e.found.location;
 			highlightInText(output, source, location.start, location.length);
 			put(output, "expected % found %", tokenTypeName(e.expected), tokenTypeName(e.found.type));
