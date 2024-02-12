@@ -13,6 +13,7 @@
 #include "../ostreamIrCompilerMessageReporter.hpp"
 #include "../ostreamParserMessageReporter.hpp"
 #include "../ostreamScannerMessageReporter.hpp"
+#include "../floatingPoint.hpp"
 #include "../utils/put.hpp"
 #include "../utils/format.hpp"
 #include "../utils/stringStream.hpp"
@@ -37,7 +38,7 @@ struct FuzzTester {
 
 	void initialize(std::string_view source);
 
-	enum class RunCorrectResult {
+	enum class RunResult {
 		ERROR,
 		SUCCESS
 	};
@@ -47,7 +48,8 @@ struct FuzzTester {
 		std::span<const float> arguments;
 	};
 
-	RunCorrectResult runValidInput(const ValidInput& in);
+	RunResult runValidInput(const ValidInput& in); 
+
 	void runIncorrectSource(std::string_view source);
 };
 
@@ -66,9 +68,9 @@ void runFuzzTests() {
 	StringStream out;
 
 	RandomInputGenerator gen;
-	const auto seed = 3;
+	const auto seed = 6;
 	gen.rng.seed(seed);
-	const auto parameterCount = 5;
+	const auto parameterCount = 6;
 	std::vector<FunctionParameter> paramters;
 	out.clear();
 	for (int i = 0; i < 5; i++) {
@@ -79,33 +81,53 @@ void runFuzzTests() {
 	}
 	std::vector<float> arguments;
 	arguments.resize(paramters.size());
-	//std::random_device engine;
-	//std::uniform_int_distribution<u32> rng(0); // TODO: Come back to this.
+
 	std::uniform_int_distribution<u32> rng(0); 
-	for (int i = 0; i < 40000; i++) {
-		for (i32 argumentIndex = 0; argumentIndex < paramters.size(); argumentIndex++) {
-			const auto value = std::bit_cast<float>(rng(gen.rng));
-			arguments[argumentIndex] = value;
-			if (i == 1) {
-				arguments[argumentIndex] = 0.0f;
+	auto checkCorrectPrograms = [&] {
+		for (int i = 0; i < 40000; i++) {
+			for (i32 argumentIndex = 0; argumentIndex < paramters.size(); argumentIndex++) {
+				const auto value = std::bit_cast<float>(rng(gen.rng));
+				arguments[argumentIndex] = value;
+			}
+
+			const auto source = gen.generate(paramters);
+			std::cout << source << '\n';
+			const auto result = tester.runValidInput(FuzzTester::ValidInput{
+				.source = source,
+				.parameters = paramters,
+				.arguments = arguments
+				});
+			if (result == FuzzTester::RunResult::ERROR) {
+				put(TERMINAL_COLOR_RED "[FAILED] " TERMINAL_COLOR_RESET);
+				std::cout << tester.output.string();
+				return;
+			}
+			else {
+				put(TERMINAL_COLOR_GREEN "[SUCCESS] " TERMINAL_COLOR_RESET);
 			}
 		}
+	};
 
-		const auto source = gen.generate(paramters);
-		std::cout << source << '\n';
-		const auto result = tester.runValidInput(FuzzTester::ValidInput{
-			.source = source,
-			.parameters = paramters,
-			.arguments = arguments
-		});
-		if (result == FuzzTester::RunCorrectResult::ERROR) {
-			put(TERMINAL_COLOR_RED "[FAILED] " TERMINAL_COLOR_RESET);
-			std::cout << tester.output.string();
-			return;
-		} else {
-			put(TERMINAL_COLOR_GREEN "[SUCCESS] " TERMINAL_COLOR_RESET);
+	auto checkIncorrectPrograms = [&] {
+		std::string source;
+		for (int i = 0; i < 400000; i++) {
+			source = gen.generate(paramters);
+
+			const i32 maxCharsToModify = 6;
+			const auto charsToModify = gen.randomFrom0To(std::min(i32(source.length()), maxCharsToModify));
+			for (i32 j = 0; j < charsToModify; j++) {
+				const auto sourceIndex = gen.randomFrom0To(source.length());
+				const auto randomCharIndex = gen.randomFrom0To(std::size(TOKEN_LEGAL_CHARACTERS) - 1); // -1 because of the null byte.
+				const auto c = TOKEN_LEGAL_CHARACTERS[randomCharIndex];
+				source[sourceIndex] = c;
+			}
+
+			std::cout << source << '\n';
+			tester.runIncorrectSource(source);
 		}
-	}
+	};
+
+	checkIncorrectPrograms();
 }
 
 FuzzTester::FuzzTester()
@@ -119,7 +141,7 @@ void FuzzTester::initialize(std::string_view source) {
 	output.string().clear();
 }
 
-FuzzTester::RunCorrectResult FuzzTester::runValidInput(const ValidInput& in) {
+FuzzTester::RunResult FuzzTester::runValidInput(const ValidInput& in) {
 	initialize(in.source);
 
 	for (i32 i = 0; i < in.parameters.size(); i++) {
@@ -129,7 +151,7 @@ FuzzTester::RunCorrectResult FuzzTester::runValidInput(const ValidInput& in) {
 	auto tokens = scanner.parse(in.source, &scannerReporter);
 	auto ast = parser.parse(tokens, in.source, &parserReporter);
 	if (!ast.has_value()) {
-		return RunCorrectResult::ERROR;
+		return RunResult::ERROR;
 	}
 
 	const auto evaluateAstOutput = evaluateAst(ast->root, in.parameters, in.arguments);
@@ -140,10 +162,10 @@ FuzzTester::RunCorrectResult FuzzTester::runValidInput(const ValidInput& in) {
 	const auto irCompilerError = !optIrCode.has_value();
 	if (evaluateAstError != irCompilerError) {
 		put("evaluation error mismatch");
-		return RunCorrectResult::ERROR;
+		return RunResult::ERROR;
 	}
 	if (evaluateAstError && irCompilerError) {
-		return RunCorrectResult::SUCCESS;
+		return RunResult::SUCCESS;
 	}
 
 	auto irCode = *optIrCode;
@@ -160,17 +182,23 @@ FuzzTester::RunCorrectResult FuzzTester::runValidInput(const ValidInput& in) {
 	const float expected = evaluateAstOutput.ok();
 	const float found = machineCodeOutput;
 
-	if (std::bit_cast<u32>(expected) != std::bit_cast<u32>(found)) {
-		put(output, "expected '%' found '%'", evaluateAstOutput.ok(), machineCodeOutput);
-		put("input =");
-		for (i32 i = 0; i < in.parameters.size(); i++) {
-			put("% = %", in.parameters[i].name, in.arguments[i]);
-		}
-		for (i32 i = 0; i < in.parameters.size(); i++) {
-			std::cout << "std::bit_cast<float>(0x" << std::hex << std::bit_cast<u32>(in.arguments[i]) << "), " << std::dec;
-		}
-		std::cout << '\n';
-		return RunCorrectResult::ERROR;
+	if (f32BitwiseEquals(expected, found) || (isnan(expected) && isnan(found))) {
+		return RunResult::SUCCESS;
 	}
-	return RunCorrectResult::SUCCESS;
+
+	put(output, "expected '%' found '%'", expected, found);
+	put("input =");
+	for (i32 i = 0; i < in.parameters.size(); i++) {
+		put("% = %", in.parameters[i].name, in.arguments[i]);
+	}
+	for (i32 i = 0; i < in.parameters.size(); i++) {
+		std::cout << "std::bit_cast<float>(0x" << std::hex << std::bit_cast<u32>(in.arguments[i]) << "), " << std::dec;
+	}
+	std::cout << '\n';
+	return RunResult::ERROR;
+}
+
+void FuzzTester::runIncorrectSource(std::string_view source) {
+	auto tokens = scanner.parse(source, &scannerReporter);
+	auto ast = parser.parse(tokens, source, &parserReporter);
 }

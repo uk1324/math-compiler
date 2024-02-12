@@ -37,7 +37,7 @@ void RandomInputGenerator::binaryExpr(i32 nesting) {
 
 	const char* op[] = { "+", "-", "*", "/" };
 
-	primaryExpr(nesting - 1);
+	unaryExpr(nesting - 1);
 
 	whitespace();
 
@@ -45,7 +45,7 @@ void RandomInputGenerator::binaryExpr(i32 nesting) {
 
 	whitespace();
 
-	primaryExpr(nesting - 1);
+	unaryExpr(nesting - 1);
 
 	whitespace();
 

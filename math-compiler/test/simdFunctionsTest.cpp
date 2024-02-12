@@ -40,30 +40,6 @@ std::optional<i32> f32NumbersBetween(float a, float b) {
 	}
 }
 
-#include <bitset>
-#include <cfenv>
-
-//template<typename Function>
-//void testWithAllRoundingModes() {
-//#pragma STDC FENV_ACCESS ON
-//	/*volatile float a = 0.1f;
-//	volatile float b = 0.2f;*/
-//	volatile float a = 0.0f;
-//	volatile float b = 0.0f;
-//
-//	int ROUNDING_MODES[] = {
-//		FE_DOWNWARD,
-//		FE_TONEAREST,
-//		FE_TOWARDZERO,
-//		FE_UPWARD
-//	};
-//
-//	for (const auto& roudingMode : ROUNDING_MODES) {
-//		std::fesetround(roudingMode);
-//		put("%", a - b);
-//	}
-//}
-
 void testFunction(
 	long double (*correctFunction)(long double),
 	float (*approximationFunction)(float),
@@ -153,22 +129,6 @@ void testFunction(
 }
 
 void testSimdFunctions() {
-	//std::cout << std::setprecision(100000);
-	//const auto a = f32Make(0, u32(-5 + i32(F32_EXPONENT_BIAS)), 0);
-	//const auto b = f32Make(0, 20 + F32_EXPONENT_BIAS, 0);
-	///*const auto a = f32Make(0, u32(-4 + i32(F32_EXPONENT_BIAS)), 0);
-	//const auto b = f32Make(0, u32(-4 + i32(F32_EXPONENT_BIAS)), 0);*/
-	//std::cout << a << '\n';
-	//std::cout << b << '\n';
-	//std::cout << a + b << '\n';
-	//std::cout << std::bitset<32>(std::bit_cast<u32>(a)) << '\n';
-	//std::cout << std::bitset<32>(std::bit_cast<u32>(b)) << '\n';
-	//std::cout << std::bitset<32>(std::bit_cast<u32>(a + b)) << '\n';
-	//std::cout << std::bitset<32>(std::bit_cast<u32>(a) + std::bit_cast<u32>(b)) << '\n';
-	//std::cout << std::bit_cast<float>(std::bit_cast<u32>(a) + std::bit_cast<u32>(b)) << '\n';
-
-	//std::cout << std::bit_cast<float>(std::bit_cast<u32>(f32Make(0, 16 + F32_EXPONENT_BIAS, 1)) + 10) << '\n';
-
 	// One msvc some of the standard functions for lower precision just return cast values from the higher precision ones.
 
 	auto printLine1 = [] {

@@ -19,6 +19,7 @@
 #include "os/os.hpp"
 #include "test/fuzzTests.hpp"
 #include "test/tests.hpp"
+#include "test/floatingPointIndentityTest.hpp"
 #include <span>
 #include <sstream>
 #include <fstream>
@@ -31,23 +32,11 @@ void debugOutputToken(const Token& token, std::string_view originalSource) {
 }
 // TODO: Replace normal floating point equals with bitwise equals. !!!!!
 void test() {
-	/*std::string_view source = "(9( (  (9)x_3 x_2 ( 45)x_3 *602x_1 ) )(    (  0.( 54.)( 6808.2)(  95591 )+(  71993)(0  )x_0 x_1 x_0   ) )  *  00(   (  821.87x_4 x_1 x_3 x_4  * 74219.x_1 ( 0798)( 13  )  ))(  ( x_2 x_1   *( 95.883)x_4  )  )x_1 x_0  )";*/
-	// TO SEE THE BUG CHANGE THE CODE FOR INITIALIZE_COMMUTATIVE_BINARY_OP to make it not reorder values.
-	std::string_view source = " (  26484x_4 (  9323.( 8)x_0 x_2 /x_0 ( 61860.2  )(  254. )x_0    )( ( 0 )( 41929 )( 825.)/ x_1 (656 )x_4 x_2   )x_1  /  x_2 (    (  7 )x_4 (  40)x_4 x_4 * (377)x_3  )(   (x_0 x_1  +(  22083.  )( 28.4  )(  60 )(705)) )x_0 )";
-	/*std::string_view source = "1 + 2 * 3";*/
-	/*std::string_view source = "xyz + 4(x + y)z";*/
-	//std::string_view source = "x / y + -x";
-	//std::string_view source = "2 + 2";
-	//std::string_view source = "xy";
-	//std::string_view source = "x + 1";
+
+	std::string_view source = "2 + 2";
 	//FunctionParameter parameters[] { { "x" }, { "y" }, { "z" } };
 	FunctionParameter parameters[] { { "x_0" }, { "x_1" }, { "x_2" }, { "x_3" }, { "x_4" } };
 	float arguments[] = { std::bit_cast<float>(0xf8e665f4), std::bit_cast<float>(0xff954a4a), std::bit_cast<float>(0x8d8a0542), std::bit_cast<float>(0x9b902791), std::bit_cast<float>(0x978140ff), };
-// 
-	//std::string_view source = "(x + y) + (x + y)";
-	/*std::string_view source = "0.5772156649";*/
-	//std::vector<Func
-	//std::string_view source = "x + y";
 
 	std::ostream& outputStream = std::cerr;
 
@@ -122,9 +111,9 @@ void test() {
 
 // https://stackoverflow.com/questions/4911993/how-to-generate-and-run-native-code-dynamically
 int main(void) {
-	test();
+	//test();
 	//runFuzzTests();
+	testFloatingPointIdentites();
 	//runTests();
-	// TODO: Write code that check when 2 functions return the same value (floating point comparasion and bitwise comparasion). Inputs could be arrays to make the generation of inputs easier. For inputs could use exacly representalbe numbers and not exacly representable numbers. Also iterate over all rounding modes.
 	//testSimdFunctions();
 }

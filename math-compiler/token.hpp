@@ -20,6 +20,9 @@ enum class TokenType {
 	ERROR,
 };
 
+const char TOKEN_LEGAL_CHARACTERS[] = "123456789.+-/*()_"
+	"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
 struct Token {
 	Token(TokenType type, const SourceLocation& sourceLocation);
 
