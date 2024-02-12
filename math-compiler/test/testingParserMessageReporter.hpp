@@ -13,5 +13,5 @@ struct TestingParserMessageReporter : public ParserMessageReporter {
 	bool errorHappened;
 	std::vector<ParserError> errors;
 
-	OstreamParserMessageReporoter reporter;
+	OstreamParserMessageReporter reporter;
 };

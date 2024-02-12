@@ -132,6 +132,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -147,6 +148,7 @@
     <ClCompile Include="codeGenerator.cpp" />
     <ClCompile Include="deadCodeElimination.cpp" />
     <ClCompile Include="executeFunction.cpp" />
+    <ClCompile Include="floatingPoint.cpp" />
     <ClCompile Include="ir.cpp" />
     <ClCompile Include="irCompiler.cpp" />
     <ClCompile Include="irVm.cpp" />
@@ -159,6 +161,9 @@
     <ClCompile Include="parser.cpp" />
     <ClCompile Include="printAst.cpp" />
     <ClCompile Include="scanner.cpp" />
+    <ClCompile Include="test\fuzzTests.cpp" />
+    <ClCompile Include="test\randomInputGenerator.cpp" />
+    <ClCompile Include="test\simdFunctionsTest.cpp" />
     <ClCompile Include="test\testingIrCompilerMessageReporter.cpp" />
     <ClCompile Include="test\testingParserMessageReporter.cpp" />
     <ClCompile Include="test\testingScannerMessageReporter.cpp" />
@@ -171,6 +176,7 @@
     <ClCompile Include="utils\printingUtils.cpp" />
     <ClCompile Include="utils\put.cpp" />
     <ClCompile Include="sourceInfo.cpp" />
+    <ClCompile Include="utils\stringStream.cpp" />
     <ClCompile Include="valueNumbering.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -188,6 +194,10 @@
     <ClInclude Include="machineCode.hpp" />
     <ClInclude Include="ostreamIrCompilerMessageReporter.hpp" />
     <ClInclude Include="os\os.hpp" />
+    <ClInclude Include="simdFunctions.hpp" />
+    <ClInclude Include="test\fuzzTests.hpp" />
+    <ClInclude Include="test\randomInputGenerator.hpp" />
+    <ClInclude Include="test\simdFunctionsTest.hpp" />
     <ClInclude Include="test\testingIrCompilerMessageReporter.hpp" />
     <ClInclude Include="test\testingParserMessageReporter.hpp" />
     <ClInclude Include="test\testingScannerMessageReporter.hpp" />
@@ -214,13 +224,20 @@
     <ClInclude Include="utils\put.hpp" />
     <ClInclude Include="sourceInfo.hpp" />
     <ClInclude Include="utils\setDifference.hpp" />
+    <ClInclude Include="utils\stringStream.hpp" />
     <ClInclude Include="valueNumbering.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="approximating_functions_using_floating_point.txt" />
     <Text Include="assembler.txt" />
+    <Text Include="floatingPointSemantics.txt" />
     <Text Include="function_argument_format.txt" />
     <Text Include="ideas.txt" />
     <Text Include="notes.txt" />
+    <Text Include="ramez.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ramez.py" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

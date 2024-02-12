@@ -341,7 +341,7 @@ void CodeGenerator::generate(const NegateOp& op) {
 	const Register reserved[] = { op.operand, op.destination };
 	const auto destination = getRegisterLocation(op.destination, reserved);
 	const auto operand = getRegisterLocation(op.operand, reserved);
-	const auto dataLabel = a.allocateData(std::bit_cast<float>(F32_SIGN_BIT_MASK));
+	const auto dataLabel = a.allocateData(std::bit_cast<float>(F32_SIGN_MASK));
 	a.vbroadcastss(destination, dataLabel);
 	a.vxorps(destination, destination, operand);
 }

@@ -108,6 +108,21 @@
     <ClCompile Include="deadCodeElimination.cpp">
       <Filter>Pliki źródłowe</Filter>
     </ClCompile>
+    <ClCompile Include="test\simdFunctionsTest.cpp">
+      <Filter>Pliki źródłowe</Filter>
+    </ClCompile>
+    <ClCompile Include="floatingPoint.cpp">
+      <Filter>Pliki źródłowe</Filter>
+    </ClCompile>
+    <ClCompile Include="test\fuzzTests.cpp">
+      <Filter>Pliki źródłowe</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\stringStream.cpp">
+      <Filter>Pliki źródłowe</Filter>
+    </ClCompile>
+    <ClCompile Include="test\randomInputGenerator.cpp">
+      <Filter>Pliki źródłowe</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scanner.hpp">
@@ -233,11 +248,32 @@
     <ClInclude Include="deadCodeElimination.hpp">
       <Filter>Pliki nagłówkowe</Filter>
     </ClInclude>
+    <ClInclude Include="simdFunctions.hpp">
+      <Filter>Pliki nagłówkowe</Filter>
+    </ClInclude>
+    <ClInclude Include="test\simdFunctionsTest.hpp">
+      <Filter>Pliki nagłówkowe</Filter>
+    </ClInclude>
+    <ClInclude Include="test\fuzzTests.hpp">
+      <Filter>Pliki nagłówkowe</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\stringStream.hpp">
+      <Filter>Pliki nagłówkowe</Filter>
+    </ClInclude>
+    <ClInclude Include="test\randomInputGenerator.hpp">
+      <Filter>Pliki nagłówkowe</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="notes.txt" />
     <Text Include="function_argument_format.txt" />
     <Text Include="assembler.txt" />
     <Text Include="ideas.txt" />
+    <Text Include="ramez.txt" />
+    <Text Include="approximating_functions_using_floating_point.txt" />
+    <Text Include="floatingPointSemantics.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ramez.py" />
   </ItemGroup>
 </Project>

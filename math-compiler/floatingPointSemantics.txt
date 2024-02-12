@@ -1,0 +1,7 @@
+To define what optimizations are valid the properties of numbers used in programs have to be established. If no assumptions are made even optimizations like constant folding can be invalid for example because of the enabled rounding mode. Even if infinite precision is assumed things like distributivity don't hold. For example -infinity = (1 - 2) / 0 != inifnity - infinity = NaN.
+
+Could try to prove what peroperites infinite precision floating point numbers have, but I don't think that would be useful for anything. One issue that would need be considered is what to do with -0 and 0. These numbers are only created due to rounding and the operations on them depend on the rounding mode for example 0 - 0 could be 0 or -0 depending on the rounding mode.
+
+GCC floating point semantics: https://gcc.gnu.org/wiki/FloatingPointMath
+https://www.reddit.com/r/ProgrammingLanguages/comments/145kps7/could_numerical_operations_be_optimized_by_using/
+__builtin_assoc_barrier

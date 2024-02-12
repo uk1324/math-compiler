@@ -1,0 +1,20 @@
+https://www.netlib.org/fdlibm/
+Math library implementation
+
+exp:
+the fdlibm implementation approximates an symmetric function using which you can approximate exp, because the function is symmetric the function can then be approximated using an even polynomial, which means that you the region on which the polynomial has to be minimized is halved. I am guessing that they used an even degree vandermore matrix in the ramez algorithm to find the approximation.
+
+
+Calculating exp to arbitrary precision. You could convert it into a root finding problem
+for example to calculate 3^(23/7) which could be coverted into 3^3 * 3^(2/7) = 3^3 * 3^(1/7)^2
+
+integer to float conversion
+https://blog.m-ou.se/floats/
+
+float to integer coversion
+Could probably just multiply the mantissa and shift by the exponent and get rid of all the bits that are fraction bits.
+
+https://functions.wolfram.com/ElementaryFunctions/Exp/10/ShowAll.html
+http://meandering-through-mathematics.blogspot.com/2012/02/numerical-analysis-how-to-calculate.html
+Table Maker's Dilemma
+https://www.gnu.org/software/libc/manual/html_node/Errors-in-Math-Functions.html

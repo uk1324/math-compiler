@@ -357,7 +357,7 @@ std::optional<LocalValueNumbering::CommutativeOpWithOneConstantData> LocalValueN
 }
 
 LocalValueNumbering::Computed LocalValueNumbering::computeNegation(std::vector<IrOp>& output, ValueNumber operand, ValueNumber destinationVn, Register destinationRegister) {
-	const auto maskConstant = std::bit_cast<float>(F32_SIGN_BIT_MASK);
+	const auto maskConstant = std::bit_cast<float>(F32_SIGN_MASK);
 	const auto maskVn = getConstantValueNumber(output, maskConstant);
 	return Computed{
 		.destinationRegister = destinationRegister,

@@ -49,6 +49,7 @@ Token Scanner::token() {
 	case ')': return makeToken(TokenType::RIGHT_PAREN);
 
 	default:
+		// TODO: Should numbers like 0001 be allowed?
 		if (isDigit(c)) {
 			return number();
 		}

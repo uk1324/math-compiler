@@ -17,6 +17,7 @@
 #include "deadCodeElimination.hpp"
 #include "executeFunction.hpp"
 #include "os/os.hpp"
+#include "test/fuzzTests.hpp"
 #include "test/tests.hpp"
 #include <span>
 #include <sstream>
@@ -58,7 +59,7 @@ void test() {
 		std::cout << "\n";
 	} 
 
-	OstreamParserMessageReporoter parserReporter(outputStream, source);
+	OstreamParserMessageReporter parserReporter(outputStream, source);
 	Parser parser;
 	const auto ast = parser.parse(tokens, source, &parserReporter);
 	if (ast.has_value()) {
@@ -107,8 +108,13 @@ void test() {
 	/*bin.write(reinterpret_cast<const char*>(buffer), machineCode.size());*/
 }
 
+#include "test/simdFunctionsTest.hpp"
+
 // https://stackoverflow.com/questions/4911993/how-to-generate-and-run-native-code-dynamically
 int main(void) {
 	test();
 	//runTests();
+	// TODO: Write code that check when 2 functions return the same value (floating point comparasion and bitwise comparasion). Inputs could be arrays to make the generation of inputs easier. For inputs could use exacly representalbe numbers and not exacly representable numbers. Also iterate over all rounding modes.
+	//testSimdFunctions();
+	runFuzzTests();
 }

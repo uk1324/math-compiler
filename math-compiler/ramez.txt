@@ -1,0 +1,15 @@
+Remez algorithm
+- https://sites.tufts.edu/atasissa/files/2019/09/remez.pdf - the article doesn't provide the python code mentioned (at least I could find it anywhere).
+- https://en.wikipedia.org/wiki/Remez_algorithm
+- https://en.wikipedia.org/wiki/Approximation_theory
+
+The goal of the algorithm is to find the polynomial with the smallest maximum difference from some function. The sufficient and nescesarry condition for such a polynomial of degree n given by the equioscillation theorem is that there are n + 2 maxima or minima where the maximum error or negated maxium error is achived. The Ramez algorithm works by enforcing the error p(x) - f(x) oscilates back and forth n + 2 times achiveing a value E (the value isn't nescessarily achived at the extrema) by constructing a system of linear equations. Then the nodes are interatively modified so the maximum error is achieved at the extrema of p(x) - f(x).
+
+The minimax polynomial might not give the best result using a given machine precision. More about that: https://stackoverflow.com/questions/26692859/best-machine-optimized-polynomial-minimax-approximation-to-arctangent-on-1-1
+
+Also alternatively istead of minimizing the absolute error then relative error can be minimized. To do this x_i^k in the linear system has to be replaced by x_i^k / f(x_i).
+This is described here https://www.studies.nawaz.org/posts/remezs-algorithm/ and also it can be seen in the desmos linked here: https://math.stackexchange.com/questions/3619158/most-efficient-way-to-calculate-logarithm-numerically.
+
+When minizing the error term of the interpolating polynomial the only part of the error term you have control over is the product of (x - x_i).
+The Chebyshev nodes minimize this error in the L_infty norm.
+https://en.wikipedia.org/wiki/Chebyshev_nodes

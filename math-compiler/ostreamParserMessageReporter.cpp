@@ -4,7 +4,7 @@
 #include "utils/put.hpp"
 #include "sourceInfo.hpp"
 
-OstreamParserMessageReporoter::OstreamParserMessageReporoter(std::ostream& output, std::string_view source)
+OstreamParserMessageReporter::OstreamParserMessageReporter(std::ostream& output, std::string_view source)
 	: source(source)
 	, output(output) {}
 
@@ -29,7 +29,7 @@ static const char* tokenTypeName(TokenType type) {
 	return nullptr;
 };
 
-void OstreamParserMessageReporoter::onError(const ParserError& error) {
+void OstreamParserMessageReporter::onError(const ParserError& error) {
 	std::visit(overloaded{
 		[&](const UnexpectedTokenParserError& e) {
 			if (e.token.type == TokenType::ERROR) {
