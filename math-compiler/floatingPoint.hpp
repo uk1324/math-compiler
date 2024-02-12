@@ -31,3 +31,7 @@ inline float f32Make(bool sign, u8 exponent, u32 significand) {
 		(u32(exponent) << F32_EXPONENT_SHIFT) | 
 		(significand & F32_SIGNIFICAND_MASK));
 }
+
+inline bool f32BitwiseEquals(float a, float b) {
+	return std::bit_cast<u32>(a) == std::bit_cast<u32>(b);
+}

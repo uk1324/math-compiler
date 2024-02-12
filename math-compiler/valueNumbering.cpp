@@ -67,10 +67,11 @@ std::vector<IrOp> LocalValueNumbering::run(const std::vector<IrOp>& irCode, std:
 					return computed;
 				}
 
-				if (ignoreNegativeZero && e->b == 0.0f) {
+				if (ignoreNegativeZero && f32BitwiseEquals(e->b, 0.0f)) {
 					// -0 + 0 = 0 not -0
-					regToValueNumberMap[op.destination] = e->a;
-					return std::nullopt;
+					return computeIdentity(op.destination, e->a);
+				} else if (f32BitwiseEquals(e->b, -0.0f)) {
+					return computeIdentity(op.destination, e->a);
 				}
 
 				// TODO: a + -x => a - x is used by compilers.
@@ -394,6 +395,17 @@ Lvn::ValueNumber LocalValueNumbering::allocateValueNumber() {
 	return vn;
 }
 
+/*
+Because the behaviour of NaN payloads is not specified operations like '+' or '*' on 2 different nans can produce different values on different computers.
+https://stackoverflow.com/questions/68331524/addition-of-na-and-expression-that-evaluates-to-nan-return-different-results-dep
+https://news.ycombinator.com/item?id=5538365
+https://grouper.ieee.org/groups/msc/ANSI_IEEE-Std-754-2019/background/nan-propagation.pdf
+https://stackoverflow.com/questions/24442725/is-floating-point-addition-commutative-in-c
+
+On the computer I am running this on nan(ind) + nan is bitwise the same to nan + nan(ind).
+
+For example the output of this program is broken by using INITIALIZE_COMMUTATIVE_BINARY_OP (the ir code and the machine code only differ in the order of operands, the data section is the exact same).
+*/
 #define INITIALIZE_COMMUTATIVE_BINARY_OP() \
 	if (lhs <= rhs) { \
 		this->lhs = lhs; \
@@ -414,4 +426,8 @@ Lvn::MultiplyVal::MultiplyVal(ValueNumber lhs, ValueNumber rhs) {
 
 Lvn::XorVal::XorVal(ValueNumber lhs, ValueNumber rhs) {
 	INITIALIZE_COMMUTATIVE_BINARY_OP();
+}
+
+bool Lvn::ConstantVal::operator==(const ConstantVal& other) const {
+	return f32BitwiseEquals(value, other.value);
 }

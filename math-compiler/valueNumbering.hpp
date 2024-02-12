@@ -51,7 +51,8 @@ namespace Lvn {
 	struct ConstantVal {
 		Real value;
 
-		bool operator==(const ConstantVal&) const = default;
+		/*bool operator==(const ConstantVal&) const = default;*/
+		bool operator==(const ConstantVal& other) const;
 	};
 
 	using Val = std::variant<AddVal, SubtractVal, MultiplyVal, DivideVal, XorVal, ConstantVal>;

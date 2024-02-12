@@ -66,7 +66,7 @@ void runFuzzTests() {
 	StringStream out;
 
 	RandomInputGenerator gen;
-	const auto seed = 2;
+	const auto seed = 3;
 	gen.rng.seed(seed);
 	const auto parameterCount = 5;
 	std::vector<FunctionParameter> paramters;
