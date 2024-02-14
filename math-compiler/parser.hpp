@@ -14,15 +14,24 @@ struct Parser {
 	};
 
 	Parser();
-	void initialize(const std::vector<Token>* tokens, std::string_view source, ParserMessageReporter* reporter);
+	void initialize(
+		const std::vector<Token>* tokens, 
+		std::span<const std::string_view> functionNames,
+		std::string_view source, 
+		ParserMessageReporter* reporter);
 
 	// TODO: Use span.
-	std::optional<Ast> parse(const std::vector<Token>& tokens, std::string_view source, ParserMessageReporter* reporter);
+	std::optional<Ast> parse(
+		const std::vector<Token>& tokens, 
+		std::span<const std::string_view> functionNames,
+		std::string_view source, 
+		ParserMessageReporter* reporter);
 	Expr* expr();
 	Expr* binaryExpr();
 	Expr* plusOrMinusBinaryExpr();
 	Expr* timesOrDivideBinaryExpr();
 	Expr* primaryExpr();
+	Expr* function(std::string_view name, i64 start);
 
 	const Token& peek();
 	const Token& peekPrevious();
@@ -35,10 +44,13 @@ struct Parser {
 
 	std::string_view tokenSource(const Token& token) const;
 
+	bool isFunctionName(std::string_view name) const;
+
 	const std::vector<Token>* tokens;
 	i64 currentTokenIndex;
 
 	ParserMessageReporter* messageReporter;
 	std::string_view source;
+	std::span<const std::string_view> functionNames;
 	AstAllocator astAllocator;
 };

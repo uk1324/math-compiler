@@ -4,10 +4,14 @@
 #include <charconv>
 
 Parser::Parser() {
-	initialize(nullptr, std::string_view(), nullptr);
+	initialize(nullptr, std::span<const std::string_view>(), std::string_view(), nullptr);
 }
 
-void Parser::initialize(const std::vector<Token>* tokens, std::string_view source, ParserMessageReporter* reporter) {
+void Parser::initialize(
+	const std::vector<Token>* tokens, 
+	std::span<const std::string_view> functionNames,
+	std::string_view source, 
+	ParserMessageReporter* reporter) {
 	this->tokens = tokens;
 	this->source = source;
 	currentTokenIndex = 0;
@@ -15,8 +19,12 @@ void Parser::initialize(const std::vector<Token>* tokens, std::string_view sourc
 	astAllocator.reset();
 }
 
-std::optional<Ast> Parser::parse(const std::vector<Token>& tokens, std::string_view source, ParserMessageReporter* reporter) {
-	initialize(&tokens, source, reporter);
+std::optional<Ast> Parser::parse(
+	const std::vector<Token>& tokens, 
+	std::span<const std::string_view> functionNames,
+	std::string_view source, 
+	ParserMessageReporter* reporter) {
+	initialize(&tokens, functionNames, source, reporter);
 
 	try {
 		const auto root = expr();
@@ -136,11 +144,16 @@ Expr* Parser::primaryExpr() {
 		lhs = parenExprAfterMatch();
 	} else if (match(TokenType::IDENTIFIER)) {
 		const auto& identifierToken = peekPrevious();
-		lhs = astAllocator.allocate<IdentifierExpr>(
-			tokenSource(identifierToken), 
-			identifierToken.start(), 
-			identifierToken.end());
 		lhsStart = identifierToken.start();
+		const auto identifier = tokenSource(identifierToken);
+		
+		lhs = isFunctionName(identifier)
+			? function(identifier, lhsStart)
+			: astAllocator.allocate<IdentifierExpr>(
+				identifier,
+				lhsStart,
+				identifierToken.end());
+
 	} else if (match(TokenType::MINUS)) {
 		// TODO: Not sure if this should be changed but -4x will parse to -(4 * x) and not (-4) * x. (I wrote this when I thought that the order is reversed but I guess -(4 * x) makes more sense thatn the other option. Don't think that will change the result but not sure. GCC treats the differently. I guess if x is NaN then the result might have different signs idk.
 		const auto start = peekPrevious().start();
@@ -163,10 +176,18 @@ Expr* Parser::primaryExpr() {
 		Expr* rhs;
 		if (match(TokenType::IDENTIFIER)) {
 			const auto identifierToken = peekPrevious();
-			rhs = astAllocator.allocate<IdentifierExpr>(
-				tokenSource(identifierToken), 
-				identifierToken.start(), 
-				identifierToken.end());
+			const auto identifier = tokenSource(identifierToken);
+			const auto start = identifierToken.start();
+
+			if (isFunctionName(identifier)) {
+				rhs = function(identifier, start);
+			} else {
+				rhs = astAllocator.allocate<IdentifierExpr>(
+					identifier,
+					start,
+					identifierToken.end());
+			}
+
 			rhsEnd = identifierToken.end();
 		} else if (match(TokenType::LEFT_PAREN)) {
 			rhs = parenExprAfterMatch();
@@ -178,6 +199,29 @@ Expr* Parser::primaryExpr() {
 	}
 
 	return lhs;
+}
+
+Expr* Parser::function(std::string_view name, i64 start) {
+	// TODO: Maybe make a new error expected left paren after function name.
+	expect(TokenType::LEFT_PAREN);
+
+	if (match(TokenType::RIGHT_PAREN)) {
+		return astAllocator.allocate<FunctionExpr>(name, std::span<const Expr*>(), start, peek().end());
+	}
+
+	AstAllocator::List<const Expr*> arguments;
+	while (!eof()) {
+		arguments.append(expr());
+		if (match(TokenType::RIGHT_PAREN)) {
+			break;
+		}
+		expect(TokenType::COMMA);
+		if (match(TokenType::RIGHT_PAREN)) {
+			break;
+		}
+	}
+
+	return astAllocator.allocate<FunctionExpr>(name, arguments, start, peek().end());
 }
 
 const Token& Parser::peek() {
@@ -228,4 +272,8 @@ void Parser::throwError(const ParserError& error) {
 
 std::string_view Parser::tokenSource(const Token& token) const {
 	return source.substr(token.location.start, token.location.length);
+}
+
+bool Parser::isFunctionName(std::string_view name) const {
+	return std::ranges::find(functionNames, name) != functionNames.end();
 }

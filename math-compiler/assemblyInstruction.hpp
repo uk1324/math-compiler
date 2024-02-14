@@ -31,11 +31,20 @@ u8 regIndex(RegYmm reg);
 RegYmm regYmmFromIndex(u8 index);
 
 using InstructionLabel = i32;
+using AddressLabel = i32;
 const auto INSTRUCTION_LABEL_NONE = ~0;
 
 using DataLabel = i32;
 
 struct Ret {};
+
+struct CallLbl {
+	AddressLabel label;
+};
+
+struct CallReg {
+	Reg64 reg;
+};
 
 struct Push64 {
 	Reg64 reg;
@@ -87,6 +96,11 @@ struct CmpR64R64 {
 struct MovR64R64 {
 	Reg64 destination;
 	Reg64 source;
+};
+
+struct MovR64Imm64 {
+	Reg64 destination;
+	u64 immediate;
 };
 
 // https://stackoverflow.com/questions/10665547/how-to-load-a-single-32-bit-floating-point-into-all-eight-positions-within-an-av
@@ -143,6 +157,8 @@ struct VxorpsYmmYmmYmm {
 };
 
 using Instruction = std::variant<
+	CallLbl,
+	CallReg,
 	Ret,
 	Push64,
 	Pop64,
@@ -154,6 +170,7 @@ using Instruction = std::variant<
 	Inc64,
 	CmpR64R64,
 	MovR64R64,
+	MovR64Imm64,
 	VbroadcastssLbl,
 	VmovapsYmmYmm,
 	VmovapsYmmMem,

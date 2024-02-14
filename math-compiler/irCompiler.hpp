@@ -11,14 +11,23 @@ struct IrCompiler {
 		Register result;
 	};
 
+	struct FunctionInfo {
+		std::string_view name;
+		i64 arity;
+	};
+
 	struct CompilerError {};
 
 	IrCompiler();
-	void initialize(std::span<const FunctionParameter> parameters, IrCompilerMessageReporter* reporter);
+	void initialize(
+		std::span<const FunctionParameter> parameters, 
+		std::span<const FunctionInfo> functionInfo,
+		IrCompilerMessageReporter* reporter);
 
 	std::optional<const std::vector<IrOp>*> compile(
-		const Ast& ast, 
+		const Ast& ast,
 		std::span<const FunctionParameter> parameters,
+		std::span<const FunctionInfo> functionInfo,
 		IrCompilerMessageReporter& reporter);
 
 	ExprResult compileExpression(const Expr* expr);
@@ -27,6 +36,7 @@ struct IrCompiler {
 	ExprResult compileUnaryExpr(const UnaryExpr& expr);
 	void createRegistersForVariables();
 	ExprResult compileIdentifierExpr(const IdentifierExpr& expr);
+	ExprResult compileFunctionExpr(const FunctionExpr& expr);
 
 	i64 allocatedRegistersCount = 0;
 	Register allocateRegister();

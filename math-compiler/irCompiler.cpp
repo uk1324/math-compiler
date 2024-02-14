@@ -5,10 +5,13 @@
 //#define IR_COMPILER_DEBUG_PRINT_ADDED_INSTRUCTIONS
 
 IrCompiler::IrCompiler() {
-	initialize(std::span<const FunctionParameter>(), nullptr);
+	initialize(std::span<const FunctionParameter>(), std::span<const FunctionInfo>(), nullptr);
 }
 
-void IrCompiler::initialize(std::span<const FunctionParameter> parameters, IrCompilerMessageReporter* reporter) {
+void IrCompiler::initialize(
+	std::span<const FunctionParameter> parameters, 
+	std::span<const FunctionInfo> functionInfo,
+	IrCompilerMessageReporter* reporter) {
 	generatedIrCode.clear();
 	this->parameters = parameters;
 	this->reporter = reporter;
@@ -16,10 +19,11 @@ void IrCompiler::initialize(std::span<const FunctionParameter> parameters, IrCom
 }
 
 std::optional<const std::vector<IrOp>*> IrCompiler::compile(
-	const Ast& ast, 
-	const std::span<const FunctionParameter> parameters,
+	const Ast& ast,
+	std::span<const FunctionParameter> parameters,
+	std::span<const FunctionInfo> functionInfo,
 	IrCompilerMessageReporter& reporter) {
-	initialize(parameters, &reporter);
+	initialize(parameters, functionInfo, &reporter);
 
 	try {
 		const auto result = compileExpression(ast.root);
@@ -30,8 +34,6 @@ std::optional<const std::vector<IrOp>*> IrCompiler::compile(
 	} catch (const CompilerError&) {
 		return std::nullopt;
 	}
-
-
 }
 
 IrCompiler::ExprResult IrCompiler::compileExpression(const Expr* expr) {
@@ -43,6 +45,7 @@ IrCompiler::ExprResult IrCompiler::compileExpression(const Expr* expr) {
 		CASE_EXPR(BINARY, BinaryExpr);
 		CASE_EXPR(UNARY, UnaryExpr);
 		CASE_EXPR(IDENTIFIER, IdentifierExpr);
+		CASE_EXPR(FUNCTION, FunctionExpr);
 	
 	default:
 		ASSERT_NOT_REACHED();
@@ -114,6 +117,16 @@ IrCompiler::ExprResult IrCompiler::compileIdentifierExpr(const IdentifierExpr& e
 		.undefinedVariableName = expr.identifier,
 		.location = expr.sourceLocation
 	});
+}
+
+IrCompiler::ExprResult IrCompiler::compileFunctionExpr(const FunctionExpr& expr) {
+	const auto destination = allocateRegister();
+	FunctionOp op{ .destination = destination, .functionName = expr.functionName };
+	for (const auto& argumentExpr : expr.arguments) {
+		const auto arg = compileExpression(argumentExpr).result;
+		op.arguments.push_back(arg);
+	}
+	addOp(op);
 }
 
 Register IrCompiler::allocateRegister() {

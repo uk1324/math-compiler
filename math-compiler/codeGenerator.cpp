@@ -5,10 +5,10 @@
 #include <algorithm>
 
 CodeGenerator::CodeGenerator() {
-	initialize(std::span<const FunctionParameter>());
+	initialize(std::span<const FunctionParameter>(), std::span<const std::string_view>());
 }
 
-void CodeGenerator::initialize(std::span<const FunctionParameter> parameters) {
+void CodeGenerator::initialize(std::span<const FunctionParameter> parameters, std::span<const std::string_view> functionNames) {
 	registerToLastUsage.clear();
 	virtualRegisterToLocation.clear();
 	for (i64 i = 0; i < i64(std::size(registerAllocations)); i++) {
@@ -16,7 +16,6 @@ void CodeGenerator::initialize(std::span<const FunctionParameter> parameters) {
 	}
 	currentInstructionIndex = 0;
 	this->parameters = parameters;
-	calleSavedRegisters.reset();
 	stackMemoryAllocated = 0;
 	stackAllocations.clear();
 	a.reset();
@@ -26,8 +25,11 @@ const auto inputArrayRegister = CodeGenerator::INTEGER_FUNCTION_INPUT_REGISTERS[
 const auto outputArrayRegister = CodeGenerator::INTEGER_FUNCTION_INPUT_REGISTERS[1];
 const auto arraySizeRegister = CodeGenerator::INTEGER_FUNCTION_INPUT_REGISTERS[2];
 
-MachineCode CodeGenerator::compile(const std::vector<IrOp>& irCode, std::span<const FunctionParameter> parameters) {
-	initialize(parameters);
+MachineCode CodeGenerator::compile(
+	const std::vector<IrOp>& irCode, 
+	std::span<const std::string_view> functionNames, 
+	std::span<const FunctionParameter> parameters) {
+	initialize(parameters, functionNames);
 	computeRegisterLastUsage(irCode);
 
 	const auto someFreeRegister = INTEGER_FUNCTION_INPUT_REGISTERS[2];
@@ -52,6 +54,7 @@ MachineCode CodeGenerator::compile(const std::vector<IrOp>& irCode, std::span<co
 			[&](const DivideOp& op) { divideOp(op); },
 			[&](const XorOp& op) { generate(op); },
 			[&](const NegateOp& op) { generate(op); },
+			[&](const FunctionOp& op) { generate(op); },
 			[&](const ReturnOp& op) { returnOp(op); }
 		}, op);
 	}
@@ -65,51 +68,7 @@ MachineCode CodeGenerator::compile(const std::vector<IrOp>& irCode, std::span<co
 	a.cmp(indexRegister, arraySizeRegister);
 	a.jl(loopStartLabel);
 
-	// Prologue ang epilogue
-	{
-		const auto codeSizeAtStart = a.instructions.size();
-		auto offset = [&]() {
-			return a.instructions.size() - codeSizeAtStart;
-		};
-
-		const auto stackMemoryAllocatedTotal = calleSavedRegisters.count() * YMM_REGISTER_SIZE + stackMemoryAllocated;
-		/*if (stackMemoryAllocatedTotal > 0)*/ {
-			a.push(Reg64::RBP, offset());
-			a.mov(Reg64::RBP, Reg64::RSP, offset());
-			// Round down (because the stack grows down) to a multiple of 32.
-			a.and_(Reg8::BPL, 0b11100000, offset());
-			a.sub(Reg64::RBP, u32(stackMemoryAllocatedTotal), offset());
-		}
-
-		struct SavedRegister {
-			RegYmm reg;
-			BaseOffset baseOffset;
-		};
-		std::vector<SavedRegister> savedRegisters;
-		for (u8 i = 0; i < YMM_REGISTER_COUNT; i++) {
-			const auto source = regYmmFromIndex(i);
-			const auto allocation = stackAllocate(YMM_REGISTER_SIZE, 32);
-			a.vmovaps(Reg64::RBP, allocation.baseOffset, source, offset());
-			savedRegisters.push_back(SavedRegister{ .reg = source, .baseOffset = allocation });
-		}
-		/*for (i64 i = 0; i < i64(calleSavedRegisters.size()); i++) {
-			if (calleSavedRegisters.test(i)) {
-				const auto source = regYmmFromIndex(u8(i + CALLER_SAVED_REGISTER_COUNT));
-				const auto allocation = stackAllocate(YMM_REGISTER_SIZE, 32);
-		 		a.vmovaps(Reg64::RBP, allocation.baseOffset, source, offset());
-				savedRegisters.push_back(SavedRegister{ .reg = source, .baseOffset = allocation });
-			}
-		}*/
-
-		for (const auto& [reg, baseOffset] : savedRegisters) {
-			a.vmovaps(reg, Reg64::RBP, baseOffset.baseOffset);
-		}
-
-		/*if (stackMemoryAllocated > 0)*/ {
-			a.pop(Reg64::RBP);
-		}
-		a.ret();
-	}
+	emitPrologueAndEpilogue();
 
 	MachineCode machineCode;
 	machineCode.generateFrom(a);
@@ -167,38 +126,13 @@ void CodeGenerator::computeRegisterLastUsage(const std::vector<IrOp>& irCode) {
 
 void CodeGenerator::computeRegisterFirstAssigned(const std::vector<IrOp>& irCode) {
 	for (i64 i = 0; i < i64(irCode.size()); i++) {
-		auto add = [this, &i](Register reg) {
-			// insert() only inserts if the key is not set yet.
-			registerToFirstAssigned.insert({ reg, i });
-		};
-
-		auto& op = irCode[i];
-		std::visit(overloaded{
-			[&](const LoadConstantOp& op) {
-				add(op.destination);
-			},
-			[&](const AddOp& op) {
-				add(op.destination);
-			},
-			[&](const SubtractOp& op) {
-				add(op.destination);
-			},
-			[&](const MultiplyOp& op) {
-				add(op.destination);
-			},
-			[&](const DivideOp& op) {
-				add(op.destination);
-			},
-			[&](const XorOp& op) {
-				add(op.destination);
-			},
-			[&](const NegateOp& op) {
-				add(op.destination);
-			},
-			[&](const ReturnOp& op) {
-
+		callWithDestination(
+			irCode[i],
+			[this, &i](Register reg) {
+				// insert() only inserts if the key is not set yet.
+				registerToFirstAssigned.insert({ reg, i });
 			}
-		}, op);
+		);
 	}
 }
 
@@ -214,7 +148,36 @@ void CodeGenerator::movToYmmFromMemoryLocation(RegYmm destination, const MemoryL
 	}, memoryLocation);
 }
 
-RegYmm CodeGenerator::getRegisterLocationHelper(Register reg, std::span<const Register> virtualRegistersThatCanNotBeSpilled) {
+void CodeGenerator::emitPrologueAndEpilogue() {
+	const auto codeSizeAtStart = a.instructions.size();
+	auto offset = [&]() {
+		return a.instructions.size() - codeSizeAtStart;
+	};
+
+	// All of the YMM registers are caller saved so they don't need to be saved.
+	// Windows:
+	// https://learn.microsoft.com/en-us/cpp/build/x64-calling-convention?view=msvc-170
+	// When present, the upper portions of YMM0-YMM15 and ZMM0-ZMM15 are also volatile.
+	// System V ABI:
+	// Figure 3.4: Register Usage
+	// All XMM register which also includes the YMM register are caller saved.
+
+	const auto stackMemoryAllocatedTotal = YMM_REGISTER_SIZE + stackMemoryAllocated;
+	/*if (stackMemoryAllocatedTotal > 0)*/ {
+		a.push(Reg64::RBP, offset());
+		a.mov(Reg64::RBP, Reg64::RSP, offset());
+		// Round down (because the stack grows down) to a multiple of 32.
+		a.and_(Reg8::BPL, 0b11100000, offset());
+		a.sub(Reg64::RBP, u32(stackMemoryAllocatedTotal), offset());
+	}
+
+	/*if (stackMemoryAllocated > 0)*/ {
+		a.pop(Reg64::RBP);
+	}
+	a.ret();
+}
+
+RegYmm CodeGenerator::getRegisterLocation(Register reg, std::span<const Register> virtualRegistersThatCanNotBeSpilled) {
 	auto& location = virtualRegisterToLocation[reg];
 
 	if (location.registerLocation.has_value()) {
@@ -242,16 +205,6 @@ RegYmm CodeGenerator::getRegisterLocationHelper(Register reg, std::span<const Re
 	}
 
 	return actualRegister;
-}
-
-RegYmm CodeGenerator::getRegisterLocation(
-	Register reg, std::span<const Register> virtualRegistersThatCanNotBeSpilled) {
-	const auto loc = getRegisterLocationHelper(reg, virtualRegistersThatCanNotBeSpilled);
-	const auto location = regIndex(loc);
-	if (location >= 6) {
-		calleSavedRegisters.set(location - CALLER_SAVED_REGISTER_COUNT);
-	}
-	return loc;
 }
 
 RegYmm CodeGenerator::allocateRegister(std::span<const Register> virtualRegistersThatCanNotBeSpilled) {
@@ -295,7 +248,7 @@ RegYmm CodeGenerator::allocateRegister(std::span<const Register> virtualRegister
 		return virtualRegisterToSpillRegisterLocation;
 	}
 
-	const auto baseOffset = stackAllocate(YMM_REGISTER_SIZE, 32);
+	const auto baseOffset = stackAllocate(YMM_REGISTER_SIZE, YMM_REGISTER_ALIGNMENT);
 	virtualRegisterToSpillLocation.memoryLocation = RegisterConstantOffsetLocation{
 		.registerWithAddress = Reg64::RBP,
 		.offset = baseOffset.baseOffset
@@ -365,6 +318,44 @@ void CodeGenerator::generate(const NegateOp& op) {
 	a.vxorps(destination, destination, operand);
 }
 
+void CodeGenerator::generate(const FunctionOp& op) {
+	for (i64 registerIndex = 0; registerIndex < YMM_REGISTER_COUNT; registerIndex++) {
+		if (!registerAllocations[registerIndex].has_value()) {
+			continue;
+		}
+
+		// All YMM registers are caller saved.
+		const bool isCallerSaved = true;
+		if (!isCallerSaved) {
+			continue;
+		}
+
+		const auto reg = RegYmm(registerIndex);
+		const auto memory = stackAllocate(YMM_REGISTER_SIZE, YMM_REGISTER_ALIGNMENT);
+		a.vmovaps(STACK_TOP_REGISTER, memory.baseOffset, reg);
+		registerAllocations[registerIndex] = std::nullopt;
+
+		const auto locationIt = virtualRegisterToLocation.find(registerIndex);
+		if (locationIt == virtualRegisterToLocation.end()) {
+			ASSERT_NOT_REACHED();
+			continue;
+		}
+		auto& location = locationIt->second;
+		if (!location.memoryLocation.has_value()) {
+			const auto memory = stackAllocate(YMM_REGISTER_SIZE, YMM_REGISTER_ALIGNMENT);
+			location.memoryLocation = memory.location();
+			a.vmovaps(STACK_TOP_REGISTER, memory.baseOffset, reg);
+		}
+		locationIt->second.registerLocation = std::nullopt;
+	}
+
+	a.call(functionNameLabel(op.functionName));
+
+	const auto destination = getRegisterLocation(op.destination);
+	const auto returnRegister = RegYmm::YMM0;
+	a.vmovaps(destination, returnRegister);
+}
+
 void CodeGenerator::returnOp(const ReturnOp& op) {
 	const auto source = getRegisterLocation(op.returnedRegister);
 	a.vmovaps(outputArrayRegister, 0, source);
@@ -375,4 +366,21 @@ CodeGenerator::BaseOffset CodeGenerator::stackAllocate(i32 size, i32 aligment) {
 	const BaseOffset result{ .baseOffset = -stackMemoryAllocated };
 
 	return result;
+}
+
+AddressLabel CodeGenerator::functionNameLabel(std::string_view name)  {
+	for (AddressLabel label = 0; label < functionNames.size(); label++) {
+		if (functionNames[label] == name) {
+			return label;
+		}
+	}
+	ASSERT_NOT_REACHED();
+	return 0;
+}
+
+CodeGenerator::RegisterConstantOffsetLocation CodeGenerator::BaseOffset::location() const {
+	return RegisterConstantOffsetLocation{
+		.registerWithAddress = CodeGenerator::STACK_TOP_REGISTER,
+		.offset = baseOffset,
+	};
 }

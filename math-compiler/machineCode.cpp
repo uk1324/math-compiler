@@ -15,7 +15,7 @@ void MachineCode::initialize() {
 	code.clear();
 	data.clear();
 	dataLabelToDataOffset.clear();
-	ripRelativeOperands.clear();
+	ripRelativeDataOperands.clear();
 	jumpsToPatch.clear();
 }
 
@@ -54,8 +54,11 @@ void MachineCode::generateFrom(const AssemblyCode& assembly) {
 	}
 }
 
-void MachineCode::patchRipRelativeOperands(u8* code, const u8* data) const {
-	for (const auto& allocation : ripRelativeOperands) {
+void MachineCode::patchRipRelativeOperands(
+	u8* code, 
+	const u8* data,
+	const std::unordered_map<AddressLabel, void*>& labelToAddress) const {
+	for (const auto& allocation : ripRelativeDataOperands) {
 		const auto ripOffsetAddress = code + allocation.operandCodeOffset;
 		const auto dataOffsetAddress = data + allocation.dataOffset;
 		/*const auto ripOffsetAddress = code + allocation.ripOffsetBytesCodeIndex;
@@ -72,6 +75,33 @@ void MachineCode::patchRipRelativeOperands(u8* code, const u8* data) const {
 		memcpy(ripOffsetAddress, &ripOffsetToData, ripOffsetSize);
 
 		ASSERT(dataOffsetAddress == nextInstructionAddress + ripOffsetToData);
+	}
+
+	for (const auto& jump : ripRelativeJumps) {
+		const auto addressIt = labelToAddress.find(jump.label);
+		const auto nextInstructionAddress = code + jump.nextInstructionCodeOffset;
+		const auto operandCodeOffset = code + jump.operandCodeOffset;
+
+		auto write = [&operandCodeOffset](i32 immediate) {
+			memcpy(operandCodeOffset, &immediate, sizeof(immediate));
+		};
+
+		if (addressIt == labelToAddress.end()) {
+			write(0);
+			ASSERT_NOT_REACHED();
+			continue;
+		}
+		const auto address = reinterpret_cast<u8*>(addressIt->second);
+		const auto offset = address - nextInstructionAddress;
+
+		if (offset < INT32_MIN || offset > INT32_MAX) {
+			write(0);
+			ASSERT_NOT_REACHED();
+			continue;
+		}
+
+		const i32 operand = i32(offset);
+		write(operand);
 	}
 }
 
@@ -93,6 +123,18 @@ void MachineCode::emitU32(u32 value) {
 
 void MachineCode::emitI32(i32 value) {
 	emitU32(std::bit_cast<u32>(value));
+}
+
+void MachineCode::emitU64(u64 value) {
+	const auto bytes = reinterpret_cast<u8*>(&value);
+	emitU8(bytes[0]);
+	emitU8(bytes[1]);
+	emitU8(bytes[2]);
+	emitU8(bytes[3]);
+	emitU8(bytes[4]);
+	emitU8(bytes[5]);
+	emitU8(bytes[6]);
+	emitU8(bytes[7]);
 }
 
 void MachineCode::emitModRm(u8 mod, u8 reg, u8 rm) {
@@ -171,6 +213,27 @@ void MachineCode::emitReg64ImmInstruction(u8 opCode, u8 opCodeExtension, Reg64 l
 	emitU32(rhs);
 }
 
+void MachineCode::emit(const CallReg& i) {
+	if (regIndex(i.reg) < 0b111) {
+		emitRex(1, 0, 0, 1);
+	}
+	emitU8(0xFF);
+	const auto opCodeExtension = 0x2;
+	emitModRm(0b11, opCodeExtension, u8(i.reg));
+}
+
+void MachineCode::emit(const CallLbl& i) {
+	emitU8(0xE8);
+	const auto operandOffset = currentLocation();
+	emitU32(0);
+	const auto nextInstructionOffset = currentLocation();
+	ripRelativeJumps.push_back(RipRelativeJump{
+		.operandCodeOffset = operandOffset,
+		.nextInstructionCodeOffset = nextInstructionOffset,
+		.label = i.label,
+	});
+}
+
 void MachineCode::emit(const Ret& i) {
 	emitU8(0xC3);
 }
@@ -186,6 +249,7 @@ void MachineCode::emit(const Pop64& i) {
 void MachineCode::emit(const JmpLbl& i) {
 	i64 instructionSize;
 
+	// TODO: Change this to just taking the location of the first byte of the jump instead of using instruction size.
 	switch (i.type) {
 		using enum JmpType;
 
@@ -252,6 +316,12 @@ void MachineCode::emit(const MovR64R64& i) {
 	emitModRmDirectAddressing(takeFirst3Bits(source), takeFirst3Bits(destination));
 }
 
+void MachineCode::emit(const MovR64Imm64& i) {
+	emitRex(1, take4thBit(regIndex(i.destination)), 0, 1);
+	emitU8(0xB8 + regIndex(i.destination));
+	emitU64(i.immediate);
+}
+
 void MachineCode::emit(const VbroadcastssLbl& i) {
 	const auto destination = regIndex(i.destination);
 	const auto destination4thBit = take4thBit(destination);
@@ -266,7 +336,7 @@ void MachineCode::emit(const VbroadcastssLbl& i) {
 	ASSERT(i.source < dataLabelToDataOffset.size());
 	const auto dataOffset = dataLabelToDataOffset[i.source];
 
-	ripRelativeOperands.push_back(RipRelativeOperand{
+	ripRelativeDataOperands.push_back(RipRelativeDataOperand{
 		.operandCodeOffset = operandCodeOffset,
 		.dataOffset = dataOffset,
 	});

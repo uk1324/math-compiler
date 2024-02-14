@@ -5,7 +5,7 @@ void DeadCodeElimination::run(const std::vector<IrOp>& input, std::span<const Fu
 
 	output.clear();
 	registerToDefinitionInstructionIndex.clear();
-	for (i64 i = 0; i < input.size(); i++) {
+	for (i64 i = 0; i < i64(input.size()); i++) {
 		const auto& op = input[i];
 		bool alreadyAssigned = false;
 		bool usesInvalidDestination = false;
@@ -28,7 +28,7 @@ void DeadCodeElimination::run(const std::vector<IrOp>& input, std::span<const Fu
 	usefulRegisterWorklist.clear();
 	isInstructionMarkedUseful.clear();
 	isInstructionMarkedUseful.resize(input.size(), false);
-	for (i64 i = 0; i < input.size(); i++) {
+	for (usize i = 0; i < input.size(); i++) {
 		const auto& irOp = input[i];
 		if (const auto op = std::get_if<ReturnOp>(&irOp)) {
 			usefulRegisterWorklist.push_back(op->returnedRegister);
@@ -63,7 +63,7 @@ void DeadCodeElimination::run(const std::vector<IrOp>& input, std::span<const Fu
 		});
 	}
 
-	for (i64 i = 0; i < input.size(); i++) {
+	for (usize i = 0; i < input.size(); i++) {
 		if (isInstructionMarkedUseful[i]) {
 			const auto& op = input[i];
 			output.push_back(op);

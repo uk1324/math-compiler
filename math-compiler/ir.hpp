@@ -83,8 +83,29 @@ struct NegateOp {
 	template<typename Function>
 	void callWithDestination(Function f) const;
 	template<typename Function>
+	// TODO: Name this something better call with usedRegisterButNotDestination or find some name for it like operands idk.
 	void callWithUsedRegisters(Function f) const;
 };
+
+// It is assumed that the function has no side effects.
+// FunctionOp is followed by zero or more FunctionArgumentsOps. If a FunctionArgumentsOp is not placed right after the FunctionOp it is ignored.
+// TODO: What are the issues with using FunctionArgumentOp istead of just storing a vector of Register?
+// This allows for invalid representations code generation like last usage instruction cannot be implemented simply by looking at the instruction but the context is needed. Requires adding extra logic in places like code generation for example. 
+// If I don't want to allocate then one way could be to create things like UnaryFunctionOp, BinaryFunctionOp and so on, but this would increase the size of every instruction so the simplest thing would probably be to use a custom allocator.
+struct FunctionOp {
+	Register destination;
+	std::string_view functionName;
+	std::vector<Register> arguments;
+
+	template<typename Function>
+	void callWithDestination(Function f) const;
+	template<typename Function>
+	void callWithUsedRegisters(Function f) const;
+};
+
+//struct FunctionArgumentOp {
+//	Register argumentRegister;
+//};
 
 struct ReturnOp {
 	Register returnedRegister;
@@ -103,6 +124,7 @@ using IrOp = std::variant<
 	DivideOp,
 	XorOp,
 	NegateOp,
+	FunctionOp,
 	ReturnOp
 >;
 
@@ -198,6 +220,18 @@ void MultiplyOp::callWithUsedRegisters(Function f) const {
 }
 
 template<typename Function>
+void FunctionOp::callWithDestination(Function f) const {
+	f(destination);
+}
+
+template<typename Function>
+void FunctionOp::callWithUsedRegisters(Function f) const {
+	for (const auto& argument : arguments) {
+		f(argument);
+	}
+}
+
+template<typename Function>
 void callWithDestination(const IrOp& op, Function f) {
 	std::visit([&f](const auto& v) { v.callWithDestination(f); }, op);
 }
@@ -206,3 +240,4 @@ template<typename Function>
 void callWithUsedRegisters(const IrOp& op, Function f) {
 	std::visit([&f](const auto& v) { v.callWithUsedRegisters(f); }, op);
 }
+

@@ -31,8 +31,8 @@ const char* roundingModeName(int roundingMode) {
 float TEST_ARGUMENTS[] = {
 	0.2f, // Exacly representable
 	0.123456789123456789f, // Try to cause rounding
-	1000000000, // Big
-	0.000000001, // Small
+	1000000000.0f, // Big
+	0.000000001f, // Small
 	std::numeric_limits<float>::lowest(),
 	std::numeric_limits<float>::denorm_min(),
 	std::numeric_limits<float>::min(),

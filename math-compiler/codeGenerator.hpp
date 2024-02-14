@@ -80,10 +80,13 @@ struct CodeGenerator {
 	};
 
 	CodeGenerator();
-	void initialize(std::span<const FunctionParameter> parameters);
+	void initialize(std::span<const FunctionParameter> parameters, std::span<const std::string_view> functionNames);
 
-	/*const std::vector<u8>& compile(const std::vector<IrOp>& irCode, std::span<const FunctionParameter> parameters);*/
-	MachineCode compile(const std::vector<IrOp>& irCode, std::span<const FunctionParameter> parameters);
+	MachineCode compile(
+		const std::vector<IrOp>& irCode, 
+		std::span<const std::string_view> functionNames,
+		std::span<const FunctionParameter> parameters
+	);
 
 	// Emmiting jumps after the code has been generated is can be difficult in some situations.
 	/*
@@ -126,7 +129,8 @@ struct CodeGenerator {
 	};
 
 	static constexpr i64 YMM_REGISTER_SIZE = 8 * sizeof(float);
-
+	static constexpr i64 YMM_REGISTER_ALIGNMENT = YMM_REGISTER_SIZE;
+	static constexpr Reg64 STACK_TOP_REGISTER = Reg64::RBP;
 
 	std::unordered_map<Register, DataLocation> virtualRegisterToLocation;
 	std::optional<Register> registerAllocations[YMM_REGISTER_COUNT];
@@ -134,12 +138,11 @@ struct CodeGenerator {
 
 	void movToYmmFromMemoryLocation(RegYmm destination, const MemoryLocation& memoryLocation);
 
-	static constexpr i64 CALLER_SAVED_REGISTER_COUNT = 5;
-	std::bitset<YMM_REGISTER_COUNT - CALLER_SAVED_REGISTER_COUNT> calleSavedRegisters;
+	void emitPrologueAndEpilogue();
 	
 	// Could also make functions that return a register or a memory location.
 	// Also there could be a version that allocates 2 data locations at once that could be used for commutative operations.
-	RegYmm getRegisterLocationHelper(Register reg, std::span<const Register> virtualRegistersThatCanNotBeSpilled);
+	// TODO: Find a better name for this.
 	RegYmm getRegisterLocation(Register reg, std::span<const Register> virtualRegistersThatCanNotBeSpilled = std::span<const Register>());
 	RegYmm allocateRegister(std::span<const Register> virtualRegistersThatCanNotBeSpilled);
 
@@ -150,6 +153,7 @@ struct CodeGenerator {
 	void divideOp(const DivideOp& op);
 	void generate(const XorOp& op);
 	void generate(const NegateOp& op);
+	void generate(const FunctionOp& op);
 	void returnOp(const ReturnOp& op);
 
 	struct StackAllocation {
@@ -160,8 +164,12 @@ struct CodeGenerator {
 	i32 stackMemoryAllocated;
 	struct BaseOffset {
 		i32 baseOffset;
+		RegisterConstantOffsetLocation location() const;
 	};
 	BaseOffset stackAllocate(i32 size, i32 aligment);
 
 	AssemblyCode a;
+	std::span<const std::string_view> functionNames;
+
+	AddressLabel functionNameLabel(std::string_view name);
 };

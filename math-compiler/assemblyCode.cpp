@@ -8,6 +8,14 @@ void AssemblyCode::reset() {
 	dataEntries.clear();
 }
 
+void AssemblyCode::call(Reg64 reg, i64 offset) {
+	insert(CallReg{ .reg = reg }, offset);
+}
+
+void AssemblyCode::call(AddressLabel label, i64 offset) {
+	insert(CallLbl{ .label = label }, offset);
+}
+
 void AssemblyCode::ret(i64 offset) {
 	insert(Ret{}, offset);
 }
@@ -86,6 +94,10 @@ void AssemblyCode::jl(InstructionLabel label, i64 offset) {
 
 void AssemblyCode::mov(Reg64 destination, Reg64 source, i64 offset) {
 	insert(MovR64R64{ .destination = destination, .source = source }, offset);
+}
+
+void AssemblyCode::mov(Reg64 destination, u64 immediate, i64 offset) {
+	insert(MovR64Imm64{ .destination = destination, .immediate = immediate }, offset);
 }
 
 void AssemblyCode::vbroadcastss(RegYmm destination, DataLabel source, i64 offset) {

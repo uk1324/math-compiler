@@ -9,6 +9,9 @@ struct AssemblyCode {
 	
 	void reset();
 
+	void call(Reg64 reg, i64 offset = OFFSET_LAST);
+	void call(AddressLabel label, i64 offset = OFFSET_LAST);
+
 	void ret(i64 offset = OFFSET_LAST);
 
 	void push(Reg64 reg, i64 offset = OFFSET_LAST);
@@ -25,6 +28,7 @@ struct AssemblyCode {
 	void inc(Reg64 reg, i64 offset = OFFSET_LAST);
 
 	void mov(Reg64 destination, Reg64 source, i64 offset = OFFSET_LAST);
+	void mov(Reg64 destination, u64 immediate, i64 offset = OFFSET_LAST);
 
 	void vbroadcastss(RegYmm destination, DataLabel source, i64 offset = OFFSET_LAST);
 

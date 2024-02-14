@@ -160,6 +160,7 @@
     <ClCompile Include="os\windows.cpp" />
     <ClCompile Include="parser.cpp" />
     <ClCompile Include="printAst.cpp" />
+    <ClCompile Include="runtime.cpp" />
     <ClCompile Include="scanner.cpp" />
     <ClCompile Include="test\floatingPointIndentityTest.cpp" />
     <ClCompile Include="test\fuzzTests.cpp" />
@@ -195,6 +196,7 @@
     <ClInclude Include="machineCode.hpp" />
     <ClInclude Include="ostreamIrCompilerMessageReporter.hpp" />
     <ClInclude Include="os\os.hpp" />
+    <ClInclude Include="runtime.hpp" />
     <ClInclude Include="simdFunctions.hpp" />
     <ClInclude Include="test\floatingPointIndentityTest.hpp" />
     <ClInclude Include="test\fuzzTests.hpp" />

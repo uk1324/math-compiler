@@ -2,8 +2,17 @@
 
 #include "utils/ints.hpp"
 #include <vector>
+#include <span>
 
 struct AstAllocator {
+	template<typename T>
+	struct List {
+		void append(const T& value);
+		std::span<const T> span() const;
+
+		std::vector<T> d;
+	};
+
 	AstAllocator();
 
 	void reset();
@@ -31,4 +40,14 @@ T* AstAllocator::allocate(Args&&... args) {
 	allocations.push_back(memory);
 	return reinterpret_cast<T*>(memory);
 	//std::forward<Args...>(args...);
+}
+
+template<typename T>
+void AstAllocator::List<T>::append(const T& value) {
+	d.push_back(value);
+}
+
+template<typename T>
+std::span<const T> AstAllocator::List<T>::span() const {
+	return std::span<const T>(d);
 }

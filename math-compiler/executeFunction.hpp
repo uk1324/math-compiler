@@ -7,6 +7,6 @@ struct alignas(32) YmmArgument {
 	float x[8];
 };
 
-void executeFunction(const MachineCode& machineCode, const float* inputArray, float* outputArray, i64 arrayElementCount);
+void executeFunction(const MachineCode& machineCode, const std::unordered_map<AddressLabel, void*>& labelToAddress, const float* inputArray, float* outputArray, i64 arrayElementCount);
 
-Real executeFunction(const MachineCode& machineCode, std::span<const float> arguments);
+Real executeFunction(const MachineCode& machineCode, const std::unordered_map<AddressLabel, void*>& labelToAddress, std::span<const float> arguments);

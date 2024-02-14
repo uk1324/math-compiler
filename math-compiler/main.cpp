@@ -16,6 +16,7 @@
 #include "valueNumbering.hpp"
 #include "deadCodeElimination.hpp"
 #include "executeFunction.hpp"
+#include "simdFunctions.hpp"
 #include "os/os.hpp"
 #include "test/fuzzTests.hpp"
 #include "test/tests.hpp"
@@ -37,8 +38,13 @@ void test() {
 	//FunctionParameter parameters[] { { "x" }, { "y" }, { "z" } };
 	FunctionParameter parameters[] { { "x_0" }, { "x_1" }, { "x_2" }, { "x_3" }, { "x_4" } };
 	float arguments[] = { std::bit_cast<float>(0xf8e665f4), std::bit_cast<float>(0xff954a4a), std::bit_cast<float>(0x8d8a0542), std::bit_cast<float>(0x9b902791), std::bit_cast<float>(0x978140ff), };
+	std::span<const std::string_view> functionNames;
 
 	std::ostream& outputStream = std::cerr;
+
+	FunctionVariable functions[] = {
+		{ .name = "exp", .arity = 1, .address = expSimd, }
+	};
 
 	OstreamScannerMessageReporter scannerReporter(outputStream, source);
 	Scanner scanner;
@@ -53,7 +59,7 @@ void test() {
 
 	OstreamParserMessageReporter parserReporter(outputStream, source);
 	Parser parser;
-	const auto ast = parser.parse(tokens, source, &parserReporter);
+	const auto ast = parser.parse(tokens, functionNames, source, &parserReporter);
 	if (ast.has_value()) {
 		printExpr(ast->root, true);
 		const auto outputRes = evaluateAst(ast->root, parameters, arguments);
@@ -98,12 +104,9 @@ void test() {
 	auto machineCode = codeGenerator.compile(optimizedCode, parameters);
 
 	outputToFile("test.txt", machineCode.code);
-	for (const auto& byte : machineCode.data) {
-		std::cout << int(byte) << ' ';
-	}
 
-	const auto out = executeFunction(machineCode, arguments);
-	put("out = %", out);
+	/*const auto out = executeFunction(machineCode, arguments);
+	put("out = %", out);*/
 	/*bin.write(reinterpret_cast<const char*>(buffer), machineCode.size());*/
 }
 
@@ -111,9 +114,9 @@ void test() {
 
 // https://stackoverflow.com/questions/4911993/how-to-generate-and-run-native-code-dynamically
 int main(void) {
-	//test();
+	test();
 	//runFuzzTests();
-	testFloatingPointIdentites();
+	//testFloatingPointIdentites();
 	//runTests();
 	//testSimdFunctions();
 }
