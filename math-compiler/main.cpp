@@ -13,12 +13,14 @@
 #include "irCompiler.hpp"
 #include "irVm.hpp"
 #include "codeGenerator.hpp"
+#include "debug.hpp"
 #include "valueNumbering.hpp"
 #include "deadCodeElimination.hpp"
 #include "executeFunction.hpp"
 #include "simdFunctions.hpp"
 #include "os/os.hpp"
 #include "test/fuzzTests.hpp"
+#include "runtimeUtils.hpp"
 #include "test/tests.hpp"
 #include "test/floatingPointIndentityTest.hpp"
 #include <span>
@@ -26,47 +28,37 @@
 #include <fstream>
 #include <filesystem>
 
-void debugOutputToken(const Token& token, std::string_view originalSource) {
-	const auto end = token.location.start + token.location.length;
-	const auto tokenSource = originalSource.substr(token.location.start, token.location.length);
-	put("% % = % '%'", token.location.start, end, tokenTypeToStr(token.type), tokenSource);
-}
 // TODO: Replace normal floating point equals with bitwise equals. !!!!!
 void test() {
 
-	std::string_view source = "2 + 2";
+	std::string_view source = "exp(2)";
 	//FunctionParameter parameters[] { { "x" }, { "y" }, { "z" } };
 	FunctionParameter parameters[] { { "x_0" }, { "x_1" }, { "x_2" }, { "x_3" }, { "x_4" } };
 	float arguments[] = { std::bit_cast<float>(0xf8e665f4), std::bit_cast<float>(0xff954a4a), std::bit_cast<float>(0x8d8a0542), std::bit_cast<float>(0x9b902791), std::bit_cast<float>(0x978140ff), };
-	std::span<const std::string_view> functionNames;
 
 	std::ostream& outputStream = std::cerr;
 
-	FunctionVariable functions[] = {
+	const FunctionInfo functionArray[] = {
 		{ .name = "exp", .arity = 1, .address = expSimd, }
 	};
 
+	std::span<const FunctionInfo> functions = functionArray;
+
 	OstreamScannerMessageReporter scannerReporter(outputStream, source);
 	Scanner scanner;
-	const auto tokens = scanner.parse(source, &scannerReporter);
-	//for (auto& token : tokens) {
-	//	debugOutputToken(token, source);
-	//	std::cout << "\n";
-	//	/*highlightInText(std::cout, source, tokenOffsetInSource(token, source), token.source.size());*/
-	//	highlightInText(std::cout, source, token.location.start, token.location.length);
-	//	std::cout << "\n";
-	//} 
+	const auto tokens = scanner.parse(source, functions, parameters, &scannerReporter);
+	//debugOutputTokens(tokens, source);
 
 	OstreamParserMessageReporter parserReporter(outputStream, source);
 	Parser parser;
-	const auto ast = parser.parse(tokens, functionNames, source, &parserReporter);
+	const auto ast = parser.parse(tokens, functions, source, &parserReporter);
 	if (ast.has_value()) {
 		printExpr(ast->root, true);
-		const auto outputRes = evaluateAst(ast->root, parameters, arguments);
+		const auto outputRes = evaluateAst(ast->root, parameters, functions, arguments);
 		if (outputRes.isOk()) {
 			put(" = %", outputRes.ok());
 		} else {
-			put("\nevaluation error: ", outputRes.err());
+			put("\nevaluation error: %", outputRes.err());
 		}
 	} else {
 		put("parser error");
@@ -75,7 +67,7 @@ void test() {
 
 	OstreamIrCompilerMessageReporter compilerReporter(outputStream, source);
 	IrCompiler compiler;
-	const auto irCode = compiler.compile(*ast, parameters, compilerReporter);
+	const auto irCode = compiler.compile(*ast, parameters, functions, compilerReporter);
 	if (irCode.has_value()) {
 		put("original");
 		printIrCode(std::cout, **irCode);
@@ -95,18 +87,20 @@ void test() {
 	printIrCode(std::cout, optimizedCode);
 
 	IrVm vm;
-	const auto irVmOutput = vm.execute(optimizedCode, arguments);
+	const auto irVmOutput = vm.execute(optimizedCode, arguments, functions);
 	if (irVmOutput.isOk()) {
 		put("ir vm output: %", irVmOutput.ok());
 	}
 
 	CodeGenerator codeGenerator;
-	auto machineCode = codeGenerator.compile(optimizedCode, parameters);
+	auto codeGeneratorOut = codeGenerator.compile(optimizedCode, functions, parameters);
 
-	outputToFile("test.txt", machineCode.code);
+	const auto addressLabelToAddress = mapFunctionLabelsToAddresses(codeGeneratorOut.functionNameToLabel, functions);
 
-	/*const auto out = executeFunction(machineCode, arguments);
-	put("out = %", out);*/
+	outputToFile("test.txt", codeGeneratorOut.machineCode.code);
+
+	const auto out = executeFunction(codeGeneratorOut.machineCode, addressLabelToAddress, arguments);
+	put("out = %", out);
 	/*bin.write(reinterpret_cast<const char*>(buffer), machineCode.size());*/
 }
 

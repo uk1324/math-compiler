@@ -60,10 +60,10 @@ struct IdentifierExpr : public Expr {
 };
 
 struct FunctionExpr : public Expr {
-	FunctionExpr(std::string_view functionName, std::span<const Expr*> arguments, i64 start, i64 end);
+	FunctionExpr(std::string_view functionName, std::span<const Expr* const> arguments, i64 start, i64 end);
 
 	std::string_view functionName;
-	std::span<const Expr*> arguments;
+	std::span<const Expr* const> arguments;
 };
 
 struct Ast {

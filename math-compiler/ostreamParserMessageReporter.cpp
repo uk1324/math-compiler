@@ -17,7 +17,8 @@ static const char* tokenTypeName(TokenType type) {
 	case TokenType::SLASH: return "'/'";
 	case TokenType::LEFT_PAREN: return "'('";
 	case TokenType::RIGHT_PAREN: return "')'";
-	case TokenType::IDENTIFIER: return "identifier";
+	case TokenType::VARIABLE: return "variable";
+	case TokenType::FUNCTION: return "function";
 	case TokenType::END_OF_SOURCE: return "end of source";
 
 	case TokenType::ERROR: 

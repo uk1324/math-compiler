@@ -2,6 +2,7 @@
 
 #include "utils/ints.hpp"
 #include <variant>
+#include "sourceInfo.hpp"
 
 struct IllegalCharScannerError {
 	u8 character;
@@ -10,7 +11,17 @@ struct IllegalCharScannerError {
 	bool operator==(const IllegalCharScannerError&) const = default;
 };
 
-using ScannerError = std::variant<IllegalCharScannerError>;
+struct InvalidIdentifierScannerError {
+	std::string_view identifier;
+	SourceLocation location;
+
+	bool operator==(const InvalidIdentifierScannerError&) const = default;
+};
+
+using ScannerError = std::variant<
+	IllegalCharScannerError,
+	InvalidIdentifierScannerError
+>;
 
 // Maybe rename message handler.
 struct ScannerMessageReporter {

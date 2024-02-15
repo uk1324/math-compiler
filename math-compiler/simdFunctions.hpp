@@ -17,7 +17,7 @@ e^(k * ln(2) + r) =
 e^(k * ln(2)) * e^r =
 2^k * e^r
 */
-__m256 expSimd(__m256 x) {
+inline __m256 expSimd(__m256 x) {
 	const auto minusLn2 = _mm256_set1_ps(-0.6931471805599453f);
 	const auto ln2Inv = _mm256_set1_ps(1.4426950408889634f);
 
@@ -68,7 +68,7 @@ k/log2(e) + ln(f + 1)
 
 TODO: Apparently there is a way to range reduce further into (sqrt(2)/2, sqrt(2)). Used for example in fdlibm and also mentionted here https://math.stackexchange.com/questions/3619158/most-efficient-way-to-calculate-logarithm-numerically.
 */
-__m256 lnSimd(__m256 x) {
+inline __m256 lnSimd(__m256 x) {
 	x = _mm256_max_ps(x, _mm256_set1_ps(0.0f));
 	const auto xBytes = _mm256_castps_si256(x);
 	// k is the exponent of x.
@@ -98,13 +98,13 @@ __m256 lnSimd(__m256 x) {
 
 	//const auto a0 = _mm256_set1_ps(1.2793255078168223e-06);
 	const auto a0 = _mm256_set1_ps(0.0f);
-	const auto a1 = _mm256_set1_ps(0.9998615614234192);
+	const auto a1 = _mm256_set1_ps(0.9998615614234192f);
 	//const auto a1 = _mm256_set1_ps(1.0f);
-	const auto a2 = _mm256_set1_ps(-0.4975348624679797);
-	const auto a3 = _mm256_set1_ps(0.3164367089548567);
-	const auto a4 = _mm256_set1_ps(-0.19168345004150775);
-	const auto a5 = _mm256_set1_ps(0.08387237597258754);
-	const auto a6 = _mm256_set1_ps(-0.017807711932446457);
+	const auto a2 = _mm256_set1_ps(-0.4975348624679797f);
+	const auto a3 = _mm256_set1_ps(0.3164367089548567f);
+	const auto a4 = _mm256_set1_ps(-0.19168345004150775f);
+	const auto a5 = _mm256_set1_ps(0.08387237597258754f);
+	const auto a6 = _mm256_set1_ps(-0.017807711932446457f);
 
 	__m256 m;
 	m = _mm256_fmadd_ps(f, a6, a5);

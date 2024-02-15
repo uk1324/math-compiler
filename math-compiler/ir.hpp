@@ -94,6 +94,7 @@ struct NegateOp {
 // If I don't want to allocate then one way could be to create things like UnaryFunctionOp, BinaryFunctionOp and so on, but this would increase the size of every instruction so the simplest thing would probably be to use a custom allocator.
 struct FunctionOp {
 	Register destination;
+	// Maybe instead of storing the name just store a reference to the FunctionInfo.
 	std::string_view functionName;
 	std::vector<Register> arguments;
 

@@ -127,6 +127,7 @@ IrCompiler::ExprResult IrCompiler::compileFunctionExpr(const FunctionExpr& expr)
 		op.arguments.push_back(arg);
 	}
 	addOp(op);
+	return ExprResult{ .result = destination };
 }
 
 Register IrCompiler::allocateRegister() {

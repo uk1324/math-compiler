@@ -2,6 +2,7 @@
 
 #include "utils/ints.hpp"
 #include "scannerMessageReporter.hpp"
+#include "input.hpp"
 #include "ast.hpp"
 #include <vector>
 
@@ -12,9 +13,17 @@ struct Scanner {
 
 	Scanner();
 
-	void initialize(std::string_view source, ScannerMessageReporter* reporter);
+	void initialize(
+		std::string_view source, 
+		std::span<const FunctionInfo> functions,
+		std::span<const FunctionParameter> variables,
+		ScannerMessageReporter* reporter);
 
-	std::vector<Token> parse(std::string_view source, ScannerMessageReporter* reporter);
+	std::vector<Token> parse(
+		std::string_view source, 
+		std::span<const FunctionInfo> functions,
+		std::span<const FunctionParameter> variables,
+		ScannerMessageReporter* reporter);
 
 	Token token();
 	Token number();
@@ -36,5 +45,8 @@ struct Scanner {
 	i64 currentCharIndex;
 	std::string_view source;
 	
+	std::span<const FunctionInfo> functions;
+	std::span<const FunctionParameter> variables;
+
 	ScannerMessageReporter* messageReporter;
 };

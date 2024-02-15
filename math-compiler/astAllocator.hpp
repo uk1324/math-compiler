@@ -7,11 +7,17 @@
 struct AstAllocator {
 	template<typename T>
 	struct List {
-		void append(const T& value);
+		List();
+
 		std::span<const T> span() const;
 
-		std::vector<T> d;
+		T* data_;
+		usize size_;
+		usize capacity_;
 	};
+	
+	template<typename T>
+	void listAppend(List<T>& list, const T& value);
 
 	AstAllocator();
 
@@ -33,6 +39,27 @@ struct AstAllocator {
 	T* allocate(Args&&... args);
 };
 
+template<typename T>
+void AstAllocator::listAppend(List<T>& list, const T& value) {
+	if (list.size_ + 1 > list.capacity_) {
+		usize newCapacity;
+		if (list.capacity_ == 0) {
+			newCapacity = 4;
+		} else {
+			newCapacity = list.capacity_;
+		}
+		const auto newData = reinterpret_cast<T*>(allocate(sizeof(T), alignof(T)));
+		for (usize i = 0; i < list.size_; i++) {
+			new (&newData[i]) T(std::move(list.data_[i]));
+		}
+		list.capacity_ = newCapacity;
+		list.data_ = newData;
+	}
+
+	new (&list.data_[list.size_]) T(value);
+	list.size_++;
+}
+
 template<typename T, typename ...Args>
 T* AstAllocator::allocate(Args&&... args) {
 	void* memory = allocate(sizeof(T), alignof(T));
@@ -43,11 +70,12 @@ T* AstAllocator::allocate(Args&&... args) {
 }
 
 template<typename T>
-void AstAllocator::List<T>::append(const T& value) {
-	d.push_back(value);
-}
+inline AstAllocator::List<T>::List() 
+	: data_(nullptr)
+	, size_(0) 
+	, capacity_(0) {}
 
 template<typename T>
 std::span<const T> AstAllocator::List<T>::span() const {
-	return std::span<const T>(d);
+	return std::span<const T>(data_, size_);
 }

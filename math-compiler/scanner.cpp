@@ -1,22 +1,35 @@
 #include "scanner.hpp"
 #include "utils/asserts.hpp"
+#include "utils/stringUtils.hpp"
+#include "utils/put.hpp"
 #include <charconv>
+#include <optional>
 
 Scanner::Scanner() {
-	initialize("", nullptr);
+	initialize("", std::span<const FunctionInfo>(), std::span<const FunctionParameter>(), nullptr);
 }
 
-void Scanner::initialize(std::string_view source, ScannerMessageReporter* reporter) {
+void Scanner::initialize(
+	std::string_view source, 
+	std::span<const FunctionInfo> functions, 
+	std::span<const FunctionParameter> variables,
+	ScannerMessageReporter* reporter) {
 	currentCharIndex = 0;
 	currentTokenStartIndex = 0;
 	this->source = source;
 	this->messageReporter = reporter;
+	this->functions = functions;
+	this->variables = variables;
 }
 
-std::vector<Token> Scanner::parse(std::string_view source, ScannerMessageReporter* reporter) {
+std::vector<Token> Scanner::parse(
+	std::string_view source, 
+	std::span<const FunctionInfo> functions, 
+	std::span<const FunctionParameter> variables,
+	ScannerMessageReporter* reporter) {
 	std::vector<Token> output;
 
-	initialize(source, reporter);
+	initialize(source, functions, variables, reporter);
 
 	while (!eof()) {
 		try {
@@ -84,15 +97,54 @@ Token Scanner::number() {
 }
 
 Token Scanner::identifier(u8 firstChar) {
-	if (!match('_')) {
-		return makeToken(TokenType::IDENTIFIER);
-	}
+	auto isVariableChar = [](char c) -> bool {
+		return isAlpha(c) || isDigit(c) || (c == '_');
+	};
 
-	while (!eof() && (isAlpha(peek()) || isDigit(peek()))) {
+	while (!eof() && isVariableChar(peek())) {
 		advance();
 	}
 
-	return makeToken(TokenType::IDENTIFIER);
+	const auto tokenSource = source.substr(currentTokenStartIndex, currentCharIndex - currentTokenStartIndex);
+	struct Prefix {
+		TokenType type;
+		std::string_view text;
+	};
+	std::optional<Prefix> shortestPrefix;
+
+	// @Performance
+	auto checkPrefix = [&](std::string_view possiblePrefix, TokenType type) {
+		if (!isPrefix(tokenSource, possiblePrefix)) {
+			return;
+		}
+
+		Prefix prefix{
+			.type = type,
+			.text = possiblePrefix
+		};
+		if (shortestPrefix.has_value() && prefix.text.length() < shortestPrefix->text.length()) {
+			shortestPrefix = prefix;
+		} else {
+			shortestPrefix = prefix;
+		}
+	};
+
+	for (usize i = 0; i < functions.size(); i++) {
+		checkPrefix(functions[i].name, TokenType::FUNCTION);
+	}
+	for (usize i = 0; i < variables.size(); i++) {
+		checkPrefix(variables[i].name, TokenType::VARIABLE);
+	}
+
+	if (!shortestPrefix.has_value()) {
+		return error(InvalidIdentifierScannerError{
+			.identifier = tokenSource,
+			.location = SourceLocation::fromStartEnd(currentTokenStartIndex, currentCharIndex)
+		});
+	}
+
+	currentCharIndex = currentTokenStartIndex + shortestPrefix->text.length();
+	return makeToken(shortestPrefix->type);
 }
 
 u8 Scanner::peek() {
@@ -135,8 +187,6 @@ void Scanner::advance() {
 bool Scanner::eof() {
 	return currentCharIndex >= static_cast<i64>(source.size());
 }
-
-#include "utils/put.hpp"
 
 Token Scanner::makeToken(TokenType type) {
 	Token token(type, SourceLocation::fromStartEnd(currentTokenStartIndex, currentCharIndex));

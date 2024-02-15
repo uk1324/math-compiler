@@ -23,11 +23,11 @@ void printBinaryOpType(BinaryOpType type) {
 	}
 }
 
-void printExpr(Expr* e, bool printExtraParens) {
+void printExpr(const Expr* e, bool printExtraParens) {
 	switch (e->type)
 	{
 	case ExprType::BINARY: {
-		const auto binaryExpr = static_cast<BinaryExpr*>(e);
+		const auto binaryExpr = static_cast<const BinaryExpr*>(e);
 		if (printExtraParens) {
 			std::cout << "(";
 		}
@@ -43,7 +43,7 @@ void printExpr(Expr* e, bool printExtraParens) {
 	}
 
 	case ExprType::UNARY: {
-		const auto unaryExpr = static_cast<UnaryExpr*>(e);
+		const auto unaryExpr = static_cast<const UnaryExpr*>(e);
 		if (printExtraParens) {
 			put("(");
 		}
@@ -65,14 +65,24 @@ void printExpr(Expr* e, bool printExtraParens) {
 		
 
 	case ExprType::CONSTANT: {
-		const auto constantExpr = static_cast<ConstantExpr*>(e);
+		const auto constantExpr = static_cast<const ConstantExpr*>(e);
 		std::cout << constantExpr->value;
 		break;
 	}
 
 	case ExprType::IDENTIFIER: {
-		const auto identifierExpr = static_cast<IdentifierExpr*>(e);
+		const auto identifierExpr = static_cast<const IdentifierExpr*>(e);
 		putnn("%", identifierExpr->identifier);
+		break;
+	}
+
+	case ExprType::FUNCTION: {
+		const auto functionExpr = static_cast<const FunctionExpr*>(e);
+		putnn("%(", functionExpr->functionName);
+		for (i64 i = 0; i < i64(functionExpr->arguments.size()) - 1; i++) {
+			printExpr(functionExpr->arguments[i], printExtraParens);
+		}
+		putnn(")");
 		break;
 	}
 

@@ -27,7 +27,8 @@ const char* tokenTypeToStr(TokenType type) {
 	case TokenType::LEFT_PAREN: return "LEFT_PAREN";
 	case TokenType::RIGHT_PAREN: return "LEFT_PAREN";
 	case TokenType::END_OF_SOURCE: return "END_OF_SOURCE";
-	case TokenType::IDENTIFIER: return "IDENTIFIER";
+	case TokenType::VARIABLE: return "VARIABLE";
+	case TokenType::FUNCTION: return "FUNCTION";
 	case TokenType::ERROR: return "ERROR";
 	}
 	ASSERT_NOT_REACHED();

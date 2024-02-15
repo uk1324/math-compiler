@@ -147,7 +147,9 @@
     <ClCompile Include="astAllocator.cpp" />
     <ClCompile Include="codeGenerator.cpp" />
     <ClCompile Include="deadCodeElimination.cpp" />
+    <ClCompile Include="debug.cpp" />
     <ClCompile Include="executeFunction.cpp" />
+    <ClCompile Include="ffiUtils.cpp" />
     <ClCompile Include="floatingPoint.cpp" />
     <ClCompile Include="ir.cpp" />
     <ClCompile Include="irCompiler.cpp" />
@@ -161,6 +163,7 @@
     <ClCompile Include="parser.cpp" />
     <ClCompile Include="printAst.cpp" />
     <ClCompile Include="runtime.cpp" />
+    <ClCompile Include="runtimeUtils.cpp" />
     <ClCompile Include="scanner.cpp" />
     <ClCompile Include="test\floatingPointIndentityTest.cpp" />
     <ClCompile Include="test\fuzzTests.cpp" />
@@ -179,6 +182,7 @@
     <ClCompile Include="utils\put.cpp" />
     <ClCompile Include="sourceInfo.cpp" />
     <ClCompile Include="utils\stringStream.cpp" />
+    <ClCompile Include="utils\stringUtils.cpp" />
     <ClCompile Include="valueNumbering.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -186,7 +190,9 @@
     <ClInclude Include="assemblyInstruction.hpp" />
     <ClInclude Include="codeGenerator.hpp" />
     <ClInclude Include="deadCodeElimination.hpp" />
+    <ClInclude Include="debug.hpp" />
     <ClInclude Include="executeFunction.hpp" />
+    <ClInclude Include="ffiUtils.hpp" />
     <ClInclude Include="floatingPoint.hpp" />
     <ClInclude Include="input.hpp" />
     <ClInclude Include="ir.hpp" />
@@ -197,6 +203,7 @@
     <ClInclude Include="ostreamIrCompilerMessageReporter.hpp" />
     <ClInclude Include="os\os.hpp" />
     <ClInclude Include="runtime.hpp" />
+    <ClInclude Include="runtimeUtils.hpp" />
     <ClInclude Include="simdFunctions.hpp" />
     <ClInclude Include="test\floatingPointIndentityTest.hpp" />
     <ClInclude Include="test\fuzzTests.hpp" />
@@ -229,6 +236,7 @@
     <ClInclude Include="sourceInfo.hpp" />
     <ClInclude Include="utils\setDifference.hpp" />
     <ClInclude Include="utils\stringStream.hpp" />
+    <ClInclude Include="utils\stringUtils.hpp" />
     <ClInclude Include="valueNumbering.hpp" />
   </ItemGroup>
   <ItemGroup>

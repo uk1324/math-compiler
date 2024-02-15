@@ -3,4 +3,4 @@
 #include "ast.hpp"
 
 void printBinaryOpType(BinaryOpType type);
-void printExpr(Expr* e, bool printExtraParens);
+void printExpr(const Expr* e, bool printExtraParens);

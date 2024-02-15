@@ -91,13 +91,13 @@ void testFunction(
 			}
 		}
 
-		const long double ulpError = f32UlpError(approximation, correct);
+		const long double ulpError = f32UlpError(float(approximation), correct);
 		if (ulpError > maxUlpError) {
 			maxUlpError = ulpError;
 			maxUlpErrorInput = x;
 		}
 
-		const std::optional<i32> numberBetweenError = f32NumbersBetween(approximation, float(correct));
+		const std::optional<i32> numberBetweenError = f32NumbersBetween(float(approximation), float(correct));
 		if (numberBetweenError.has_value() && *numberBetweenError > maxNumbersBetweenError) {
 			maxNumbersBetweenError = *numberBetweenError;
 			maxNumbersBetweenErrorInput = x;

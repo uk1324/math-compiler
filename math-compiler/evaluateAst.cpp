@@ -1,11 +1,13 @@
 #include "evaluateAst.hpp"
 #include "utils/asserts.hpp"
+#include "ffiUtils.hpp"
 #include "utils/format.hpp"
 #include <vector>
 
 struct State {
 	std::span<const FunctionParameter> parameters;
 	std::span<const float> arguments;
+	std::span<const FunctionInfo> functions;
 };
 
 static Result<Real, std::string> evaluateExpr(const State& state, const Expr* expr);
@@ -17,11 +19,13 @@ static Result<Real, std::string> getVariable(const State& state, std::string_vie
 Result<Real, std::string> evaluateAst(
 	const Expr* expr, 
 	std::span<const FunctionParameter> parameters, 
+	std::span<const FunctionInfo> functions,
 	std::span<const float> arguments) {
 	ASSERT(parameters.size() == arguments.size());
 	State state{
 		.parameters = parameters,
 		.arguments = arguments,
+		.functions = functions
 	};
 	return evaluateExpr(state, expr);
 }
@@ -54,6 +58,21 @@ Result<Real, std::string> evaluateExpr(const State& state, const Expr* expr) {
 	case IDENTIFIER: {
 		const auto identifierExpr = static_cast<const IdentifierExpr*>(expr);
 		return getVariable(state, identifierExpr->identifier);
+	}
+
+	case FUNCTION: {
+		const auto function = static_cast<const FunctionExpr*>(expr);
+		std::vector<float> arguments;
+		for (const auto& argument : function->arguments) {
+			const auto result = evaluateExpr(state, argument);
+			TRY(result);
+			arguments.push_back(result.ok());
+		}
+		const auto info = std::find_if(state.functions.begin(), state.functions.end(), [&](const FunctionInfo& f) { return f.name == function->functionName; });
+		if (info == state.functions.end()) {
+			return ResultErr(format("function '%' does not exist", function->functionName));
+		}
+		return callSimd(info->address, arguments);
 	}
 
 	}

@@ -3,6 +3,7 @@
 #include "tests.hpp"
 #include "randomInputGenerator.hpp"
 #include "../scanner.hpp"
+#include "../simdFunctions.hpp"
 #include "../parser.hpp"
 #include "../irCompiler.hpp"
 #include "../codeGenerator.hpp"
@@ -13,6 +14,7 @@
 #include "../ostreamIrCompilerMessageReporter.hpp"
 #include "../ostreamParserMessageReporter.hpp"
 #include "../ostreamScannerMessageReporter.hpp"
+#include "../runtimeUtils.hpp"
 #include "../floatingPoint.hpp"
 #include "../utils/put.hpp"
 #include "../utils/format.hpp"
@@ -46,6 +48,9 @@ struct FuzzTester {
 		std::string_view source;
 		std::span<const FunctionParameter> parameters;
 		std::span<const float> arguments;
+	};
+	FunctionInfo functions[1] = {
+		{ .name = "exp", .arity = 1, .address = expSimd, }
 	};
 
 	RunResult runValidInput(const ValidInput& in); 
@@ -116,8 +121,8 @@ void runFuzzTests() {
 			const i32 maxCharsToModify = 6;
 			const auto charsToModify = gen.randomFrom0To(std::min(i32(source.length()), maxCharsToModify));
 			for (i32 j = 0; j < charsToModify; j++) {
-				const auto sourceIndex = gen.randomFrom0To(source.length());
-				const auto randomCharIndex = gen.randomFrom0To(std::size(TOKEN_LEGAL_CHARACTERS) - 1); // -1 because of the null byte.
+				const auto sourceIndex = gen.randomFrom0To(i32(source.length()));
+				const auto randomCharIndex = gen.randomFrom0To(i32(std::size(TOKEN_LEGAL_CHARACTERS) - 1)); // -1 because of the null byte.
 				const auto c = TOKEN_LEGAL_CHARACTERS[randomCharIndex];
 				source[sourceIndex] = c;
 			}
@@ -148,15 +153,15 @@ FuzzTester::RunResult FuzzTester::runValidInput(const ValidInput& in) {
 		put("% = %", in.parameters[i].name, in.arguments[i]);
 	}
 
-	auto tokens = scanner.parse(in.source, &scannerReporter);
-	auto ast = parser.parse(tokens, in.source, &parserReporter);
+	auto tokens = scanner.parse(in.source, functions, in.parameters, &scannerReporter);
+	auto ast = parser.parse(tokens, functions, in.source, &parserReporter);
 	if (!ast.has_value()) {
 		return RunResult::ERROR;
 	}
 
-	const auto evaluateAstOutput = evaluateAst(ast->root, in.parameters, in.arguments);
+	const auto evaluateAstOutput = evaluateAst(ast->root, in.parameters, functions, in.arguments);
 
-	const auto optIrCode = irCompiler.compile(*ast, in.parameters, irCompilerReporter);
+	const auto optIrCode = irCompiler.compile(*ast, in.parameters, functions, irCompilerReporter);
 
 	const auto evaluateAstError = evaluateAstOutput.isErr();
 	const auto irCompilerError = !optIrCode.has_value();
@@ -175,9 +180,10 @@ FuzzTester::RunResult FuzzTester::runValidInput(const ValidInput& in) {
 	const auto copy = optmizedIrCode;
 	deadCodeElimination.run(copy, in.parameters, optmizedIrCode);
 
-	const auto machineCode = codeGenerator.compile(*irCode, in.parameters);
-	outputToFile("test.txt", machineCode.code);
-	const auto machineCodeOutput = executeFunction(machineCode, in.arguments);
+	const auto codeGeneratorOut = codeGenerator.compile(*irCode, functions, in.parameters);
+	outputToFile("test.txt", codeGeneratorOut.machineCode.code);
+	const auto addressLabelToAddress = mapFunctionLabelsToAddresses(codeGeneratorOut.functionNameToLabel, functions);
+	const auto machineCodeOutput = executeFunction(codeGeneratorOut.machineCode, addressLabelToAddress, in.arguments);
 
 	const float expected = evaluateAstOutput.ok();
 	const float found = machineCodeOutput;
@@ -199,6 +205,6 @@ FuzzTester::RunResult FuzzTester::runValidInput(const ValidInput& in) {
 }
 
 void FuzzTester::runIncorrectSource(std::string_view source) {
-	auto tokens = scanner.parse(source, &scannerReporter);
-	auto ast = parser.parse(tokens, source, &parserReporter);
+	auto tokens = scanner.parse(source, {}, {}, &scannerReporter);
+	auto ast = parser.parse(tokens, functions, source, &parserReporter);
 }

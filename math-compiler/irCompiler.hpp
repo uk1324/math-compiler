@@ -11,11 +11,6 @@ struct IrCompiler {
 		Register result;
 	};
 
-	struct FunctionInfo {
-		std::string_view name;
-		i64 arity;
-	};
-
 	struct CompilerError {};
 
 	IrCompiler();

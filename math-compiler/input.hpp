@@ -1,7 +1,9 @@
 #pragma once
 
 #include <string_view>
+#include "utils/ints.hpp"
 
+// TODO: Maybe rename to variable idk.
 struct FunctionParameter {
 	std::string_view name;
 

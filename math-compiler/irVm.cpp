@@ -1,6 +1,8 @@
 #include "irVm.hpp"
 #include "utils/overloaded.hpp"
 #include "utils/asserts.hpp"
+#include "ffiUtils.hpp"
+#include <immintrin.h>
 
 #define TRY(expression) \
 	do { \
@@ -9,8 +11,11 @@
 		} \
 	} while (false)
 
-Result<Real, std::string> IrVm::execute(const std::vector<IrOp>& instructions, std::span<const float> arguments) {
-	initialize(arguments);
+Result<Real, std::string> IrVm::execute(
+	const std::vector<IrOp>& instructions, 
+	std::span<const float> arguments,
+	std::span<const FunctionInfo> functionInfo) {
+	initialize(arguments, functionInfo);
 	for (const auto& op : instructions) {
 		if (const auto returnOp = std::get_if<ReturnOp>(&op)) {
 			if (!registerExists(returnOp->returnedRegister)) {
@@ -30,8 +35,9 @@ Result<Real, std::string> IrVm::execute(const std::vector<IrOp>& instructions, s
 	//return ResultErr(errorMessage);
 }
 
-void IrVm::initialize(std::span<const float> arguments) {
+void IrVm::initialize(std::span<const float> arguments, std::span<const FunctionInfo> functionInfo) {
 	this->arguments = arguments;
+	this->functionInfo = functionInfo;
 	errorMessage = std::string_view();
 	registers.clear();
 }
@@ -48,6 +54,7 @@ IrVm::Status IrVm::executeOp(const IrOp& op) {
 		[&](const DivideOp& op) { return executeOp(op); },
 		[&](const XorOp& op) { return executeOp(op); },
 		[&](const NegateOp& op) { return executeOp(op); },
+		[&](const FunctionOp& op) { return executeOp(op); },
 		[&](const ReturnOp& op) {
 			ASSERT_NOT_REACHED();
 			return Status::ERROR;
@@ -106,6 +113,33 @@ IrVm::Status IrVm::executeOp(const NegateOp& op) {
 		return registerDoesNotExistError(op.operand);
 	}
 	setRegister(op.destination, -getRegister(op.operand));
+	return Status::OK;
+}
+
+IrVm::Status IrVm::executeOp(const FunctionOp& op) {
+	const auto function = std::find_if(
+		functionInfo.begin(), functionInfo.end(), 
+		[&](const FunctionInfo& f) { return f.name == op.functionName; });
+
+	if (function == functionInfo.end()) {
+		return error("function '%' doesn't exist", &op.functionName);
+	}
+
+	if (function->arity != op.arguments.size()) {
+		return error("'%' expected % arguments found %", &op.functionName, function->arity, op.arguments.size());
+	}
+
+	std::vector<Real> arguments;
+	for (const auto& argument : op.arguments) {
+		if (!registerExists(argument)) {
+			return registerDoesNotExistError(argument);
+		}
+		arguments.push_back(getRegister(argument));
+	}
+
+	allocateRegisterIfNotExists(op.destination);
+	setRegister(op.destination, callSimd(function->address, arguments));
+	
 	return Status::OK;
 }
 

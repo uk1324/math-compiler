@@ -80,11 +80,16 @@ struct CodeGenerator {
 	};
 
 	CodeGenerator();
-	void initialize(std::span<const FunctionParameter> parameters, std::span<const std::string_view> functionNames);
+	void initialize(std::span<const FunctionParameter> parameters, std::span<const FunctionInfo> functions);
 
-	MachineCode compile(
+	struct Output {
+		MachineCode machineCode;
+		std::unordered_map<std::string, AddressLabel> functionNameToLabel;
+	};
+
+	Output compile(
 		const std::vector<IrOp>& irCode, 
-		std::span<const std::string_view> functionNames,
+		std::span<const FunctionInfo> functions,
 		std::span<const FunctionParameter> parameters
 	);
 
@@ -169,7 +174,7 @@ struct CodeGenerator {
 	BaseOffset stackAllocate(i32 size, i32 aligment);
 
 	AssemblyCode a;
-	std::span<const std::string_view> functionNames;
+	std::span<const FunctionInfo> functions;
 
 	AddressLabel functionNameLabel(std::string_view name);
 };

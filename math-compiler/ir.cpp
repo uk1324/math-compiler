@@ -7,7 +7,7 @@ void printBinaryOp(std::ostream& out, const char* opName, Register lhs, Register
 }
 
 bool registerIsParamter(std::span<const FunctionParameter> parameters, Register r) {
-	return r < parameters.size();
+	return r < i64(parameters.size());
 }
 
 void printIrOp(std::ostream& out, const IrOp& op) {
@@ -32,6 +32,17 @@ void printIrOp(std::ostream& out, const IrOp& op) {
 		},
 		[&](const NegateOp& op) {
 			put("neg r% <- r%", op.destination, op.operand);
+		},
+		[&](const FunctionOp& op) {
+			putnn("call r%, <- %(", op.destination, op.functionName);
+			if (op.arguments.size() == 0) {
+				put(")");
+				return;
+			}
+			for (i64 i = 0; i < i64(op.arguments.size()) - 1; i++) {
+				putnn("r%, ", op.arguments[i]);
+			}
+			put("r%)", op.arguments.back());
 		},
 		[&](const ReturnOp& ret) {
 			out << "ret r" << ret.returnedRegister << '\n';

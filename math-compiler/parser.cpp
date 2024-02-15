@@ -1,15 +1,16 @@
 #include "parser.hpp"
 #include "astAllocator.hpp"
+#include "input.hpp"
 #include "utils/asserts.hpp"
 #include <charconv>
 
 Parser::Parser() {
-	initialize(nullptr, std::span<const std::string_view>(), std::string_view(), nullptr);
+	initialize(nullptr, std::span<const FunctionInfo>(), std::string_view(), nullptr);
 }
 
 void Parser::initialize(
 	const std::vector<Token>* tokens, 
-	std::span<const std::string_view> functionNames,
+	std::span<const FunctionInfo> functions,
 	std::string_view source, 
 	ParserMessageReporter* reporter) {
 	this->tokens = tokens;
@@ -21,10 +22,10 @@ void Parser::initialize(
 
 std::optional<Ast> Parser::parse(
 	const std::vector<Token>& tokens, 
-	std::span<const std::string_view> functionNames,
+	std::span<const FunctionInfo> functions,
 	std::string_view source, 
 	ParserMessageReporter* reporter) {
-	initialize(&tokens, functionNames, source, reporter);
+	initialize(&tokens, functions, source, reporter);
 
 	try {
 		const auto root = expr();
@@ -142,18 +143,17 @@ Expr* Parser::primaryExpr() {
 	} else if (match(TokenType::LEFT_PAREN)) {
 		lhsStart = peek().start();
 		lhs = parenExprAfterMatch();
-	} else if (match(TokenType::IDENTIFIER)) {
+	} else if (match(TokenType::VARIABLE)) {
 		const auto& identifierToken = peekPrevious();
 		lhsStart = identifierToken.start();
 		const auto identifier = tokenSource(identifierToken);
-		
-		lhs = isFunctionName(identifier)
-			? function(identifier, lhsStart)
-			: astAllocator.allocate<IdentifierExpr>(
-				identifier,
-				lhsStart,
-				identifierToken.end());
-
+		return astAllocator.allocate<IdentifierExpr>(
+			identifier,
+			lhsStart,
+			identifierToken.end());
+	} else if (match(TokenType::FUNCTION)) {
+		lhsStart = peekPrevious().start();
+		return function(tokenSource(peekPrevious()), lhsStart);
 	} else if (match(TokenType::MINUS)) {
 		// TODO: Not sure if this should be changed but -4x will parse to -(4 * x) and not (-4) * x. (I wrote this when I thought that the order is reversed but I guess -(4 * x) makes more sense thatn the other option. Don't think that will change the result but not sure. GCC treats the differently. I guess if x is NaN then the result might have different signs idk.
 		const auto start = peekPrevious().start();
@@ -174,21 +174,19 @@ Expr* Parser::primaryExpr() {
 		i64 rhsEnd;
 
 		Expr* rhs;
-		if (match(TokenType::IDENTIFIER)) {
-			const auto identifierToken = peekPrevious();
+		if (match(TokenType::VARIABLE)) {
+			const auto& identifierToken = peekPrevious();
 			const auto identifier = tokenSource(identifierToken);
 			const auto start = identifierToken.start();
-
-			if (isFunctionName(identifier)) {
-				rhs = function(identifier, start);
-			} else {
-				rhs = astAllocator.allocate<IdentifierExpr>(
-					identifier,
-					start,
-					identifierToken.end());
-			}
+			rhs = astAllocator.allocate<IdentifierExpr>(
+				identifier,
+				start,
+				identifierToken.end());
 
 			rhsEnd = identifierToken.end();
+		} else if (match(TokenType::FUNCTION)) {
+			rhs = function(tokenSource(peekPrevious()), lhsStart);
+			rhsEnd = peekPrevious().end();
 		} else if (match(TokenType::LEFT_PAREN)) {
 			rhs = parenExprAfterMatch();
 			rhsEnd = peekPrevious().end();
@@ -211,7 +209,7 @@ Expr* Parser::function(std::string_view name, i64 start) {
 
 	AstAllocator::List<const Expr*> arguments;
 	while (!eof()) {
-		arguments.append(expr());
+		astAllocator.listAppend(arguments, (const Expr*)(expr()));
 		if (match(TokenType::RIGHT_PAREN)) {
 			break;
 		}
@@ -221,7 +219,7 @@ Expr* Parser::function(std::string_view name, i64 start) {
 		}
 	}
 
-	return astAllocator.allocate<FunctionExpr>(name, arguments, start, peek().end());
+	return astAllocator.allocate<FunctionExpr>(name, arguments.span(), start, peek().end());
 }
 
 const Token& Parser::peek() {
@@ -275,5 +273,5 @@ std::string_view Parser::tokenSource(const Token& token) const {
 }
 
 bool Parser::isFunctionName(std::string_view name) const {
-	return std::ranges::find(functionNames, name) != functionNames.end();
+	return std::find_if(functions.begin(), functions.end(), [&](const FunctionInfo& f) { return f.name == name; }) != functions.end();
 }

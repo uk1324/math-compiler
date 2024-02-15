@@ -231,6 +231,18 @@ std::vector<IrOp> LocalValueNumbering::run(const std::vector<IrOp>& irCode, std:
 				
 				return computeNegation(output, operandVn, destinationVn, op.destination);
 			},
+			[this, &output](const FunctionOp& op) -> std::optional<Computed> {
+				const auto destinationValueNumber = regToValueNumber(op.destination);
+				regToValueNumberMap[op.destination] = destinationValueNumber;
+				FunctionOp newOp = op;
+				newOp.destination = destinationValueNumber;
+				newOp.arguments.clear();
+				for (auto& argument : op.arguments) {
+					newOp.arguments.push_back(regToValueNumber(argument));
+				}
+				output.push_back(newOp);
+				return std::nullopt;
+			},
 			[this, &output](const ReturnOp& op) -> std::optional<Computed> {
 				const ReturnOp newOp{ .returnedRegister = regToValueNumber(op.returnedRegister) };
 				output.push_back(newOp);

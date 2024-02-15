@@ -94,6 +94,7 @@ struct MachineCode {
 	};
 	std::vector<RipRelativeDataOperand> ripRelativeDataOperands;
 
+	// Why bother storing nextInstructionCodeOffset if it is just operandCodeOffset.
 	struct RipRelativeJump {
 		i64 operandCodeOffset;
 		i64 nextInstructionCodeOffset;

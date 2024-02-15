@@ -5,10 +5,10 @@
 #include <algorithm>
 
 CodeGenerator::CodeGenerator() {
-	initialize(std::span<const FunctionParameter>(), std::span<const std::string_view>());
+	initialize(std::span<const FunctionParameter>(), std::span<const FunctionInfo>());
 }
 
-void CodeGenerator::initialize(std::span<const FunctionParameter> parameters, std::span<const std::string_view> functionNames) {
+void CodeGenerator::initialize(std::span<const FunctionParameter> parameters, std::span<const FunctionInfo> functions) {
 	registerToLastUsage.clear();
 	virtualRegisterToLocation.clear();
 	for (i64 i = 0; i < i64(std::size(registerAllocations)); i++) {
@@ -18,6 +18,7 @@ void CodeGenerator::initialize(std::span<const FunctionParameter> parameters, st
 	this->parameters = parameters;
 	stackMemoryAllocated = 0;
 	stackAllocations.clear();
+	this->functions = functions;
 	a.reset();
 }
 
@@ -25,11 +26,11 @@ const auto inputArrayRegister = CodeGenerator::INTEGER_FUNCTION_INPUT_REGISTERS[
 const auto outputArrayRegister = CodeGenerator::INTEGER_FUNCTION_INPUT_REGISTERS[1];
 const auto arraySizeRegister = CodeGenerator::INTEGER_FUNCTION_INPUT_REGISTERS[2];
 
-MachineCode CodeGenerator::compile(
-	const std::vector<IrOp>& irCode, 
-	std::span<const std::string_view> functionNames, 
+CodeGenerator::Output CodeGenerator::compile(
+	const std::vector<IrOp>& irCode,
+	std::span<const FunctionInfo> functions,
 	std::span<const FunctionParameter> parameters) {
-	initialize(parameters, functionNames);
+	initialize(parameters, functions);
 	computeRegisterLastUsage(irCode);
 
 	const auto someFreeRegister = INTEGER_FUNCTION_INPUT_REGISTERS[2];
@@ -56,9 +57,9 @@ MachineCode CodeGenerator::compile(
 			[&](const NegateOp& op) { generate(op); },
 			[&](const FunctionOp& op) { generate(op); },
 			[&](const ReturnOp& op) { returnOp(op); }
-		}, op);
+			}, op);
 	}
-	
+
 	a.add(inputArrayRegister, u32(parameters.size() * YMM_REGISTER_SIZE));
 	a.add(outputArrayRegister, YMM_REGISTER_SIZE);
 	a.inc(indexRegister);
@@ -72,7 +73,15 @@ MachineCode CodeGenerator::compile(
 
 	MachineCode machineCode;
 	machineCode.generateFrom(a);
-	return machineCode;
+
+	Output out{
+		.machineCode = std::move(machineCode)
+	};
+
+	for (AddressLabel i = 0; i < functions.size(); i++) {
+		out.functionNameToLabel[std::string(functions[i].name)] = i;
+	}
+	return out;
 }
 
 void CodeGenerator::computeRegisterLastUsage(const std::vector<IrOp>& irCode) {
@@ -116,6 +125,12 @@ void CodeGenerator::computeRegisterLastUsage(const std::vector<IrOp>& irCode) {
 			[&](const NegateOp& op) {
 				add(op.destination);
 				add(op.operand);
+			},
+			[&](const FunctionOp& op) {
+				add(op.destination);
+				for (const auto& argument : op.arguments) {
+					add(argument);
+				}
 			},
 			[&](const ReturnOp& op) {
 				add(op.returnedRegister);
@@ -319,8 +334,9 @@ void CodeGenerator::generate(const NegateOp& op) {
 }
 
 void CodeGenerator::generate(const FunctionOp& op) {
-	for (i64 registerIndex = 0; registerIndex < YMM_REGISTER_COUNT; registerIndex++) {
-		if (!registerAllocations[registerIndex].has_value()) {
+	for (i64 realRegisterIndex = 0; realRegisterIndex < YMM_REGISTER_COUNT; realRegisterIndex++) {
+		const auto virtualRegisterOpt = registerAllocations[realRegisterIndex];
+		if (!virtualRegisterOpt.has_value()) {
 			continue;
 		}
 
@@ -330,26 +346,34 @@ void CodeGenerator::generate(const FunctionOp& op) {
 			continue;
 		}
 
-		const auto reg = RegYmm(registerIndex);
-		const auto memory = stackAllocate(YMM_REGISTER_SIZE, YMM_REGISTER_ALIGNMENT);
-		a.vmovaps(STACK_TOP_REGISTER, memory.baseOffset, reg);
-		registerAllocations[registerIndex] = std::nullopt;
+		const auto virtualRegister = *virtualRegisterOpt;
 
-		const auto locationIt = virtualRegisterToLocation.find(registerIndex);
+		const auto locationIt = virtualRegisterToLocation.find(virtualRegister);
 		if (locationIt == virtualRegisterToLocation.end()) {
 			ASSERT_NOT_REACHED();
 			continue;
 		}
 		auto& location = locationIt->second;
+		if (location.memoryLocation.has_value()) {
+			continue;
+		}
+
+		const auto realRegister = RegYmm(realRegisterIndex);
+		const auto memory = stackAllocate(YMM_REGISTER_SIZE, YMM_REGISTER_ALIGNMENT);
+
+		a.vmovaps(STACK_TOP_REGISTER, memory.baseOffset, realRegister);
+		registerAllocations[realRegisterIndex] = std::nullopt;
+		
 		if (!location.memoryLocation.has_value()) {
 			const auto memory = stackAllocate(YMM_REGISTER_SIZE, YMM_REGISTER_ALIGNMENT);
 			location.memoryLocation = memory.location();
-			a.vmovaps(STACK_TOP_REGISTER, memory.baseOffset, reg);
+			a.vmovaps(STACK_TOP_REGISTER, memory.baseOffset, realRegister);
 		}
 		locationIt->second.registerLocation = std::nullopt;
 	}
 
-	a.call(functionNameLabel(op.functionName));
+	//a.call(functionNameLabel(op.functionName));
+	a.mov(Reg64::R10, );
 
 	const auto destination = getRegisterLocation(op.destination);
 	const auto returnRegister = RegYmm::YMM0;
@@ -369,8 +393,8 @@ CodeGenerator::BaseOffset CodeGenerator::stackAllocate(i32 size, i32 aligment) {
 }
 
 AddressLabel CodeGenerator::functionNameLabel(std::string_view name)  {
-	for (AddressLabel label = 0; label < functionNames.size(); label++) {
-		if (functionNames[label] == name) {
+	for (AddressLabel label = 0; label < functions.size(); label++) {
+		if (functions[label].name == name) {
 			return label;
 		}
 	}

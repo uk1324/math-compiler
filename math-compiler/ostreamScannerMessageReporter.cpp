@@ -13,6 +13,11 @@ void OstreamScannerMessageReporter::onError(const ScannerError& error) {
 			put(output, "illegal character '%', code = '%'", static_cast<char>(e.character), static_cast<int>(e.character));
 			highlightInText(output, source, e.sourceOffset, 1);
 			put(output, "\n");
+		},
+		[&](const InvalidIdentifierScannerError& e) {
+			put(output, "'%' is not a valid function or variable", e.identifier);
+			highlightInText(output, source, e.location.start, e.location.length);
+			put(output, "\n");
 		}
 	}, error);
 }

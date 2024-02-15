@@ -11,8 +11,11 @@ struct IrVm {
 		OK, ERROR
 	};
 
-	Result<Real, std::string> execute(const std::vector<IrOp>& instructions, std::span<const float> arguments);
-	void initialize(std::span<const float> arguments);
+	Result<Real, std::string> execute(
+		const std::vector<IrOp>& instructions, 
+		std::span<const float> arguments, 
+		std::span<const FunctionInfo> functionInfo);
+	void initialize(std::span<const float> arguments, std::span<const FunctionInfo> functionInfo);
 	Status executeOp(const IrOp& op);
 	void executeLoadConstantOp(const LoadConstantOp& op);
 	Status executeAddOp(const AddOp& op);
@@ -21,6 +24,7 @@ struct IrVm {
 	Status executeOp(const DivideOp& op);
 	Status executeOp(const XorOp& op);
 	Status executeOp(const NegateOp& op);
+	Status executeOp(const FunctionOp& op);
 
 	void allocateRegisterIfNotExists(Register index);
 	bool registerExists(Register index);
@@ -35,6 +39,7 @@ struct IrVm {
 	std::string errorMessage;
 	std::vector<Real> registers;
 	std::span<const float> arguments;
+	std::span<const FunctionInfo> functionInfo;
 };
 
 template<typename ...Args>
