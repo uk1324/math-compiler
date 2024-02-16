@@ -51,7 +51,7 @@ void test() {
 
 	OstreamScannerMessageReporter scannerReporter(outputStream, source);
 	Scanner scanner;
-	const auto tokens = scanner.parse(source, functions, parameters, &scannerReporter);
+	const auto& tokens = scanner.parse(source, functions, parameters, scannerReporter);
 	//debugOutputTokens(tokens, source);
 
 	OstreamParserMessageReporter parserReporter(outputStream, source);
@@ -104,15 +104,44 @@ void test() {
 
 	const auto out = executeFunction(machineCode, arguments);
 	put("out = %", out);
+
 	/*bin.write(reinterpret_cast<const char*>(buffer), machineCode.size());*/
 }
 
 #include "test/simdFunctionsTest.hpp"
 
+void allocatorTest() {
+	std::string_view source = "  (  (   -6185.9x_1 x_1 ((0) )/ 858exp  (  (157.) )  x_2  )(  ( (76) )x_1  -- exp(  (69.0)) x_2 (  (68755))  )exp ( ( 0. +-57 )  )   / - x_2 exp ((exp(  (5))      - - exp(  (5.64)  ) x_1 x_1  )  )x_3   )";
+	//std::string_view source = "exp(2) + exp(x_0)";
+
+	std::ostream& outputStream = std::cout;
+	OstreamScannerMessageReporter scannerReporter(outputStream, source);
+	Scanner scanner;
+	OstreamParserMessageReporter parserReporter(outputStream, source);
+	Parser parser;
+	OstreamIrCompilerMessageReporter compilerReporter(outputStream, source);
+	IrCompiler compiler;
+	CodeGenerator codeGenerator;
+
+	FunctionParameter parameters[]{ { "x_0" }, { "x_1" }, { "x_2" }, { "x_3" }, { "x_4" } };
+	float arguments[] = { 1.0f, 2.0f, 3.0f, 4.0f, 5.0f };
+	const FunctionInfo functions[] = {
+		{ .name = "exp", .arity = 1, .address = expSimd, }
+	};
+
+	for (i64 i = 0; i < 1000000; i++) {
+		const auto& tokens = scanner.parse(source, functions, parameters, scannerReporter);
+		const auto ast = parser.parse(tokens, functions, source, &parserReporter);
+		/*const auto irCode = compiler.compile(*ast, parameters, functions, compilerReporter);
+		const auto& machineCode = codeGenerator.compile(irCode, functions, parameters);*/
+	}
+}
+
 // https://stackoverflow.com/questions/4911993/how-to-generate-and-run-native-code-dynamically
 int main(void) {
-	//test();
-	runFuzzTests();
+	//allocatorTest();
+	test();
+	//runFuzzTests();
 	//testFloatingPointIdentites();
 	//runTests();
 	//testSimdFunctions();

@@ -132,8 +132,8 @@ void runFuzzTests() {
 		}
 	};
 
-	//checkIncorrectPrograms();
-	checkCorrectPrograms();
+	checkIncorrectPrograms();
+	//checkCorrectPrograms();
 }
 
 FuzzTester::FuzzTester()
@@ -154,7 +154,7 @@ FuzzTester::RunResult FuzzTester::runValidInput(const ValidInput& in) {
 		put("% = %", in.parameters[i].name, in.arguments[i]);
 	}
 
-	auto tokens = scanner.parse(in.source, functions, in.parameters, &scannerReporter);
+	const auto& tokens = scanner.parse(in.source, functions, in.parameters, scannerReporter);
 	auto ast = parser.parse(tokens, functions, in.source, &parserReporter);
 	if (!ast.has_value()) {
 		return RunResult::ERROR;
@@ -205,6 +205,6 @@ FuzzTester::RunResult FuzzTester::runValidInput(const ValidInput& in) {
 }
 
 void FuzzTester::runIncorrectSource(std::string_view source) {
-	auto tokens = scanner.parse(source, {}, {}, &scannerReporter);
+	const auto& tokens = scanner.parse(source, {}, {}, scannerReporter);
 	auto ast = parser.parse(tokens, functions, source, &parserReporter);
 }

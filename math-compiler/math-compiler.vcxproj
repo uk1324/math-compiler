@@ -181,6 +181,7 @@
     <ClCompile Include="utils\printingUtils.cpp" />
     <ClCompile Include="utils\put.cpp" />
     <ClCompile Include="sourceInfo.cpp" />
+    <ClCompile Include="utils\rounding.cpp" />
     <ClCompile Include="utils\stringStream.cpp" />
     <ClCompile Include="utils\stringUtils.cpp" />
     <ClCompile Include="valueNumbering.cpp" />
@@ -234,6 +235,7 @@
     <ClInclude Include="utils\pritningUtils.hpp" />
     <ClInclude Include="utils\put.hpp" />
     <ClInclude Include="sourceInfo.hpp" />
+    <ClInclude Include="utils\rounding.hpp" />
     <ClInclude Include="utils\setDifference.hpp" />
     <ClInclude Include="utils\stringStream.hpp" />
     <ClInclude Include="utils\stringUtils.hpp" />

@@ -23,16 +23,14 @@ struct AstAllocator {
 
 	void reset();
 
-	std::vector<void*> allocations;
-
 	static constexpr i64 BLOCK_DATA_SIZE = 4096;
 	struct Block {
+		u8* nextAvailable;
+		Block* nextBlock;
 		u8 data[BLOCK_DATA_SIZE];
-		i64 offset = 0;
-		Block* next = nullptr;
 	};
-	Block* first;
-	Block* current;
+	Block* first = nullptr;
+	Block* current = nullptr;
 
 	void* allocate(i64 size, i64 alignment);
 	template<typename T, typename ...Args>
@@ -46,9 +44,9 @@ void AstAllocator::listAppend(List<T>& list, const T& value) {
 		if (list.capacity_ == 0) {
 			newCapacity = 4;
 		} else {
-			newCapacity = list.capacity_;
+			newCapacity = list.capacity_ * 2;
 		}
-		const auto newData = reinterpret_cast<T*>(allocate(sizeof(T), alignof(T)));
+		const auto newData = reinterpret_cast<T*>(allocate(sizeof(T) * newCapacity, alignof(T)));
 		for (usize i = 0; i < list.size_; i++) {
 			new (&newData[i]) T(std::move(list.data_[i]));
 		}
@@ -64,7 +62,6 @@ template<typename T, typename ...Args>
 T* AstAllocator::allocate(Args&&... args) {
 	void* memory = allocate(sizeof(T), alignof(T));
 	new (memory) T(args...);
-	allocations.push_back(memory);
 	return reinterpret_cast<T*>(memory);
 	//std::forward<Args...>(args...);
 }

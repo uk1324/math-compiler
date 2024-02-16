@@ -92,7 +92,7 @@ namespace std {
 					return hash<Real>()(e.value);
 				},
 				[](const VariableVal& e) -> usize {
-					return hash<Real>()(e.variableIndex);
+					return hash<i64>()(e.variableIndex);
 				}
 			}, x);
 

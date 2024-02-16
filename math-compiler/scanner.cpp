@@ -20,16 +20,16 @@ void Scanner::initialize(
 	this->messageReporter = reporter;
 	this->functions = functions;
 	this->variables = variables;
+	tokens.clear();
 }
 
-std::vector<Token> Scanner::parse(
+const std::vector<Token>& Scanner::parse(
 	std::string_view source, 
 	std::span<const FunctionInfo> functions, 
 	std::span<const FunctionParameter> variables,
-	ScannerMessageReporter* reporter) {
-	std::vector<Token> output;
+	ScannerMessageReporter& reporter) {
 
-	initialize(source, functions, variables, reporter);
+	initialize(source, functions, variables, &reporter);
 
 	while (!eof()) {
 		try {
@@ -37,15 +37,15 @@ std::vector<Token> Scanner::parse(
 			if (eof()) {
 				break;
 			}
-			output.push_back(token());
+			tokens.push_back(token());
 		} catch (const Error&)  {
 
 		}
 	}
 	currentTokenStartIndex = currentCharIndex;
-	output.push_back(makeToken(TokenType::END_OF_SOURCE));
+	tokens.push_back(makeToken(TokenType::END_OF_SOURCE));
 
-	return output;
+	return tokens;
 }
 
 Token Scanner::token() {

@@ -19,11 +19,11 @@ struct Scanner {
 		std::span<const FunctionParameter> variables,
 		ScannerMessageReporter* reporter);
 
-	std::vector<Token> parse(
+	const std::vector<Token>& parse(
 		std::string_view source, 
 		std::span<const FunctionInfo> functions,
 		std::span<const FunctionParameter> variables,
-		ScannerMessageReporter* reporter);
+		ScannerMessageReporter& reporter);
 
 	Token token();
 	Token number();
@@ -39,7 +39,8 @@ struct Scanner {
 
 	static bool isDigit(u8 c);
 	static bool isAlpha(u8 c);
-	//static bool isIdentifierStartChar
+
+	std::vector<Token> tokens;
 
 	i64 currentTokenStartIndex;
 	i64 currentCharIndex;

@@ -31,7 +31,7 @@ const auto arraySizeRegister = Reg64::R14;
 const auto arraySizeRegisterArgumentIndex = 2;
 const auto indexRegister = Reg64::R15;
 
-MachineCode CodeGenerator::compile(
+const MachineCode& CodeGenerator::compile(
 	const std::vector<IrOp>& irCode,
 	std::span<const FunctionInfo> functions,
 	std::span<const FunctionParameter> parameters) {
@@ -74,10 +74,9 @@ MachineCode CodeGenerator::compile(
 
 	emitPrologueAndEpilogue();
 
-	MachineCode machineCode;
-	machineCode.generateFrom(a);
+	machineCodeOutput.generateFrom(a);
 
-	return machineCode;
+	return machineCodeOutput;
 }
 
 void CodeGenerator::computeRegisterLastUsage(const std::vector<IrOp>& irCode) {

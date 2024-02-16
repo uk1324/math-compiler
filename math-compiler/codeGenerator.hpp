@@ -82,11 +82,10 @@ struct CodeGenerator {
 	CodeGenerator();
 	void initialize(std::span<const FunctionParameter> parameters, std::span<const FunctionInfo> functions);
 
-	MachineCode compile(
+	const MachineCode& compile(
 		const std::vector<IrOp>& irCode, 
 		std::span<const FunctionInfo> functions,
-		std::span<const FunctionParameter> parameters
-	);
+		std::span<const FunctionParameter> parameters);
 
 	// Emmiting jumps after the code has been generated is can be difficult in some situations.
 	/*
@@ -172,5 +171,6 @@ struct CodeGenerator {
 	BaseOffset stackAllocate(i32 size, i32 aligment);
 
 	AssemblyCode a;
+	MachineCode machineCodeOutput;
 	std::span<const FunctionInfo> functions;
 };

@@ -213,7 +213,7 @@ void TestRunner::expectedHelper(std::string_view name, std::string_view source, 
 	scannerReporter.reporter.source = source;
 	parserReporter.reporter.source = source;
 
-	auto tokens = scanner.parse(source, functions, parameters, &scannerReporter);
+	const auto& tokens = scanner.parse(source, functions, parameters, scannerReporter);
 	if (scannerReporter.errorHappened) {
 		printFailed(name);
 		put("scanner error: %", output.str());
@@ -322,7 +322,7 @@ void TestRunner::expected(std::string_view name, std::string_view source, Real e
 }
 
 void TestRunner::expectedErrorsHelper(std::string_view name, std::string_view source, const std::vector<ScannerError>& expectedScannerErrors, const std::vector<ParserError>& expectedParserErrors, const std::vector<IrCompilerError>& expectedIrCompilerErrors, std::span<const FunctionParameter> parameters, std::span<const float> arguments, const std::vector<FunctionInfo>& functions) {
-	auto tokens = scanner.parse(source, functions, parameters, &scannerReporter);
+	const auto& tokens = scanner.parse(source, functions, parameters, scannerReporter);
 
 	const auto scannerErrorsThatWereNotReported = setDifference(expectedScannerErrors, scannerReporter.errors);
 	if (scannerErrorsThatWereNotReported.size() != 0) {
