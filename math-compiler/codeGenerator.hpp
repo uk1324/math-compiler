@@ -82,12 +82,7 @@ struct CodeGenerator {
 	CodeGenerator();
 	void initialize(std::span<const FunctionParameter> parameters, std::span<const FunctionInfo> functions);
 
-	struct Output {
-		MachineCode machineCode;
-		std::unordered_map<std::string, AddressLabel> functionNameToLabel;
-	};
-
-	Output compile(
+	MachineCode compile(
 		const std::vector<IrOp>& irCode, 
 		std::span<const FunctionInfo> functions,
 		std::span<const FunctionParameter> parameters
@@ -110,6 +105,7 @@ struct CodeGenerator {
 	i64 currentInstructionIndex = 0;
 
 	std::span<const FunctionParameter> parameters;
+	static constexpr i64 SHADOW_SPACE_SIZE = 32;
 
 	void computeRegisterLastUsage(const std::vector<IrOp>& irCode);
 	std::unordered_map<Register, i64> registerToLastUsage;
@@ -135,7 +131,7 @@ struct CodeGenerator {
 
 	static constexpr i64 YMM_REGISTER_SIZE = 8 * sizeof(float);
 	static constexpr i64 YMM_REGISTER_ALIGNMENT = YMM_REGISTER_SIZE;
-	static constexpr Reg64 STACK_TOP_REGISTER = Reg64::RBP;
+	static constexpr Reg64 STACK_BASE_REGISTER = Reg64::RBP;
 
 	std::unordered_map<Register, DataLocation> virtualRegisterToLocation;
 	std::optional<Register> registerAllocations[YMM_REGISTER_COUNT];
@@ -175,6 +171,4 @@ struct CodeGenerator {
 
 	AssemblyCode a;
 	std::span<const FunctionInfo> functions;
-
-	AddressLabel functionNameLabel(std::string_view name);
 };

@@ -26,7 +26,7 @@ const auto inputArrayRegister = CodeGenerator::INTEGER_FUNCTION_INPUT_REGISTERS[
 const auto outputArrayRegister = CodeGenerator::INTEGER_FUNCTION_INPUT_REGISTERS[1];
 const auto arraySizeRegister = CodeGenerator::INTEGER_FUNCTION_INPUT_REGISTERS[2];
 
-CodeGenerator::Output CodeGenerator::compile(
+MachineCode CodeGenerator::compile(
 	const std::vector<IrOp>& irCode,
 	std::span<const FunctionInfo> functions,
 	std::span<const FunctionParameter> parameters) {
@@ -57,7 +57,7 @@ CodeGenerator::Output CodeGenerator::compile(
 			[&](const NegateOp& op) { generate(op); },
 			[&](const FunctionOp& op) { generate(op); },
 			[&](const ReturnOp& op) { returnOp(op); }
-			}, op);
+		}, op);
 	}
 
 	a.add(inputArrayRegister, u32(parameters.size() * YMM_REGISTER_SIZE));
@@ -74,14 +74,7 @@ CodeGenerator::Output CodeGenerator::compile(
 	MachineCode machineCode;
 	machineCode.generateFrom(a);
 
-	Output out{
-		.machineCode = std::move(machineCode)
-	};
-
-	for (AddressLabel i = 0; i < functions.size(); i++) {
-		out.functionNameToLabel[std::string(functions[i].name)] = i;
-	}
-	return out;
+	return machineCode;
 }
 
 void CodeGenerator::computeRegisterLastUsage(const std::vector<IrOp>& irCode) {
@@ -177,16 +170,18 @@ void CodeGenerator::emitPrologueAndEpilogue() {
 	// Figure 3.4: Register Usage
 	// All XMM register which also includes the YMM register are caller saved.
 
-	const auto stackMemoryAllocatedTotal = YMM_REGISTER_SIZE + stackMemoryAllocated;
+	const auto maxPossibleIncreaseCausedByAligning = 32;
+	const auto stackMemoryAllocatedTotal = maxPossibleIncreaseCausedByAligning + stackMemoryAllocated + SHADOW_SPACE_SIZE;
 	/*if (stackMemoryAllocatedTotal > 0)*/ {
 		a.push(Reg64::RBP, offset());
 		a.mov(Reg64::RBP, Reg64::RSP, offset());
 		// Round down (because the stack grows down) to a multiple of 32.
 		a.and_(Reg8::BPL, 0b11100000, offset());
-		a.sub(Reg64::RBP, u32(stackMemoryAllocatedTotal), offset());
+		a.sub(Reg64::RSP, u32(stackMemoryAllocatedTotal), offset());
 	}
 
 	/*if (stackMemoryAllocated > 0)*/ {
+		a.add(Reg64::RSP, u32(stackMemoryAllocatedTotal));
 		a.pop(Reg64::RBP);
 	}
 	a.ret();
@@ -264,11 +259,8 @@ RegYmm CodeGenerator::allocateRegister(std::span<const Register> virtualRegister
 	}
 
 	const auto baseOffset = stackAllocate(YMM_REGISTER_SIZE, YMM_REGISTER_ALIGNMENT);
-	virtualRegisterToSpillLocation.memoryLocation = RegisterConstantOffsetLocation{
-		.registerWithAddress = Reg64::RBP,
-		.offset = baseOffset.baseOffset
-	};
-	a.vmovaps(Reg64::RBP, baseOffset.baseOffset, virtualRegisterToSpillRegisterLocation);
+	virtualRegisterToSpillLocation.memoryLocation = baseOffset.location();
+	a.vmovaps(STACK_BASE_REGISTER, baseOffset.baseOffset, virtualRegisterToSpillRegisterLocation);
 	return virtualRegisterToSpillRegisterLocation;
 }
 
@@ -333,6 +325,25 @@ void CodeGenerator::generate(const NegateOp& op) {
 	a.vxorps(destination, destination, operand);
 }
 
+#include "simdFunctions.hpp"
+
+__m256 __vectorcall testFunction(__m256 a) {
+	const auto x = _mm256_set1_ps(1.123);
+	return x;
+	//const auto minusLn2 = _mm256_set1_ps(-0.6931471805599453f);
+	//const auto ln2Inv = _mm256_set1_ps(1.4426950408889634f);
+
+	//const auto kFloat = _mm256_round_ps(_mm256_mul_ps(x, ln2Inv), _MM_FROUND_NO_EXC);
+	//const auto r = _mm256_fmadd_ps(kFloat, minusLn2, x);
+
+	//const auto a0 = _mm256_set1_ps(1.0000000754895593f);
+	//const auto a1 = _mm256_set1_ps(1.0000000647006064f);
+	//const auto a2 = _mm256_set1_ps(0.4999886914692487f);
+	//const auto a3 = _mm256_set1_ps(0.16666325650514743f);
+	//const auto a4 = _mm256_set1_ps(0.041917526523052265f);
+	//const auto a5 = _mm256_set1_ps(0.008381111717943628f);
+}
+
 void CodeGenerator::generate(const FunctionOp& op) {
 	for (i64 realRegisterIndex = 0; realRegisterIndex < YMM_REGISTER_COUNT; realRegisterIndex++) {
 		const auto virtualRegisterOpt = registerAllocations[realRegisterIndex];
@@ -347,6 +358,7 @@ void CodeGenerator::generate(const FunctionOp& op) {
 		}
 
 		const auto virtualRegister = *virtualRegisterOpt;
+		registerAllocations[realRegisterIndex] = std::nullopt;
 
 		const auto locationIt = virtualRegisterToLocation.find(virtualRegister);
 		if (locationIt == virtualRegisterToLocation.end()) {
@@ -361,23 +373,36 @@ void CodeGenerator::generate(const FunctionOp& op) {
 		const auto realRegister = RegYmm(realRegisterIndex);
 		const auto memory = stackAllocate(YMM_REGISTER_SIZE, YMM_REGISTER_ALIGNMENT);
 
-		a.vmovaps(STACK_TOP_REGISTER, memory.baseOffset, realRegister);
-		registerAllocations[realRegisterIndex] = std::nullopt;
+		a.vmovaps(STACK_BASE_REGISTER, memory.baseOffset, realRegister);
 		
 		if (!location.memoryLocation.has_value()) {
 			const auto memory = stackAllocate(YMM_REGISTER_SIZE, YMM_REGISTER_ALIGNMENT);
 			location.memoryLocation = memory.location();
-			a.vmovaps(STACK_TOP_REGISTER, memory.baseOffset, realRegister);
+			a.vmovaps(STACK_BASE_REGISTER, memory.baseOffset, realRegister);
 		}
 		locationIt->second.registerLocation = std::nullopt;
 	}
 
-	//a.call(functionNameLabel(op.functionName));
-	a.mov(Reg64::R10, );
+	// Can't use RIP relative jumps because they take 32 bit signed operands. I tried and the OS allocates memory that is more than 2^31 bytes away from the other function pointers.
+	const auto functionInfo = std::ranges::find_if(functions, [&](const FunctionInfo& f) { return f.name == op.functionName; });
+	if (functionInfo == functions.end()) {
+		ASSERT_NOT_REACHED();
+		return;
+	}
+	a.mov(Reg64::R9, std::bit_cast<u64>(functionInfo->address));
+	//a.mov(Reg64::R9, std::bit_cast<u64>(reinterpret_cast<void*>(testFunction)));
+	a.call(Reg64::R9);
+	/*a.push(Reg64::RSP);
+	a.mov(Reg64::RSP, Reg64::RBP);
+	a.mov(Reg64::R9, std::bit_cast<u64>(reinterpret_cast<void*>(testFunction)));
+	a.call(Reg64::R9);
+	a.pop(Reg64::RSP);*/
 
 	const auto destination = getRegisterLocation(op.destination);
 	const auto returnRegister = RegYmm::YMM0;
-	a.vmovaps(destination, returnRegister);
+	if (destination != returnRegister) {
+		a.vmovaps(destination, returnRegister);
+	}
 }
 
 void CodeGenerator::returnOp(const ReturnOp& op) {
@@ -387,24 +412,14 @@ void CodeGenerator::returnOp(const ReturnOp& op) {
 
 CodeGenerator::BaseOffset CodeGenerator::stackAllocate(i32 size, i32 aligment) {
 	stackMemoryAllocated += size;
-	const BaseOffset result{ .baseOffset = -stackMemoryAllocated };
+	const BaseOffset result{ .baseOffset = -(stackMemoryAllocated + SHADOW_SPACE_SIZE) };
 
 	return result;
 }
 
-AddressLabel CodeGenerator::functionNameLabel(std::string_view name)  {
-	for (AddressLabel label = 0; label < functions.size(); label++) {
-		if (functions[label].name == name) {
-			return label;
-		}
-	}
-	ASSERT_NOT_REACHED();
-	return 0;
-}
-
 CodeGenerator::RegisterConstantOffsetLocation CodeGenerator::BaseOffset::location() const {
 	return RegisterConstantOffsetLocation{
-		.registerWithAddress = CodeGenerator::STACK_TOP_REGISTER,
+		.registerWithAddress = CodeGenerator::STACK_BASE_REGISTER,
 		.offset = baseOffset,
 	};
 }

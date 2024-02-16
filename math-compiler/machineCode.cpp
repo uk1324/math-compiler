@@ -54,10 +54,7 @@ void MachineCode::generateFrom(const AssemblyCode& assembly) {
 	}
 }
 
-void MachineCode::patchRipRelativeOperands(
-	u8* code, 
-	const u8* data,
-	const std::unordered_map<AddressLabel, void*>& labelToAddress) const {
+void MachineCode::patchRipRelativeOperands(u8* code, const u8* data) const {
 	for (const auto& allocation : ripRelativeDataOperands) {
 		const auto ripOffsetAddress = code + allocation.operandCodeOffset;
 		const auto dataOffsetAddress = data + allocation.dataOffset;
@@ -75,33 +72,6 @@ void MachineCode::patchRipRelativeOperands(
 		memcpy(ripOffsetAddress, &ripOffsetToData, ripOffsetSize);
 
 		ASSERT(dataOffsetAddress == nextInstructionAddress + ripOffsetToData);
-	}
-
-	for (const auto& jump : ripRelativeJumps) {
-		const auto addressIt = labelToAddress.find(jump.label);
-		const auto nextInstructionAddress = code + jump.nextInstructionCodeOffset;
-		const auto operandCodeOffset = code + jump.operandCodeOffset;
-
-		auto write = [&operandCodeOffset](i32 immediate) {
-			memcpy(operandCodeOffset, &immediate, sizeof(immediate));
-		};
-
-		if (addressIt == labelToAddress.end()) {
-			write(0);
-			ASSERT_NOT_REACHED();
-			continue;
-		}
-		const auto address = reinterpret_cast<u8*>(addressIt->second);
-		const auto offset = address - nextInstructionAddress;
-
-		if (offset < INT32_MIN || offset > INT32_MAX) {
-			write(0);
-			ASSERT_NOT_REACHED();
-			continue;
-		}
-
-		const i32 operand = i32(offset);
-		write(operand);
 	}
 }
 
@@ -214,8 +184,8 @@ void MachineCode::emitReg64ImmInstruction(u8 opCode, u8 opCodeExtension, Reg64 l
 }
 
 void MachineCode::emit(const CallReg& i) {
-	if (regIndex(i.reg) < 0b111) {
-		emitRex(1, 0, 0, 1);
+	if (regIndex(i.reg) > 0b111) {
+		emitRex(0, 0, 0, 1);
 	}
 	emitU8(0xFF);
 	const auto opCodeExtension = 0x2;
@@ -317,8 +287,8 @@ void MachineCode::emit(const MovR64R64& i) {
 }
 
 void MachineCode::emit(const MovR64Imm64& i) {
-	emitRex(1, take4thBit(regIndex(i.destination)), 0, 1);
-	emitU8(0xB8 + regIndex(i.destination));
+	emitRex(1, 0, 0, take4thBit(regIndex(i.destination)));
+	emitU8(0xB8 + takeFirst3Bits(regIndex(i.destination)));
 	emitU64(i.immediate);
 }
 
@@ -343,7 +313,7 @@ void MachineCode::emit(const VbroadcastssLbl& i) {
 }
 
 void MachineCode::emit(const VmovapsYmmYmm& i) {
-	emitInstructionYmmYmmYmm(0x29, regIndex(i.destination), 0b0000, regIndex(i.source));
+	emitInstructionYmmYmmYmm(0x29, regIndex(i.source), 0b0000, regIndex(i.destination));
 }
 
 void MachineCode::emitInstructionYmmRegDisp(u8 opCode, u8 reg, u8 regWithAddress, i32 disp) {

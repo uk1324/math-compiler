@@ -308,6 +308,7 @@
     <Text Include="ramez.txt" />
     <Text Include="approximating_functions_using_floating_point.txt" />
     <Text Include="floatingPointSemantics.txt" />
+    <Text Include="callingConventions.txt" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ramez.py" />

@@ -17,7 +17,7 @@ e^(k * ln(2) + r) =
 e^(k * ln(2)) * e^r =
 2^k * e^r
 */
-inline __m256 expSimd(__m256 x) {
+inline __m256 __vectorcall expSimd(__m256 x) {
 	const auto minusLn2 = _mm256_set1_ps(-0.6931471805599453f);
 	const auto ln2Inv = _mm256_set1_ps(1.4426950408889634f);
 
@@ -68,7 +68,7 @@ k/log2(e) + ln(f + 1)
 
 TODO: Apparently there is a way to range reduce further into (sqrt(2)/2, sqrt(2)). Used for example in fdlibm and also mentionted here https://math.stackexchange.com/questions/3619158/most-efficient-way-to-calculate-logarithm-numerically.
 */
-inline __m256 lnSimd(__m256 x) {
+inline __m256 __vectorcall lnSimd(__m256 x) {
 	x = _mm256_max_ps(x, _mm256_set1_ps(0.0f));
 	const auto xBytes = _mm256_castps_si256(x);
 	// k is the exponent of x.

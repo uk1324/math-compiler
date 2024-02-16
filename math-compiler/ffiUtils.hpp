@@ -2,4 +2,4 @@
 
 #include <span>
 
-float callSimd(void* function, std::span<const float> inputs);
+float callSimdVectorCall(void* function, std::span<const float> inputs);

@@ -180,10 +180,9 @@ FuzzTester::RunResult FuzzTester::runValidInput(const ValidInput& in) {
 	const auto copy = optmizedIrCode;
 	deadCodeElimination.run(copy, in.parameters, optmizedIrCode);
 
-	const auto codeGeneratorOut = codeGenerator.compile(*irCode, functions, in.parameters);
-	outputToFile("test.txt", codeGeneratorOut.machineCode.code);
-	const auto addressLabelToAddress = mapFunctionLabelsToAddresses(codeGeneratorOut.functionNameToLabel, functions);
-	const auto machineCodeOutput = executeFunction(codeGeneratorOut.machineCode, addressLabelToAddress, in.arguments);
+	const auto machineCode = codeGenerator.compile(*irCode, functions, in.parameters);
+	outputToFile("test.txt", machineCode.code);
+	const auto machineCodeOutput = executeFunction(machineCode, in.arguments);
 
 	const float expected = evaluateAstOutput.ok();
 	const float found = machineCodeOutput;

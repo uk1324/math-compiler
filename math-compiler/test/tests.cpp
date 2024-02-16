@@ -299,13 +299,12 @@ void TestRunner::expectedHelper(std::string_view name, std::string_view source, 
 	}
 
 	{
-		const auto codeGeneratorOut = codeGenerator.compile(*irCode, functions, parameters);
+		const auto machineCode = codeGenerator.compile(*irCode, functions, parameters);
 		if (outputMachineCodeToFile) {
-			outputToFile("test.txt", codeGeneratorOut.machineCode.code);
+			outputToFile("test.txt", machineCode.code);
 		}
 
-		const auto addressLabelToAddress = mapFunctionLabelsToAddresses(codeGeneratorOut.functionNameToLabel, functions);
-		const auto output = executeFunction(codeGeneratorOut.machineCode, addressLabelToAddress, arguments);
+		const auto output = executeFunction(machineCode, arguments);
 		if (output != expectedOutput) {
 			printFailed(name);
 			put("evaluation error: ");

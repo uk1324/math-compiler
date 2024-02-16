@@ -138,7 +138,7 @@ IrVm::Status IrVm::executeOp(const FunctionOp& op) {
 	}
 
 	allocateRegisterIfNotExists(op.destination);
-	setRegister(op.destination, callSimd(function->address, arguments));
+	setRegister(op.destination, callSimdVectorCall(function->address, arguments));
 	
 	return Status::OK;
 }

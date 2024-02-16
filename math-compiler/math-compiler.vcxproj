@@ -242,6 +242,7 @@
   <ItemGroup>
     <Text Include="approximating_functions_using_floating_point.txt" />
     <Text Include="assembler.txt" />
+    <Text Include="callingConventions.txt" />
     <Text Include="floatingPointSemantics.txt" />
     <Text Include="function_argument_format.txt" />
     <Text Include="ideas.txt" />

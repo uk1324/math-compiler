@@ -8,10 +8,7 @@ struct MachineCode {
 	void initialize();
 	void generateFrom(const AssemblyCode& assembly);
 
-	void patchRipRelativeOperands(
-		u8* code, 
-		const u8* data, 
-		const std::unordered_map<AddressLabel, void*>& labelToAddress) const;
+	void patchRipRelativeOperands(u8* code, const u8* data) const;
 
 	void emitU8(u8 value);
 	void emitI8(i8 value);

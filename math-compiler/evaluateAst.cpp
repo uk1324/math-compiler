@@ -72,7 +72,7 @@ Result<Real, std::string> evaluateExpr(const State& state, const Expr* expr) {
 		if (info == state.functions.end()) {
 			return ResultErr(format("function '%' does not exist", function->functionName));
 		}
-		return callSimd(info->address, arguments);
+		return callSimdVectorCall(info->address, arguments);
 	}
 
 	}

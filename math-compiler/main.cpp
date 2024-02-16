@@ -93,13 +93,11 @@ void test() {
 	}
 
 	CodeGenerator codeGenerator;
-	auto codeGeneratorOut = codeGenerator.compile(optimizedCode, functions, parameters);
+	auto machineCode = codeGenerator.compile(optimizedCode, functions, parameters);
 
-	const auto addressLabelToAddress = mapFunctionLabelsToAddresses(codeGeneratorOut.functionNameToLabel, functions);
+	outputToFile("test.txt", machineCode.code);
 
-	outputToFile("test.txt", codeGeneratorOut.machineCode.code);
-
-	const auto out = executeFunction(codeGeneratorOut.machineCode, addressLabelToAddress, arguments);
+	const auto out = executeFunction(machineCode, arguments);
 	put("out = %", out);
 	/*bin.write(reinterpret_cast<const char*>(buffer), machineCode.size());*/
 }
