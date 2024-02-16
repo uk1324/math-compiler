@@ -11,8 +11,11 @@ void executeFunction(const MachineCode& machineCode, const float* inputArray, fl
 
 	memcpy(codeBuffer, machineCode.code.data(), machineCode.code.size());
 	const auto dataBuffer = codeBuffer + machineCode.code.size();
+	// TODO: Alignment?
 	memcpy(dataBuffer, machineCode.data.data(), machineCode.data.size());
-	machineCode.patchRipRelativeOperands(codeBuffer, machineCode.data.data());
+	/*machineCode.patchRipRelativeOperands(codeBuffer, machineCode.data.data());*/
+	// Use the same buffer so the rip relative jumps are not outside the range.
+	machineCode.patchRipRelativeOperands(codeBuffer, dataBuffer);
 
 	ASSERT(uintptr_t(inputArray) % 32 == 0);
 	ASSERT(uintptr_t(outputArray) % 32 == 0);
