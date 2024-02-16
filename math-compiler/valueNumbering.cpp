@@ -8,10 +8,6 @@ using namespace Lvn;
 void LocalValueNumbering::initialize(std::span<const FunctionParameter> parameters) {
 	regToValueNumberMap.clear();
 	allocatedValueNumbersCount = 0;
-	for (Register i = 0; i < Register(parameters.size()); i++) {
-		regToValueNumberMap[i] = i;
-	}
-	allocatedValueNumbersCount = parameters.size();
 	valToValueNumber.clear();
 	valueNumberToVal.clear();
 }
@@ -41,6 +37,14 @@ std::vector<IrOp> LocalValueNumbering::run(const std::vector<IrOp>& irCode, std:
 					.destinationRegister = op.destination,
 					.destinationValueNumber = regToValueNumber(op.destination),
 					.value = ConstantVal{ op.constant }
+				};
+			},
+			[this, &output](const LoadVariableOp& op) -> std::optional<Computed> {
+				const auto destinationVn = regToValueNumber(op.destination);
+				return Computed{
+					.destinationRegister = op.destination,
+					.destinationValueNumber = destinationVn,
+					.value = VariableVal{ .variableIndex = op.variableIndex }
 				};
 			},
 			[this, &ignoreNegativeZero](const AddOp& op) -> std::optional<Computed> {
@@ -304,6 +308,12 @@ std::vector<IrOp> LocalValueNumbering::run(const std::vector<IrOp>& irCode, std:
 				output.push_back(LoadConstantOp{ 
 					.destination = computed->destinationValueNumber, 
 					.constant = val.value 
+				});
+			},
+			[&output, &computed](const VariableVal& val) {
+				output.push_back(LoadVariableOp{
+					.destination = computed->destinationValueNumber,
+					.variableIndex = val.variableIndex
 				});
 			}
 		}, computed->value);

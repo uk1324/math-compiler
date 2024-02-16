@@ -55,8 +55,15 @@ namespace Lvn {
 		bool operator==(const ConstantVal& other) const;
 	};
 
-	using Val = std::variant<AddVal, SubtractVal, MultiplyVal, DivideVal, XorVal, ConstantVal>;
+	struct VariableVal {
+		i64 variableIndex;
 
+		bool operator==(const VariableVal&) const = default;
+	};
+
+	using Val = std::variant<AddVal, SubtractVal, MultiplyVal, DivideVal, XorVal, ConstantVal, VariableVal>;
+
+	// TODO: Why not use the index from std::variant for hashing. 
 	enum class OpType {
 		ADD, SUBTRACT, MULTIPLY, DIVIDE, XOR,
 	};
@@ -83,6 +90,9 @@ namespace std {
 				HASH_BINARY_OP(XorVal, XOR),
 				[](const ConstantVal& e) -> usize {
 					return hash<Real>()(e.value);
+				},
+				[](const VariableVal& e) -> usize {
+					return hash<Real>()(e.variableIndex);
 				}
 			}, x);
 

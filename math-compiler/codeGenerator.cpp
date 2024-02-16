@@ -38,15 +38,6 @@ MachineCode CodeGenerator::compile(
 	initialize(parameters, functions);
 	computeRegisterLastUsage(irCode);
 
-	for (Register virtualRegister = 0; virtualRegister < parameters.size(); virtualRegister++) {
-		auto& location = virtualRegisterToLocation[virtualRegister];
-		const auto offset = virtualRegister * YMM_REGISTER_SIZE;
-		location.memoryLocation = RegisterConstantOffsetLocation{
-			.registerWithAddress = inputArrayRegister,
-			.offset = offset,
-		};
-	}
-
 	a.xor_(indexRegister, indexRegister);
 
 	const auto conditionCheckLabel = a.allocateLabel();
@@ -60,6 +51,7 @@ MachineCode CodeGenerator::compile(
 		currentInstructionIndex = i;
 		std::visit(overloaded{
 			[&](const LoadConstantOp& op) { loadConstantOp(op); },
+			[&](const LoadVariableOp& op) { generate(op); },
 			[&](const AddOp& op) { addOp(op); },
 			[&](const SubtractOp& op) { subtractOp(op); },
 			[&](const MultiplyOp& op) { multiplyOp(op); },
@@ -99,6 +91,9 @@ void CodeGenerator::computeRegisterLastUsage(const std::vector<IrOp>& irCode) {
 		auto& op = irCode[i];
 		std::visit(overloaded{
 			[&](const LoadConstantOp& op) {
+				add(op.destination);
+			},
+			[&](const LoadVariableOp& op) {
 				add(op.destination);
 			},
 			[&](const AddOp& op) {
@@ -145,7 +140,7 @@ void CodeGenerator::computeRegisterLastUsage(const std::vector<IrOp>& irCode) {
 
 void CodeGenerator::computeRegisterFirstAssigned(const std::vector<IrOp>& irCode) {
 	for (i64 i = 0; i < i64(irCode.size()); i++) {
-		callWithDestination(
+		callWithOutputRegisters(
 			irCode[i],
 			[this, &i](Register reg) {
 				// insert() only inserts if the key is not set yet.
@@ -318,6 +313,28 @@ void CodeGenerator::loadConstantOp(const LoadConstantOp& op) {
 		.value = op.constant
 	};
 	// TODO: if equal to 0 then xor
+}
+
+void CodeGenerator::generate(const LoadVariableOp& op) {
+	const auto destination = getRegisterLocation(op.destination);
+
+	auto& location = virtualRegisterToLocation[op.destination];
+	const auto offset = op.variableIndex * YMM_REGISTER_SIZE;
+	location.memoryLocation = RegisterConstantOffsetLocation{
+		.registerWithAddress = inputArrayRegister,
+		.offset = offset,
+	};
+	location.registerLocation = destination;
+	movToYmmFromMemoryLocation(destination, *location.memoryLocation);
+
+	/*for (Register virtualRegister = 0; virtualRegister < parameters.size(); virtualRegister++) {
+		auto& location = virtualRegisterToLocation[virtualRegister];
+		const auto offset = virtualRegister * YMM_REGISTER_SIZE;
+		location.memoryLocation = RegisterConstantOffsetLocation{
+			.registerWithAddress = inputArrayRegister,
+			.offset = offset,
+		};
+	}*/
 }
 
 void CodeGenerator::addOp(const AddOp& op) {

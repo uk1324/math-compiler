@@ -110,7 +110,9 @@ void IrCompiler::createRegistersForVariables() {
 IrCompiler::ExprResult IrCompiler::compileIdentifierExpr(const IdentifierExpr& expr) {
 	for (i32 i = 0; i < parameters.size(); i++) {
 		if (parameters[i].name == expr.identifier) {
-			return ExprResult{ .result = i };
+			const auto destination = allocateRegister();
+			addOp(LoadVariableOp{ .destination = destination, .variableIndex = i });
+			return ExprResult{ .result = destination };
 		}
 	}
 	throwError(UndefinedVariableIrCompilerError{

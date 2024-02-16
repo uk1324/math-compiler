@@ -44,10 +44,11 @@ void IrVm::initialize(std::span<const float> arguments, std::span<const Function
 
 IrVm::Status IrVm::executeOp(const IrOp& op) {
 	return std::visit(overloaded{
-		[&](const LoadConstantOp& op) { 
-			executeLoadConstantOp(op); 
+		[&](const LoadConstantOp& op) {
+			executeLoadConstantOp(op);
 			return Status::OK;
 		},
+		[&](const LoadVariableOp& op) { return executeOp(op); },
 		[&](const AddOp& op) { return executeAddOp(op); },
 		[&](const SubtractOp& op) { return executeOp(op); },
 		[&](const MultiplyOp& op) { return executeMultiplyOp(op); },
@@ -65,6 +66,14 @@ IrVm::Status IrVm::executeOp(const IrOp& op) {
 void IrVm::executeLoadConstantOp(const LoadConstantOp& op) {
 	allocateRegisterIfNotExists(op.destination);
 	setRegister(op.destination, op.constant);
+}
+
+IrVm::Status IrVm::executeOp(const LoadVariableOp& op) {
+	allocateRegisterIfNotExists(op.destination);
+	if (op.variableIndex >= arguments.size()) {
+		return error("variable index % out of range", op.variableIndex);
+	}
+	setRegister(op.destination, arguments[op.variableIndex]);
 }
 
 // Should the destination register exist before compiling this instruction or is it a compiler error?
@@ -152,16 +161,10 @@ void IrVm::allocateRegisterIfNotExists(Register index) {
 }
 
 bool IrVm::registerExists(Register index) {
-	return (index < i64(registers.size())) ||
-		(index < i64(arguments.size()));
+	return index < i64(registers.size());
 }
 
 void IrVm::setRegister(Register index, Real value) {
-	if (index < i64(arguments.size())) {
-		// Arguments can't be changed.
-		ASSERT_NOT_REACHED();
-		return;
-	}
 	registers[index] = value;
 }
 
@@ -170,8 +173,5 @@ IrVm::Status IrVm::registerDoesNotExistError(Register reg) {
 }
 
 const Real& IrVm::getRegister(Register index) const {
-	if (index < i64(arguments.size())) {
-		return arguments[index];
-	}
 	return registers[index];
 }

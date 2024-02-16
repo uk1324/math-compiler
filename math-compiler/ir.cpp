@@ -6,14 +6,13 @@ void printBinaryOp(std::ostream& out, const char* opName, Register lhs, Register
 	out << opName << " r" << destination << " <- r" << lhs << " r" << rhs << '\n';
 }
 
-bool registerIsParamter(std::span<const FunctionParameter> parameters, Register r) {
-	return r < i64(parameters.size());
-}
-
 void printIrOp(std::ostream& out, const IrOp& op) {
 	std::visit(overloaded{
 		[&](const LoadConstantOp& load) {
 			put("load r% <- '%'", load.destination, load.constant);
+		},
+		[&](const LoadVariableOp& load) {
+			put("load r% <- variables[%]", load.destination, load.variableIndex);
 		},
 		[&](const AddOp& add) {
 			printBinaryOp(out, "add", add.lhs, add.rhs, add.destination);

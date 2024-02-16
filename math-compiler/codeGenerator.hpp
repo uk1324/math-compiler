@@ -149,6 +149,7 @@ struct CodeGenerator {
 	RegYmm allocateRegister(std::span<const Register> virtualRegistersThatCanNotBeSpilled);
 
 	void loadConstantOp(const LoadConstantOp& op);
+	void generate(const LoadVariableOp& op);
 	void addOp(const AddOp& op);
 	void subtractOp(const SubtractOp& op);
 	void multiplyOp(const MultiplyOp& op);

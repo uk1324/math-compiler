@@ -9,16 +9,26 @@
 #include "input.hpp"
 
 using Register = i64;
-bool registerIsParamter(std::span<const FunctionParameter> parameters, Register r);
+//bool registerIsParamter(std::span<const FunctionParameter> parameters, Register r);
 
 struct LoadConstantOp {
 	Register destination;
 	Real constant;
 
 	template<typename Function> 
-	void callWithDestination(Function f) const;
+	void callWithInputRegisters(Function f) const;
 	template<typename Function>
-	void callWithUsedRegisters(Function f) const;
+	void callWithOutputRegisters(Function f) const;
+};
+
+struct LoadVariableOp {
+	Register destination;
+	i64 variableIndex;
+
+	template<typename Function>
+	void callWithOutputRegisters(Function f) const;
+	template<typename Function>
+	void callWithInputRegisters(Function f) const;
 };
 
 struct AddOp {
@@ -27,9 +37,9 @@ struct AddOp {
 	Register rhs;
 
 	template<typename Function>
-	void callWithDestination(Function f) const;
+	void callWithOutputRegisters(Function f) const;
 	template<typename Function>
-	void callWithUsedRegisters(Function f) const;
+	void callWithInputRegisters(Function f) const;
 };
 
 struct SubtractOp {
@@ -38,9 +48,9 @@ struct SubtractOp {
 	Register rhs;
 
 	template<typename Function>
-	void callWithDestination(Function f) const;
+	void callWithOutputRegisters(Function f) const;
 	template<typename Function>
-	void callWithUsedRegisters(Function f) const;
+	void callWithInputRegisters(Function f) const;
 };
 
 struct MultiplyOp {
@@ -49,9 +59,9 @@ struct MultiplyOp {
 	Register rhs;
 
 	template<typename Function>
-	void callWithDestination(Function f) const;
+	void callWithOutputRegisters(Function f) const;
 	template<typename Function>
-	void callWithUsedRegisters(Function f) const;
+	void callWithInputRegisters(Function f) const;
 };
 
 struct DivideOp {
@@ -60,9 +70,9 @@ struct DivideOp {
 	Register rhs;
 
 	template<typename Function>
-	void callWithDestination(Function f) const;
+	void callWithOutputRegisters(Function f) const;
 	template<typename Function>
-	void callWithUsedRegisters(Function f) const;
+	void callWithInputRegisters(Function f) const;
 };
 
 struct XorOp {
@@ -71,9 +81,9 @@ struct XorOp {
 	Register rhs;
 
 	template<typename Function>
-	void callWithDestination(Function f) const;
+	void callWithOutputRegisters(Function f) const;
 	template<typename Function>
-	void callWithUsedRegisters(Function f) const;
+	void callWithInputRegisters(Function f) const;
 };
 
 struct NegateOp {
@@ -81,10 +91,9 @@ struct NegateOp {
 	Register operand;
 
 	template<typename Function>
-	void callWithDestination(Function f) const;
+	void callWithOutputRegisters(Function f) const;
 	template<typename Function>
-	// TODO: Name this something better call with usedRegisterButNotDestination or find some name for it like operands idk.
-	void callWithUsedRegisters(Function f) const;
+	void callWithInputRegisters(Function f) const;
 };
 
 // It is assumed that the function has no side effects.
@@ -99,9 +108,9 @@ struct FunctionOp {
 	std::vector<Register> arguments;
 
 	template<typename Function>
-	void callWithDestination(Function f) const;
+	void callWithOutputRegisters(Function f) const;
 	template<typename Function>
-	void callWithUsedRegisters(Function f) const;
+	void callWithInputRegisters(Function f) const;
 };
 
 //struct FunctionArgumentOp {
@@ -112,13 +121,14 @@ struct ReturnOp {
 	Register returnedRegister;
 
 	template<typename Function>
-	void callWithDestination(Function f) const;
+	void callWithOutputRegisters(Function f) const;
 	template<typename Function>
-	void callWithUsedRegisters(Function f) const;
+	void callWithInputRegisters(Function f) const;
 };
 
 using IrOp = std::variant<
 	LoadConstantOp,
+	LoadVariableOp,
 	AddOp,
 	SubtractOp,
 	MultiplyOp,
@@ -135,110 +145,117 @@ void printIrCode(std::ostream& out, const std::vector<IrOp>& code);
 // Without using templates this could be implemented with higher order macros.
 // Don't know if there is a nice way to have return values from Function f, because you can either have no destination or multiple. The simplest option might be to just return by writing to variables captured variables.
 template<typename Function>
-void callWithDestination(const IrOp& op, Function f);
+void callWithOutputRegisters(const IrOp& op, Function f);
 template<typename Function>
-void callWithUsedRegisters(const IrOp& op, Function f);
+void callWithInputRegisters(const IrOp& op, Function f);
 
 template<typename Function>
-void LoadConstantOp::callWithDestination(Function f) const {
+void LoadConstantOp::callWithOutputRegisters(Function f) const {
 	f(destination);
 }
 
 template<typename Function>
-void LoadConstantOp::callWithUsedRegisters(Function f) const {}
+void LoadConstantOp::callWithInputRegisters(Function f) const {}
 
 template<typename Function>
-void ReturnOp::callWithDestination(Function f) const {}
+void ReturnOp::callWithOutputRegisters(Function f) const {}
 
 template<typename Function>
-void ReturnOp::callWithUsedRegisters(Function f) const {
+void ReturnOp::callWithInputRegisters(Function f) const {
 	f(returnedRegister);
 }
 
 template<typename Function>
-void XorOp::callWithDestination(Function f) const {
+void XorOp::callWithOutputRegisters(Function f) const {
 	f(destination);
 }
 
 template<typename Function>
-void XorOp::callWithUsedRegisters(Function f) const {
+void XorOp::callWithInputRegisters(Function f) const {
 	f(lhs);
 	f(rhs);
 }
 
 template<typename Function>
-void AddOp::callWithDestination(Function f) const {
+void AddOp::callWithOutputRegisters(Function f) const {
 	f(destination);
 }
 
 template<typename Function>
-void AddOp::callWithUsedRegisters(Function f) const{
+void AddOp::callWithInputRegisters(Function f) const{
 	f(lhs);
 	f(rhs);
 }
 
 template<typename Function>
-void SubtractOp::callWithDestination(Function f) const {
+void SubtractOp::callWithOutputRegisters(Function f) const {
 	f(destination);
 }
 
 template<typename Function>
-void SubtractOp::callWithUsedRegisters(Function f) const {
+void SubtractOp::callWithInputRegisters(Function f) const {
 	f(lhs);
 	f(rhs);
 }
 
 template<typename Function>
-void NegateOp::callWithDestination(Function f) const {
+void NegateOp::callWithOutputRegisters(Function f) const {
 	f(destination);
 }
 
 template<typename Function>
-void NegateOp::callWithUsedRegisters(Function f) const {
+void NegateOp::callWithInputRegisters(Function f) const {
 	f(operand);
 }
 
 template<typename Function>
-void DivideOp::callWithDestination(Function f) const {
+void DivideOp::callWithOutputRegisters(Function f) const {
 	f(destination);
 }
 
 template<typename Function>
-void DivideOp::callWithUsedRegisters(Function f) const {
+void DivideOp::callWithInputRegisters(Function f) const {
 	f(lhs);
 	f(rhs);
 }
 
 template<typename Function>
-void MultiplyOp::callWithDestination(Function f) const {
+void MultiplyOp::callWithOutputRegisters(Function f) const {
 	f(destination);
 }
 
 template<typename Function>
-void MultiplyOp::callWithUsedRegisters(Function f) const {
+void MultiplyOp::callWithInputRegisters(Function f) const {
 	f(lhs);
 	f(rhs);
 }
 
 template<typename Function>
-void FunctionOp::callWithDestination(Function f) const {
+void FunctionOp::callWithOutputRegisters(Function f) const {
 	f(destination);
 }
 
 template<typename Function>
-void FunctionOp::callWithUsedRegisters(Function f) const {
+void FunctionOp::callWithInputRegisters(Function f) const {
 	for (const auto& argument : arguments) {
 		f(argument);
 	}
 }
 
 template<typename Function>
-void callWithDestination(const IrOp& op, Function f) {
-	std::visit([&f](const auto& v) { v.callWithDestination(f); }, op);
+void callWithOutputRegisters(const IrOp& op, Function f) {
+	std::visit([&f](const auto& v) { v.callWithOutputRegisters(f); }, op);
 }
 
 template<typename Function>
-void callWithUsedRegisters(const IrOp& op, Function f) {
-	std::visit([&f](const auto& v) { v.callWithUsedRegisters(f); }, op);
+void callWithInputRegisters(const IrOp& op, Function f) {
+	std::visit([&f](const auto& v) { v.callWithInputRegisters(f); }, op);
 }
 
+template<typename Function>
+void LoadVariableOp::callWithOutputRegisters(Function f) const {
+	f(destination);
+}
+
+template<typename Function>
+void LoadVariableOp::callWithInputRegisters(Function f) const {}

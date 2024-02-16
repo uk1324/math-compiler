@@ -18,6 +18,7 @@ struct IrVm {
 	void initialize(std::span<const float> arguments, std::span<const FunctionInfo> functionInfo);
 	Status executeOp(const IrOp& op);
 	void executeLoadConstantOp(const LoadConstantOp& op);
+	Status executeOp(const LoadVariableOp& op);
 	Status executeAddOp(const AddOp& op);
 	Status executeOp(const SubtractOp& op);
 	Status executeMultiplyOp(const MultiplyOp& op);
