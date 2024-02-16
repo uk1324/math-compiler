@@ -177,7 +177,7 @@ void MachineCode::emitReg64Reg64Instruction(u8 opCode, Reg64 lhs, Reg64 rhs) {
 }
 
 void MachineCode::emitReg64ImmInstruction(u8 opCode, u8 opCodeExtension, Reg64 lhs, u32 rhs){
-	emitRex(1, take4thBit(regIndex(lhs)), 0, 0);
+	emitRex(1, 0, 0, take4thBit(regIndex(lhs)));
 	emitU8(opCode);
 	emitModRm(0b11, opCodeExtension, takeFirst3Bits(regIndex(lhs)));
 	emitU32(rhs);
@@ -209,11 +209,17 @@ void MachineCode::emit(const Ret& i) {
 }
 
 void MachineCode::emit(const Push64& i) {
-	emitU8(0x50 + regIndex(i.reg));
+	if (regIndex(i.reg) > 0b111) {
+		emitRex(0, 0, 0, 1);
+	}
+	emitU8(0x50 + takeFirst3Bits(regIndex(i.reg)));
 }
 
 void MachineCode::emit(const Pop64& i) {
-	emitU8(0x58 + regIndex(i.reg));
+	if (regIndex(i.reg) > 0b111) {
+		emitRex(0, 0, 0, 1);
+	}
+	emitU8(0x58 + takeFirst3Bits(regIndex(i.reg)));
 }
 
 void MachineCode::emit(const JmpLbl& i) {
@@ -317,9 +323,14 @@ void MachineCode::emit(const VmovapsYmmYmm& i) {
 }
 
 void MachineCode::emitInstructionYmmRegDisp(u8 opCode, u8 reg, u8 regWithAddress, i32 disp) {
-	emit2ByteVex(!take4thBit(reg), 0b1111, 1, 0b00);
+	if (regWithAddress > 0b111) {
+		emit3ByteVex(!take4thBit(reg), 1, 0, 0b00001, 1, 0b1111, 1, 0b00);
+	} else {
+		emit2ByteVex(!take4thBit(reg), 0b1111, 1, 0b00);
+	}
+
 	emitU8(opCode);
-	emitModRmRegDisp(takeFirst3Bits(reg), takeFirst3Bits(regWithAddress), disp);
+	emitModRmRegDisp(takeFirst3Bits(reg), takeFirst3Bits(regWithAddress), disp); 
 }
 
 // TODO: Could use a different encoding if the offset is 0.

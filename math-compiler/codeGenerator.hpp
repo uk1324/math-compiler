@@ -138,6 +138,7 @@ struct CodeGenerator {
 	// It might make sense to use a priority queue so certain registers are allocated over others.
 
 	void movToYmmFromMemoryLocation(RegYmm destination, const MemoryLocation& memoryLocation);
+	void movToYmmFromYmm(RegYmm destination, RegYmm source);
 
 	void emitPrologueAndEpilogue();
 	

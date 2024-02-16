@@ -31,10 +31,12 @@
 // TODO: Replace normal floating point equals with bitwise equals. !!!!!
 void test() {
 
-	std::string_view source = "exp(2)";
-	//FunctionParameter parameters[] { { "x" }, { "y" }, { "z" } };
-	FunctionParameter parameters[] { { "x_0" }, { "x_1" }, { "x_2" }, { "x_3" }, { "x_4" } };
-	float arguments[] = { std::bit_cast<float>(0xf8e665f4), std::bit_cast<float>(0xff954a4a), std::bit_cast<float>(0x8d8a0542), std::bit_cast<float>(0x9b902791), std::bit_cast<float>(0x978140ff), };
+	std::string_view source = "exp(2) + exp(x)";
+	//std::string_view source = "x";
+	//std::string_view source = "2";
+	FunctionParameter parameters[] { { "x" }, { "y" }, { "z" } };
+	//FunctionParameter parameters[] { { "x_0" }, { "x_1" }, { "x_2" }, { "x_3" }, { "x_4" } };
+	float arguments[] = { 1.0f, 2.0f, 3.0f, };
 
 	std::ostream& outputStream = std::cerr;
 
