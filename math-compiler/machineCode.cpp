@@ -58,17 +58,20 @@ void MachineCode::patchRipRelativeOperands(u8* code, const u8* data) const {
 	for (const auto& allocation : ripRelativeDataOperands) {
 		const auto ripOffsetAddress = code + allocation.operandCodeOffset;
 		const auto dataOffsetAddress = data + allocation.dataOffset;
-		/*const auto ripOffsetAddress = code + allocation.ripOffsetBytesCodeIndex;
-		const auto dataOffsetAddress = data + allocation.immediateDataSectionOffset;*/
-		float data;
-		memcpy(&data, dataOffsetAddress, sizeof(data));
+
 		const auto ripOffsetSize = sizeof(i32);
 		// RIP addresses relative to the start byte of the next instruction.
 		// The part of the instruction is the 32 bit rip offset so the first byte of the next instruction is 
 		const auto nextInstructionAddress = ripOffsetAddress + ripOffsetSize;
 
+		const auto offset = dataOffsetAddress - nextInstructionAddress;
+		if (offset < INT32_MIN || offset > INT32_MAX) {
+			ASSERT_NOT_REACHED();
+			continue;
+		}
+
 		// If there are any issues with this code it might have something to do with the sign of the offset.
-		i32 ripOffsetToData = static_cast<i32>(dataOffsetAddress - nextInstructionAddress);
+		i32 ripOffsetToData = static_cast<i32>(offset);
 		memcpy(ripOffsetAddress, &ripOffsetToData, ripOffsetSize);
 
 		ASSERT(dataOffsetAddress == nextInstructionAddress + ripOffsetToData);

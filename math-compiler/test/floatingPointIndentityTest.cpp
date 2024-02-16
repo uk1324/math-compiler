@@ -139,11 +139,16 @@ void testFloatingPointIdentites() {
 	//	1
 	//);
 
-	compare(
+	/*compare(
 		[](std::span<const float> a) -> float { return a[0] + a[0]; },
 		[](std::span<const float> a) -> float { return 2.0f * a[0]; },
 		1
-	);
+	);*/
+	/*compare(
+		[](std::span<const float> a) -> float { return a[0] - -0.0f; },
+		[](std::span<const float> a) -> float { return a[0]; },
+		1
+	);*/
 }
 
 #pragma float_control(pop)

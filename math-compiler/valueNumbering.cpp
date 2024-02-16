@@ -92,7 +92,8 @@ std::vector<IrOp> LocalValueNumbering::run(const std::vector<IrOp>& irCode, std:
 						.value = ConstantVal{ d.lhsConst->value - d.rhsConst->value }
 					};
 				} 
-				if (d.rhsConst != nullptr && d.rhsConst->value == 0.0f) {
+				if (d.rhsConst != nullptr && f32BitwiseEquals(d.rhsConst->value, 0.0f)) {
+					// -0 - -0 = 0 not -0
 					regToValueNumberMap[op.destination] = d.lhsVn;
 					return std::nullopt;
 				} else if (performUnsafeOptimizations && d.lhsConst != nullptr && d.lhsConst->value == 0.0f) {

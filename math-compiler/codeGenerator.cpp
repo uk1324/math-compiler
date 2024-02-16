@@ -29,6 +29,7 @@ const auto outputArrayRegister = Reg64::R13;
 const auto outputArrayRegisterArgumentIndex = 1;
 const auto arraySizeRegister = Reg64::R14;
 const auto arraySizeRegisterArgumentIndex = 2;
+const auto indexRegister = Reg64::R15;
 
 MachineCode CodeGenerator::compile(
 	const std::vector<IrOp>& irCode,
@@ -45,8 +46,6 @@ MachineCode CodeGenerator::compile(
 			.offset = offset,
 		};
 	}
-
-	const auto indexRegister = Reg64::R15;
 
 	a.xor_(indexRegister, indexRegister);
 
@@ -190,27 +189,51 @@ void CodeGenerator::emitPrologueAndEpilogue() {
 	// All XMM register which also includes the YMM register are caller saved.
 
 	const auto maxPossibleIncreaseCausedByAligning = 32;
-	const auto stackMemoryAllocatedTotal = maxPossibleIncreaseCausedByAligning + stackMemoryAllocated + SHADOW_SPACE_SIZE;
-	/*if (stackMemoryAllocatedTotal > 0)*/ {
-		a.push(Reg64::RBP, offset());
-		a.mov(Reg64::RBP, Reg64::RSP, offset());
-		// Round down (because the stack grows down) to a multiple of 32.
-		a.and_(Reg8::BPL, 0b11100000, offset());
 
-		a.push(inputArrayRegister, offset());
+	auto stackMemoryAllocatedTotal = maxPossibleIncreaseCausedByAligning + stackMemoryAllocated + SHADOW_SPACE_SIZE * 8;
+
+	//const Reg64 registerToSave[] = {
+	//	inputArrayRegister,
+	//	outputArrayRegister,
+	//	arraySizeRegister,
+	//	indexRegister
+	//};
+	i64 pushedMemory = 8;
+	auto push = [&](Reg64 reg) {
+		pushedMemory += 8;
+		a.push(reg, offset());
+	};
+
+	/*if (stackMemoryAllocatedTotal > 0)*/ {
+		push(Reg64::RBP);
+
+		push(inputArrayRegister);
 		a.mov(inputArrayRegister, INTEGER_FUNCTION_INPUT_REGISTERS[inputArrayRegisterArgumentIndex], offset());
 
-		a.push(outputArrayRegister, offset());
+		push(outputArrayRegister);
+		//a.push(outputArrayRegister, offset());
 		a.mov(outputArrayRegister, INTEGER_FUNCTION_INPUT_REGISTERS[outputArrayRegisterArgumentIndex], offset());
 
-		a.push(arraySizeRegister, offset());
+		push(arraySizeRegister);
+		//a.push(arraySizeRegister, offset());
 		a.mov(arraySizeRegister, INTEGER_FUNCTION_INPUT_REGISTERS[arraySizeRegisterArgumentIndex], offset());
+
+		//a.push(indexRegister, offset());
+		push(indexRegister);
+
+		const auto requiredAlignment = 16;
+		const auto misalignment = pushedMemory % requiredAlignment;
+		stackMemoryAllocatedTotal += misalignment == 0 ? 0 : requiredAlignment - misalignment;
+
+		a.mov(Reg64::RBP, Reg64::RSP, offset());
+		a.and_(Reg8::BPL, 0b11100000, offset());
 
 		a.sub(Reg64::RSP, u32(stackMemoryAllocatedTotal), offset());
 	}
 
 	/*if (stackMemoryAllocated > 0)*/ {
 		a.add(Reg64::RSP, u32(stackMemoryAllocatedTotal));
+		a.pop(indexRegister);
 		a.pop(arraySizeRegister);
 		a.pop(outputArrayRegister);
 		a.pop(inputArrayRegister);
@@ -434,7 +457,7 @@ void CodeGenerator::returnOp(const ReturnOp& op) {
 
 CodeGenerator::BaseOffset CodeGenerator::stackAllocate(i32 size, i32 aligment) {
 	stackMemoryAllocated += size;
-	const BaseOffset result{ .baseOffset = stackMemoryAllocated };
+	const BaseOffset result{ .baseOffset = -stackMemoryAllocated };
 
 	return result;
 }

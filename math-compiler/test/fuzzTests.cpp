@@ -49,8 +49,8 @@ struct FuzzTester {
 		std::span<const FunctionParameter> parameters;
 		std::span<const float> arguments;
 	};
-	FunctionInfo functions[1] = {
-		{ .name = "exp", .arity = 1, .address = expSimd, }
+	FunctionInfo functions[1]{
+		{ .name = "exp", .arity = 1, .address = expSimd }
 	};
 
 	RunResult runValidInput(const ValidInput& in); 
@@ -73,7 +73,7 @@ void runFuzzTests() {
 	StringStream out;
 
 	RandomInputGenerator gen;
-	const auto seed = 6;
+	const auto seed = 12;
 	gen.rng.seed(seed);
 	const auto parameterCount = 6;
 	std::vector<FunctionParameter> paramters;
@@ -95,13 +95,13 @@ void runFuzzTests() {
 				arguments[argumentIndex] = value;
 			}
 
-			const auto source = gen.generate(paramters);
+			const auto source = gen.generate(paramters, tester.functions);
 			std::cout << source << '\n';
 			const auto result = tester.runValidInput(FuzzTester::ValidInput{
 				.source = source,
 				.parameters = paramters,
 				.arguments = arguments
-				});
+			});
 			if (result == FuzzTester::RunResult::ERROR) {
 				put(TERMINAL_COLOR_RED "[FAILED] " TERMINAL_COLOR_RESET);
 				std::cout << tester.output.string();
@@ -116,7 +116,7 @@ void runFuzzTests() {
 	auto checkIncorrectPrograms = [&] {
 		std::string source;
 		for (int i = 0; i < 400000; i++) {
-			source = gen.generate(paramters);
+			source = gen.generate(paramters, tester.functions);
 
 			const i32 maxCharsToModify = 6;
 			const auto charsToModify = gen.randomFrom0To(std::min(i32(source.length()), maxCharsToModify));
@@ -132,7 +132,8 @@ void runFuzzTests() {
 		}
 	};
 
-	checkIncorrectPrograms();
+	//checkIncorrectPrograms();
+	checkCorrectPrograms();
 }
 
 FuzzTester::FuzzTester()
@@ -181,7 +182,7 @@ FuzzTester::RunResult FuzzTester::runValidInput(const ValidInput& in) {
 	deadCodeElimination.run(copy, in.parameters, optmizedIrCode);
 
 	const auto machineCode = codeGenerator.compile(*irCode, functions, in.parameters);
-	outputToFile("test.txt", machineCode.code);
+	//outputToFile("test.txt", machineCode.code);
 	const auto machineCodeOutput = executeFunction(machineCode, in.arguments);
 
 	const float expected = evaluateAstOutput.ok();

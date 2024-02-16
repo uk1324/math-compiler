@@ -9,7 +9,9 @@
 struct RandomInputGenerator {
 	RandomInputGenerator();
 
-	std::string_view generate(std::span<const FunctionParameter> parameters);
+	std::string_view generate(
+		std::span<const FunctionParameter> parameters,
+		std::span<const FunctionInfo> functions);
 
 	void expr(i32 nesting);
 	void binaryExpr(i32 nesting);
@@ -18,6 +20,7 @@ struct RandomInputGenerator {
 	void constantExpr(i32 nesting);
 	void parenExpr(i32 nesting);
 	void identifierExpr(i32 nesting);
+	void functionExpr(i32 nesting);
 	
 	// Whitespace should be generated after the first character and before the last.
 	// For example this is wrong: '  (a + b)' but this is not '(a   +b )'.
@@ -41,4 +44,5 @@ struct RandomInputGenerator {
 
 	StringStream out;
 	std::span<const FunctionParameter> parameters;
+	std::span<const FunctionInfo> functions;
 };

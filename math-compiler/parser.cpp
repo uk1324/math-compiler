@@ -147,13 +147,13 @@ Expr* Parser::primaryExpr() {
 		const auto& identifierToken = peekPrevious();
 		lhsStart = identifierToken.start();
 		const auto identifier = tokenSource(identifierToken);
-		return astAllocator.allocate<IdentifierExpr>(
+		lhs = astAllocator.allocate<IdentifierExpr>(
 			identifier,
 			lhsStart,
 			identifierToken.end());
 	} else if (match(TokenType::FUNCTION)) {
 		lhsStart = peekPrevious().start();
-		return function(tokenSource(peekPrevious()), lhsStart);
+		lhs = function(tokenSource(peekPrevious()), lhsStart);
 	} else if (match(TokenType::MINUS)) {
 		// TODO: Not sure if this should be changed but -4x will parse to -(4 * x) and not (-4) * x. (I wrote this when I thought that the order is reversed but I guess -(4 * x) makes more sense thatn the other option. Don't think that will change the result but not sure. GCC treats the differently. I guess if x is NaN then the result might have different signs idk.
 		const auto start = peekPrevious().start();

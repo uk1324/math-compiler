@@ -5,7 +5,9 @@
 
 #define CHECK_NESTING() \
 	if (nesting <= 0) { \
+		out << '('; \
 		constantExpr(nesting); \
+		out << ')'; \
 		return; \
 	}
 
@@ -13,8 +15,11 @@ RandomInputGenerator::RandomInputGenerator()
 	: rng(dev()) {
 }
 
-std::string_view RandomInputGenerator::generate(std::span<const FunctionParameter> parameters) {
+std::string_view RandomInputGenerator::generate(
+	std::span<const FunctionParameter> parameters,
+	std::span<const FunctionInfo> functions) {
 	this->parameters = parameters;
+	this->functions = functions;
 	out.string().clear();
 	const auto nesting = randomFrom0To(maxNestingDepth);
 	expr(nesting);
@@ -41,7 +46,7 @@ void RandomInputGenerator::binaryExpr(i32 nesting) {
 
 	whitespace();
 
-	out << op[randomFrom0To(std::size(op))];
+	out << op[randomFrom0To(std::size(op) )];
 
 	whitespace();
 
@@ -62,7 +67,7 @@ void RandomInputGenerator::unaryExpr(i32 nesting) {
 	}
 
 	const char op[] = "-";
-	out << randomFrom0To(std::size(op));
+	out << op[randomFrom0To(std::size(op) - 1)];
 	whitespace();
 	primaryExpr(nesting - 1);
 }
@@ -73,6 +78,7 @@ void RandomInputGenerator::primaryExpr(i32 nesting) {
 		PAREN,
 		CONSTANT,
 		IDENTIFIER,
+		FUNCTION,
 
 		COUNT,
 	} const type = PrimaryExprType(randomFrom0To(COUNT));
@@ -89,6 +95,10 @@ void RandomInputGenerator::primaryExpr(i32 nesting) {
 	case IDENTIFIER:
 		identifierExpr(nesting);
 		break;
+
+	case FUNCTION:
+		functionExpr(nesting);
+		break;
 	}
 
 	const auto chainLength = randomFrom0To(maxImplicitMultiplicationChainLength);
@@ -96,6 +106,7 @@ void RandomInputGenerator::primaryExpr(i32 nesting) {
 		enum ImplicitMulitplicationExprType {
 			IDENTIFIER,
 			PAREN,
+			FUNCTION,
 			COUNT,
 		} const type = ImplicitMulitplicationExprType(randomFrom0To(COUNT));
 
@@ -106,6 +117,10 @@ void RandomInputGenerator::primaryExpr(i32 nesting) {
 
 		case IDENTIFIER:
 			identifierExpr(nesting);
+			break;
+
+		case FUNCTION:
+			functionExpr(nesting);
 			break;
 		}
 	}
@@ -136,7 +151,9 @@ void RandomInputGenerator::parenExpr(i32 nesting) {
 	
 	whitespace();
 	if (nesting <= 0) {
+		out << '(';
 		constantExpr(nesting);
+		out << ')';
 	} else {
 		expr(nesting - 1);
 	}
@@ -146,8 +163,10 @@ void RandomInputGenerator::parenExpr(i32 nesting) {
 
 void RandomInputGenerator::identifierExpr(i32 nesting) {
 	if (parameters.size() <= 0) {
+		out << '(';
 		constantExpr(nesting);
 		return;
+		out << ')';
 	}
 	// TODO: Maybe generate invalid variables.
 	const auto name = parameters[randomFrom0To(parameters.size())].name;
@@ -156,6 +175,27 @@ void RandomInputGenerator::identifierExpr(i32 nesting) {
 		out << ' ';
 	}
 
+}
+
+void RandomInputGenerator::functionExpr(i32 nesting) {
+	auto& function = functions[randomFrom0To(functions.size())];
+	out << function.name;
+	whitespace();
+	out << '(';
+	whitespace();
+	for (i64 i = 0; i < function.arity - 1; i++) {
+		expr(nesting - 1);
+		whitespace();
+		out << ',';
+		whitespace();
+	}
+	if (function.arity > 0) {
+		expr(nesting - 1);
+		whitespace();
+	}
+	out << ')';
+	whitespace();
+	whitespace();
 }
 
 void RandomInputGenerator::whitespace() {
