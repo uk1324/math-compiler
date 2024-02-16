@@ -14,7 +14,7 @@ void executeFunction(const MachineCode& machineCode, const float* inputArray, fl
 	// TODO: Alignment?
 	memcpy(dataBuffer, machineCode.data.data(), machineCode.data.size());
 	/*machineCode.patchRipRelativeOperands(codeBuffer, machineCode.data.data());*/
-	// Use the same buffer so the rip relative jumps are not outside the range.
+	// Use the same buffer so the rip relative operands are not outside the i32 range.
 	machineCode.patchRipRelativeOperands(codeBuffer, dataBuffer);
 
 	ASSERT(uintptr_t(inputArray) % 32 == 0);

@@ -101,7 +101,6 @@ struct MachineCode {
 
 	// TODO: Maybe rename to local jump.
 	struct JumpToPatch {
-		i64 instructionSize;
 		i64 displacemenOperandBytesCodeOffset;
 		InstructionLabel destination;
 	};

@@ -44,13 +44,26 @@ void MachineCode::generateFrom(const AssemblyCode& assembly) {
 		const auto destinationIt = labelToCodeOffset.find(jump.destination);
 		// The destination label has to exist.
 		ASSERT(destinationIt != labelToCodeOffset.end());
-		const auto destination = destinationIt->second;
 
-		const auto operandCodeOffset = code.data() + jump.displacemenOperandBytesCodeOffset;
+		const auto operandByteSize = sizeof(i32);
+
+		const auto destinationAddress = code.data() + destinationIt->second;
+		auto operandAddress = code.data() + jump.displacemenOperandBytesCodeOffset;
+		const auto nextInstructionAddress = operandAddress + operandByteSize;
+
+		const auto jump = destinationAddress - nextInstructionAddress;
+		ASSERT(jump >= INT32_MIN && jump <= INT32_MAX);
+
+		*reinterpret_cast<i32*>(operandAddress) = i32(jump);
+
+		/*const auto operandCodeOffset = code.data() + jump.displacemenOperandBytesCodeOffset;
+		const auto nextInstructionOffset = operandCodeOffset + operandByteSize;*/
+		//const auto displacement = destination - nextInstructionOffset;
+		/*const auto operandCodeOffset = code.data() + jump.displacemenOperandBytesCodeOffset;
 		const auto instructionFirstByte = jump.displacemenOperandBytesCodeOffset - (jump.instructionSize - sizeof(i32));
 		const auto displacement = destination - instructionFirstByte;
 		const i32 operand = i32(displacement - jump.instructionSize);
-		memcpy(operandCodeOffset, &operand, sizeof(i32));
+		memcpy(operandCodeOffset, &operand, sizeof(i32));*/
 	}
 }
 
@@ -226,28 +239,22 @@ void MachineCode::emit(const Pop64& i) {
 }
 
 void MachineCode::emit(const JmpLbl& i) {
-	i64 instructionSize;
-
-	// TODO: Change this to just taking the location of the first byte of the jump instead of using instruction size.
 	switch (i.type) {
 		using enum JmpType;
 
 	case UNCONDITONAL:
 		emitU8(0xE9);
-		instructionSize = 5;
 		break;
 
 	case SIGNED_LESS:
 		emitU8(0x0F);
 		emitU8(0x8C);
-		instructionSize = 6;
 		break;
 	}
 	const auto operandLocation = currentLocation();
 	emitU32(0);
 
 	jumpsToPatch.push_back(JumpToPatch{
-		.instructionSize = instructionSize,
 		.displacemenOperandBytesCodeOffset = operandLocation,
 		.destination = i.label
 	});

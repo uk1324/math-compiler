@@ -84,8 +84,8 @@ void test() {
 	LocalValueNumbering valueNumbering;
 	auto optimizedCode = valueNumbering.run(**irCode, parameters);
 	const auto copy = optimizedCode;
-	/*DeadCodeElimination deadCodeElimination;
-	deadCodeElimination.run(copy, parameters, optimizedCode);*/
+	DeadCodeElimination deadCodeElimination;
+	deadCodeElimination.run(copy, parameters, optimizedCode);
 	//const auto optimizedCode = **irCode;
 
 	put("optimized");
