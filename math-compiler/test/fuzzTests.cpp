@@ -46,7 +46,7 @@ struct FuzzTester {
 	};
 	struct ValidInput {
 		std::string_view source;
-		std::span<const FunctionParameter> parameters;
+		std::span<const Variable> parameters;
 		std::span<const float> arguments;
 	};
 	FunctionInfo functions[1]{
@@ -62,7 +62,7 @@ StringStream validSourceOutput;
 
 FuzzTester::ValidInput generateValidInput(i32 maxParameterCount, i32 maxDepth) {
 	validSourceOutput.string().clear();
-	std::span<const FunctionParameter> parameters;
+	std::span<const Variable> parameters;
 	return FuzzTester::ValidInput{
 		//.source = generateValidSource(parameters, maxDepth)
 	};
@@ -76,13 +76,13 @@ void runFuzzTests() {
 	const auto seed = 14;
 	gen.rng.seed(seed);
 	const auto parameterCount = 6;
-	std::vector<FunctionParameter> paramters;
+	std::vector<Variable> paramters;
 	out.clear();
 	for (int i = 0; i < 5; i++) {
 		const auto start = out.string().size();
 		out << "x_" << i;
 		const auto end = out.string().size();
-		paramters.push_back(FunctionParameter{ .name = std::string_view(out.string().data() + start, end - start) });
+		paramters.push_back(Variable{ .name = std::string_view(out.string().data() + start, end - start) });
 	}
 	std::vector<float> arguments;
 	arguments.resize(paramters.size());
@@ -155,7 +155,7 @@ FuzzTester::RunResult FuzzTester::runValidInput(const ValidInput& in) {
 	}
 
 	const auto& tokens = scanner.parse(in.source, functions, in.parameters, scannerReporter);
-	auto ast = parser.parse(tokens, functions, in.source, &parserReporter);
+	auto ast = parser.parse(tokens, in.source, parserReporter);
 	if (!ast.has_value()) {
 		return RunResult::ERROR;
 	}
@@ -174,7 +174,7 @@ FuzzTester::RunResult FuzzTester::runValidInput(const ValidInput& in) {
 		return RunResult::SUCCESS;
 	}
 
-	auto irCode = *optIrCode;
+	auto irCode = &*optIrCode;
 
 	auto optmizedIrCode = valueNumbering.run(*irCode, in.parameters);
 	irCode = &optmizedIrCode;
@@ -206,5 +206,5 @@ FuzzTester::RunResult FuzzTester::runValidInput(const ValidInput& in) {
 
 void FuzzTester::runIncorrectSource(std::string_view source) {
 	const auto& tokens = scanner.parse(source, {}, {}, scannerReporter);
-	auto ast = parser.parse(tokens, functions, source, &parserReporter);
+	auto ast = parser.parse(tokens, source, parserReporter);
 }

@@ -16,7 +16,7 @@ RandomInputGenerator::RandomInputGenerator()
 }
 
 std::string_view RandomInputGenerator::generate(
-	std::span<const FunctionParameter> parameters,
+	std::span<const Variable> parameters,
 	std::span<const FunctionInfo> functions) {
 	this->parameters = parameters;
 	this->functions = functions;
@@ -46,7 +46,7 @@ void RandomInputGenerator::binaryExpr(i32 nesting) {
 
 	whitespace();
 
-	out << op[randomFrom0To(std::size(op) )];
+	out << op[randomIndex(std::size(op) )];
 
 	whitespace();
 
@@ -67,7 +67,7 @@ void RandomInputGenerator::unaryExpr(i32 nesting) {
 	}
 
 	const char op[] = "-";
-	out << op[randomFrom0To(std::size(op) - 1)];
+	out << op[randomIndex(std::size(op) - 1)];
 	whitespace();
 	primaryExpr(nesting - 1);
 }
@@ -169,7 +169,7 @@ void RandomInputGenerator::identifierExpr(i32 nesting) {
 		out << ')';
 	}
 	// TODO: Maybe generate invalid variables.
-	const auto name = parameters[randomFrom0To(parameters.size())].name;
+	const auto name = parameters[randomIndex(parameters.size())].name;
 	out << name;
 	if (isdigit(name.back())) {
 		out << ' ';
@@ -178,7 +178,7 @@ void RandomInputGenerator::identifierExpr(i32 nesting) {
 }
 
 void RandomInputGenerator::functionExpr(i32 nesting) {
-	auto& function = functions[randomFrom0To(functions.size())];
+	auto& function = functions[randomIndex(functions.size())];
 	out << function.name;
 	whitespace();
 	out << '(';
@@ -218,6 +218,14 @@ i32 RandomInputGenerator::randomFrom0To(i32 x) {
 	//return randomNumber() % x;
 }
 
+usize RandomInputGenerator::randomIndex(usize size) {
+	if (size == 0) {
+		ASSERT_NOT_REACHED();
+		return 0;
+	}
+	return std::uniform_int_distribution<usize>(0, size - 1)(rng);
+}
+
 i32 RandomInputGenerator::randomInRangeExclusive(i32 includingStart, i32 excludingEnd) {
 	return std::uniform_int_distribution<i32>(includingStart, excludingEnd - 1)(rng);
 }
@@ -229,5 +237,5 @@ i32 RandomInputGenerator::randomInRangeInclusive(i32 includingStart, i32 includi
 char RandomInputGenerator::randomDigit() {
 	char digits[] = "1234567890";
 	// -1 because of the null byte.
-	return digits[randomFrom0To(std::size(digits) - 1)];
+	return digits[randomIndex(std::size(digits) - 1)];
 }

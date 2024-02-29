@@ -4,13 +4,6 @@
 #include "ffiUtils.hpp"
 #include <immintrin.h>
 
-#define TRY(expression) \
-	do { \
-		if (expression == Status::ERROR) { \
-			return Status::ERROR; \
-		} \
-	} while (false)
-
 Result<Real, std::string> IrVm::execute(
 	const std::vector<IrOp>& instructions, 
 	std::span<const float> arguments,
@@ -19,7 +12,7 @@ Result<Real, std::string> IrVm::execute(
 	for (const auto& op : instructions) {
 		if (const auto returnOp = std::get_if<ReturnOp>(&op)) {
 			if (!registerExists(returnOp->returnedRegister)) {
-				registerDoesNotExistError(returnOp->returnedRegister);
+				[[maybe_unused]] auto _ = registerDoesNotExistError(returnOp->returnedRegister);
 				return ResultErr(std::string(errorMessage));
 			}
 			return getRegister(returnOp->returnedRegister);
@@ -30,9 +23,8 @@ Result<Real, std::string> IrVm::execute(
 		}
 	}
 	// Code didn't have a return.
-	error("code doesn't have a return instruction");
+	[[maybe_unused]] auto _ = error("code doesn't have a return instruction");
 	return ResultErr(std::string(errorMessage));
-	//return ResultErr(errorMessage);
 }
 
 void IrVm::initialize(std::span<const float> arguments, std::span<const FunctionInfo> functionInfo) {
@@ -70,10 +62,11 @@ void IrVm::executeLoadConstantOp(const LoadConstantOp& op) {
 
 IrVm::Status IrVm::executeOp(const LoadVariableOp& op) {
 	allocateRegisterIfNotExists(op.destination);
-	if (op.variableIndex >= arguments.size()) {
+	if (op.variableIndex >= i64(arguments.size())) {
 		return error("variable index % out of range", op.variableIndex);
 	}
 	setRegister(op.destination, arguments[op.variableIndex]);
+	return Status::OK;
 }
 
 // Should the destination register exist before compiling this instruction or is it a compiler error?

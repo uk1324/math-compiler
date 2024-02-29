@@ -8,6 +8,6 @@
 
 Result<Real, std::string> evaluateAst(
 	const Expr* expr, 
-	std::span<const FunctionParameter> parameters, 
+	std::span<const Variable> parameters, 
 	std::span<const FunctionInfo> functions, 
 	std::span<const float> arguments);

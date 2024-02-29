@@ -1,0 +1,16 @@
+Which way of evaluating an expression is faster.
+For example evaluating 
+ab + c
+with 16 different valuse
+
+Would it be better to 1. first evaluate the whole formula for 8 values and the the same for the other 8 or to 2. evaluate t = ab for all the values and then evaluate t + c for all the values.
+
+Option 1. 
+Might be better at keeping more functional units busy.
+
+Option 2.
+Might be able to use the cache better.
+
+One way of implementing option 2 might be creating threaded code. There would be a virtual machine with a area allocated for variable sized vector registers. The intefrace could look like this. The input to the virtual machine would be an array of inputs arrays an arrays, of outputs arrays, of register arrays. The generated code would just call function for different operations like add, mul, pow etc, with the arrays. The size of the arrays could either be encoded into the code or it could be an argument.
+
+This isn't related to threaded code directly but could implement if statements by sorting the input into arrays where the condition is true and where the condition is false and execute code on the directly. How is this called?

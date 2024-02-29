@@ -5,12 +5,11 @@
 #include <charconv>
 
 Parser::Parser() {
-	initialize(nullptr, std::span<const FunctionInfo>(), std::string_view(), nullptr);
+	initialize(nullptr, std::string_view(), nullptr);
 }
 
 void Parser::initialize(
 	const std::vector<Token>* tokens, 
-	std::span<const FunctionInfo> functions,
 	std::string_view source, 
 	ParserMessageReporter* reporter) {
 	this->tokens = tokens;
@@ -22,10 +21,9 @@ void Parser::initialize(
 
 std::optional<Ast> Parser::parse(
 	const std::vector<Token>& tokens, 
-	std::span<const FunctionInfo> functions,
 	std::string_view source, 
-	ParserMessageReporter* reporter) {
-	initialize(&tokens, functions, source, reporter);
+	ParserMessageReporter& reporter) {
+	initialize(&tokens, source, &reporter);
 
 	try {
 		const auto root = expr();
@@ -35,7 +33,7 @@ std::optional<Ast> Parser::parse(
 			// Unexpected peek().type.
 			//ASSERT(peek().type == TokenType::END_OF_FILE);
 		} else if (peek().type != TokenType::END_OF_SOURCE) {
-			reporter->onError(UnexpectedTokenParserError{ .token = peek() });
+			reporter.onError(UnexpectedTokenParserError{ .token = peek() });
 			return std::nullopt;
 		}
 		return Ast{
@@ -270,8 +268,4 @@ void Parser::throwError(const ParserError& error) {
 
 std::string_view Parser::tokenSource(const Token& token) const {
 	return source.substr(token.location.start, token.location.length);
-}
-
-bool Parser::isFunctionName(std::string_view name) const {
-	return std::find_if(functions.begin(), functions.end(), [&](const FunctionInfo& f) { return f.name == name; }) != functions.end();
 }

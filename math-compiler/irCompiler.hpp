@@ -5,6 +5,7 @@
 #include <span>
 #include "input.hpp"
 #include "irCompilerMessageReporter.hpp"
+#include "utils/refOptional.hpp"
 
 struct IrCompiler {
 	struct ExprResult {
@@ -15,13 +16,13 @@ struct IrCompiler {
 
 	IrCompiler();
 	void initialize(
-		std::span<const FunctionParameter> parameters, 
+		std::span<const Variable> parameters, 
 		std::span<const FunctionInfo> functionInfo,
 		IrCompilerMessageReporter* reporter);
 
-	std::optional<const std::vector<IrOp>*> compile(
+	std::optional<const std::vector<IrOp>&> compile(
 		const Ast& ast,
-		std::span<const FunctionParameter> parameters,
+		std::span<const Variable> parameters,
 		std::span<const FunctionInfo> functionInfo,
 		IrCompilerMessageReporter& reporter);
 
@@ -42,6 +43,6 @@ struct IrCompiler {
 
 	std::vector<IrOp> generatedIrCode;
 
-	std::span<const FunctionParameter> parameters;
+	std::span<const Variable> parameters;
 	IrCompilerMessageReporter* reporter;
 };

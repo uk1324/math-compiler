@@ -1,0 +1,24 @@
+Given a set of rewrite rules and a way to determine the cost of an expression find an expression that is equivalent to some expression but with a low cost. The cost could be for example the number of arithmetic operations. This is a serach problem. Could use algorithms for game search of graph search with heuristics like if an expression was already found then terminate that serach branch.
+
+Could convert the expresion to some normal form and the apply optimizations to that normal form.
+To make the search overcome local minima could create new rules by combining old ones so that instead of using 2 rules one combined rule is used.
+
+Representing the expression. Using a tree is not enough, because there may be duplicates which shouldn't be counted twice. Then problem is to find an expression that is equal but performs less operations. This epxression could be represented as a DAG or a list of instructions (are those equivalent?). 
+
+Could match a list of instructions like a tree using pattern matching. For this could use recursive descent (start from the retured value and match). Or maybe somehow could try to do bottom up matching.
+Different patterns may require different normal forms so not sure if it makes sense to convert to some normal form.
+Could try to get to some normal form by partialy evaluating the expression. 
+Inside the match could have methods like matchSum() or matchPower(). This could be for example used to check if something is a polynomial then convert it to some normal form and for example simplify it to use horner's method.
+
+x^2 + 2x + 1
+x^2 + x + x + 1
+x^2 + x + 1*x + 1*1
+x(x + 1) + 1(x + 1)
+(x + 1)(x + 1)
+(x + 1)^2
+
+evaluating
+x^3 - 1
+takes less operations than
+(x - 1)(x^2 + x +1) 
+so factoring out doesn't produce the most efficient way to evaluate a polynomial.

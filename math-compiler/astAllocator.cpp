@@ -5,7 +5,7 @@
 #include <memory>
 #include <cstdlib>
 
-#define DEBUG_PRINT_BLOCK_ALLOCATIONS
+//#define DEBUG_PRINT_BLOCK_ALLOCATIONS
 
 AstAllocator::AstAllocator()
 	: current(nullptr)

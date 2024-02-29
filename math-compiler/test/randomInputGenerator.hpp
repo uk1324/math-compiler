@@ -10,7 +10,7 @@ struct RandomInputGenerator {
 	RandomInputGenerator();
 
 	std::string_view generate(
-		std::span<const FunctionParameter> parameters,
+		std::span<const Variable> parameters,
 		std::span<const FunctionInfo> functions);
 
 	void expr(i32 nesting);
@@ -31,6 +31,7 @@ struct RandomInputGenerator {
 	i32 randomFrom0To(i32 x);
 	i32 randomInRangeExclusive(i32 includingStart, i32 excludingEnd);
 	i32 randomInRangeInclusive(i32 includingStart, i32 includingEnd);
+	usize randomIndex(usize size);
 	char randomDigit();
 
 	i32 maxNestingDepth = 5;
@@ -43,6 +44,6 @@ struct RandomInputGenerator {
 	std::mt19937 rng;
 
 	StringStream out;
-	std::span<const FunctionParameter> parameters;
+	std::span<const Variable> parameters;
 	std::span<const FunctionInfo> functions;
 };

@@ -5,7 +5,7 @@
 
 using namespace Lvn;
 
-void LocalValueNumbering::initialize(std::span<const FunctionParameter> parameters) {
+void LocalValueNumbering::initialize(std::span<const Variable> parameters) {
 	regToValueNumberMap.clear();
 	allocatedValueNumbersCount = 0;
 	valToValueNumber.clear();
@@ -21,7 +21,7 @@ https://people.eecs.berkeley.edu/~wkahan/ieee754status/IEEE754.PDF
 Look at the output of compilers
 */
 
-std::vector<IrOp> LocalValueNumbering::run(const std::vector<IrOp>& irCode, std::span<const FunctionParameter> parameters) {
+std::vector<IrOp> LocalValueNumbering::run(const std::vector<IrOp>& irCode, std::span<const Variable> parameters) {
 	initialize(parameters);
 
 	std::vector<IrOp> output;

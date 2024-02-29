@@ -54,7 +54,7 @@ struct TestRunner {
 		std::string_view name,
 		std::string_view source,
 		Real expectedOutput,
-		const std::vector<FunctionParameter>& parameters = std::vector<FunctionParameter>(),
+		const std::vector<Variable>& parameters = std::vector<Variable>(),
 		const std::vector<float>& arguments = std::vector<float>(),
 		const std::vector<FunctionInfo>& functions = std::vector<FunctionInfo>());
 
@@ -62,7 +62,7 @@ struct TestRunner {
 		std::string_view name,
 		std::string_view source,
 		Real expectedOutput,
-		const std::vector<FunctionParameter>& parameters = std::vector<FunctionParameter>(),
+		const std::vector<Variable>& parameters = std::vector<Variable>(),
 		const std::vector<float>& arguments = std::vector<float>(),
 		const std::vector<FunctionInfo>& functions = std::vector<FunctionInfo>());
 
@@ -72,7 +72,7 @@ struct TestRunner {
 		const std::vector<ScannerError>& expectedScannerErrors,
 		const std::vector<ParserError>& expectedParserErrors,
 		const std::vector<IrCompilerError>& expectedIrCompilerErrors,
-		std::span<const FunctionParameter> parameters = std::span<const FunctionParameter>(),
+		std::span<const Variable> parameters = std::span<const Variable>(),
 		std::span<const float> arguments = std::span<const float>(),
 		const std::vector<FunctionInfo>& functions = std::vector<FunctionInfo>());
 	void expectedErrors(
@@ -81,7 +81,7 @@ struct TestRunner {
 		const std::vector<ScannerError>& expectedScannerErrors,
 		const std::vector<ParserError>& expectedParserErrors,
 		const std::vector<IrCompilerError>& expectedIrCompilerErrors,
-		std::span<const FunctionParameter> parameters = std::span<const FunctionParameter>(),
+		std::span<const Variable> parameters = std::span<const Variable>(),
 		std::span<const float> arguments = std::span<const float>(),
 		const std::vector<FunctionInfo>& functions = std::vector<FunctionInfo>());
 
@@ -118,7 +118,7 @@ void runTests() {
 		{ { 11.0f, 2.0f, 4.0f } });
 	{
 		std::vector<std::string> variableNames;
-		std::vector<FunctionParameter> parameters;
+		std::vector<Variable> parameters;
 		std::vector<float> arguments;
 		const auto variableCount = 64;
 		for (int i = 0; i < variableCount; i++) {
@@ -209,7 +209,7 @@ void TestRunner::printFailed(std::string_view name) {
 	put(TERMINAL_COLOR_RED "[FAILED] " TERMINAL_COLOR_RESET "%", name);
 }
 
-void TestRunner::expectedHelper(std::string_view name, std::string_view source, Real expectedOutput, const std::vector<FunctionParameter>& parameters, const std::vector<float>& arguments, const std::vector<FunctionInfo>& functions) {
+void TestRunner::expectedHelper(std::string_view name, std::string_view source, Real expectedOutput, const std::vector<Variable>& parameters, const std::vector<float>& arguments, const std::vector<FunctionInfo>& functions) {
 	scannerReporter.reporter.source = source;
 	parserReporter.reporter.source = source;
 
@@ -220,7 +220,7 @@ void TestRunner::expectedHelper(std::string_view name, std::string_view source, 
 		return;
 	}
 
-	auto ast = parser.parse(tokens, functions, source, &parserReporter);
+	auto ast = parser.parse(tokens, source, parserReporter);
 	if (!ast.has_value() && !parserReporter.errorHappened) {
 		ASSERT_NOT_REACHED();
 		printFailed(name);
@@ -257,7 +257,7 @@ void TestRunner::expectedHelper(std::string_view name, std::string_view source, 
 		return;
 	}
 
-	auto irCode = *optIrCode;
+	const std::vector<IrOp>* irCode = &*optIrCode;
 
 	if (printIrGeneratedCode) {
 		put("original:");
@@ -277,7 +277,7 @@ void TestRunner::expectedHelper(std::string_view name, std::string_view source, 
 
 
 	if (printRemovedInstructionCount) {
-		put("removed instruction count %", i64((*optIrCode)->size()) - i64(irCode->size()));
+		put("removed instruction count %", i64((optIrCode)->size()) - i64(irCode->size()));
 	}
 
 	{
@@ -315,13 +315,13 @@ void TestRunner::expectedHelper(std::string_view name, std::string_view source, 
 	printPassed(name);
 }
 
-void TestRunner::expected(std::string_view name, std::string_view source, Real expectedOutput, const std::vector<FunctionParameter>& parameters, const std::vector<float>& arguments, const std::vector<FunctionInfo>& functions) {
+void TestRunner::expected(std::string_view name, std::string_view source, Real expectedOutput, const std::vector<Variable>& parameters, const std::vector<float>& arguments, const std::vector<FunctionInfo>& functions) {
 
 	expectedHelper(name, source, expectedOutput, parameters, arguments);
 	reset();
 }
 
-void TestRunner::expectedErrorsHelper(std::string_view name, std::string_view source, const std::vector<ScannerError>& expectedScannerErrors, const std::vector<ParserError>& expectedParserErrors, const std::vector<IrCompilerError>& expectedIrCompilerErrors, std::span<const FunctionParameter> parameters, std::span<const float> arguments, const std::vector<FunctionInfo>& functions) {
+void TestRunner::expectedErrorsHelper(std::string_view name, std::string_view source, const std::vector<ScannerError>& expectedScannerErrors, const std::vector<ParserError>& expectedParserErrors, const std::vector<IrCompilerError>& expectedIrCompilerErrors, std::span<const Variable> parameters, std::span<const float> arguments, const std::vector<FunctionInfo>& functions) {
 	const auto& tokens = scanner.parse(source, functions, parameters, scannerReporter);
 
 	const auto scannerErrorsThatWereNotReported = setDifference(expectedScannerErrors, scannerReporter.errors);
@@ -332,7 +332,7 @@ void TestRunner::expectedErrorsHelper(std::string_view name, std::string_view so
 		return;
 	}
 
-	auto ast = parser.parse(tokens, functions, source, &parserReporter);
+	auto ast = parser.parse(tokens, source, parserReporter);
 	if (!scannerReporter.errorHappened && !ast.has_value() && !parserReporter.errorHappened) {
 		ASSERT_NOT_REACHED();
 		return;
@@ -365,7 +365,7 @@ void TestRunner::expectedErrorsHelper(std::string_view name, std::string_view so
 	printPassed(name);
 }
 
-void TestRunner::expectedErrors(std::string_view name, std::string_view source, const std::vector<ScannerError>& expectedScannerErrors, const std::vector<ParserError>& expectedParserErrors, const std::vector<IrCompilerError>& expectedIrCompilerErrors, std::span<const FunctionParameter> parameters, std::span<const float> arguments, const std::vector<FunctionInfo>& functions) {
+void TestRunner::expectedErrors(std::string_view name, std::string_view source, const std::vector<ScannerError>& expectedScannerErrors, const std::vector<ParserError>& expectedParserErrors, const std::vector<IrCompilerError>& expectedIrCompilerErrors, std::span<const Variable> parameters, std::span<const float> arguments, const std::vector<FunctionInfo>& functions) {
 	scannerReporter.reporter.source = source;
 	parserReporter.reporter.source = source;
 	irCompilerReporter.reporter.source = source;

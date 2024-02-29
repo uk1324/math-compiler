@@ -37,7 +37,7 @@ void test() {
 	//std::string_view source = "x";
 	//std::string_view source = "2";
 	//FunctionParameter parameters[] { { "x_0" }, { "x_1" }, { "x_2" } };
-	FunctionParameter parameters[] { { "x_0" }, { "x_1" }, { "x_2" }, { "x_3" }, { "x_4" } };
+	Variable parameters[] { { "x_0" }, { "x_1" }, { "x_2" }, { "x_3" }, { "x_4" } };
 	float arguments[] = { 1.0f, 2.0f, 3.0f, 4.0f, 5.0f };
 	//float arguments[] = { std::bit_cast<float>(0xabb71ac3), std::bit_cast<float>(0x6f1139fd), std::bit_cast<float>(0x1da0a111), std::bit_cast<float>(0xc35446f0), std::bit_cast<float>(0x8d6f690), };
 
@@ -56,7 +56,7 @@ void test() {
 
 	OstreamParserMessageReporter parserReporter(outputStream, source);
 	Parser parser;
-	const auto ast = parser.parse(tokens, functions, source, &parserReporter);
+	const auto ast = parser.parse(tokens, source, parserReporter);
 	if (ast.has_value()) {
 		printExpr(ast->root, true);
 		const auto outputRes = evaluateAst(ast->root, parameters, functions, arguments);
@@ -75,14 +75,14 @@ void test() {
 	const auto irCode = compiler.compile(*ast, parameters, functions, compilerReporter);
 	if (irCode.has_value()) {
 		put("original");
-		printIrCode(std::cout, **irCode);
+		printIrCode(std::cout, *irCode);
 	} else {
 		put("ir compiler error");
 		return;
 	}
 	
 	LocalValueNumbering valueNumbering;
-	auto optimizedCode = valueNumbering.run(**irCode, parameters);
+	auto optimizedCode = valueNumbering.run(*irCode, parameters);
 	const auto copy = optimizedCode;
 	DeadCodeElimination deadCodeElimination;
 	deadCodeElimination.run(copy, parameters, optimizedCode);
@@ -98,7 +98,7 @@ void test() {
 	}
 
 	CodeGenerator codeGenerator;
-	auto machineCode = codeGenerator.compile(optimizedCode, functions, parameters);
+	const auto& machineCode = codeGenerator.compile(optimizedCode, functions, parameters);
 
 	outputToFile("test.txt", machineCode.code);
 
@@ -123,7 +123,7 @@ void allocatorTest() {
 	IrCompiler compiler;
 	CodeGenerator codeGenerator;
 
-	FunctionParameter parameters[]{ { "x_0" }, { "x_1" }, { "x_2" }, { "x_3" }, { "x_4" } };
+	Variable parameters[]{ { "x_0" }, { "x_1" }, { "x_2" }, { "x_3" }, { "x_4" } };
 	float arguments[] = { 1.0f, 2.0f, 3.0f, 4.0f, 5.0f };
 	const FunctionInfo functions[] = {
 		{ .name = "exp", .arity = 1, .address = expSimd, }
@@ -131,7 +131,7 @@ void allocatorTest() {
 
 	for (i64 i = 0; i < 1000000; i++) {
 		const auto& tokens = scanner.parse(source, functions, parameters, scannerReporter);
-		const auto ast = parser.parse(tokens, functions, source, &parserReporter);
+		const auto ast = parser.parse(tokens, source, parserReporter);
 		/*const auto irCode = compiler.compile(*ast, parameters, functions, compilerReporter);
 		const auto& machineCode = codeGenerator.compile(irCode, functions, parameters);*/
 	}

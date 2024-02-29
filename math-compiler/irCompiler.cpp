@@ -5,11 +5,11 @@
 //#define IR_COMPILER_DEBUG_PRINT_ADDED_INSTRUCTIONS
 
 IrCompiler::IrCompiler() {
-	initialize(std::span<const FunctionParameter>(), std::span<const FunctionInfo>(), nullptr);
+	initialize(std::span<const Variable>(), std::span<const FunctionInfo>(), nullptr);
 }
 
 void IrCompiler::initialize(
-	std::span<const FunctionParameter> parameters, 
+	std::span<const Variable> parameters, 
 	std::span<const FunctionInfo> functionInfo,
 	IrCompilerMessageReporter* reporter) {
 	generatedIrCode.clear();
@@ -18,9 +18,9 @@ void IrCompiler::initialize(
 	allocatedRegistersCount = parameters.size();
 }
 
-std::optional<const std::vector<IrOp>*> IrCompiler::compile(
+std::optional<const std::vector<IrOp>&> IrCompiler::compile(
 	const Ast& ast,
-	std::span<const FunctionParameter> parameters,
+	std::span<const Variable> parameters,
 	std::span<const FunctionInfo> functionInfo,
 	IrCompilerMessageReporter& reporter) {
 	initialize(parameters, functionInfo, &reporter);
@@ -30,7 +30,7 @@ std::optional<const std::vector<IrOp>*> IrCompiler::compile(
 		addOp(ReturnOp{
 			.returnedRegister = result.result
 		});
-		return &generatedIrCode;
+		return generatedIrCode;
 	} catch (const CompilerError&) {
 		return std::nullopt;
 	}

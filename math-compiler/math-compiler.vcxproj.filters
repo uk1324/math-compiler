@@ -305,6 +305,9 @@
     <ClInclude Include="utils\rounding.hpp">
       <Filter>Pliki nagłówkowe</Filter>
     </ClInclude>
+    <ClInclude Include="utils\refOptional.hpp">
+      <Filter>Pliki nagłówkowe</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="notes.txt" />
@@ -315,6 +318,8 @@
     <Text Include="approximating_functions_using_floating_point.txt" />
     <Text Include="floatingPointSemantics.txt" />
     <Text Include="callingConventions.txt" />
+    <Text Include="threaded_code.txt" />
+    <Text Include="rewrite_system_optimization.txt" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ramez.py" />

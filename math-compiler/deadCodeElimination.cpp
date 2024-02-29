@@ -1,7 +1,7 @@
 #include "deadCodeElimination.hpp"
 #include "utils/asserts.hpp"
 
-void DeadCodeElimination::run(const std::vector<IrOp>& input, std::span<const FunctionParameter> parameters, std::vector<IrOp>& output) {
+void DeadCodeElimination::run(const std::vector<IrOp>& input, std::span<const Variable> parameters, std::vector<IrOp>& output) {
 
 	output.clear();
 	registerToDefinitionInstructionIndex.clear();

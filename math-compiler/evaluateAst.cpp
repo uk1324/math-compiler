@@ -5,7 +5,7 @@
 #include <vector>
 
 struct State {
-	std::span<const FunctionParameter> parameters;
+	std::span<const Variable> parameters;
 	std::span<const float> arguments;
 	std::span<const FunctionInfo> functions;
 };
@@ -18,7 +18,7 @@ static Result<Real, std::string> getVariable(const State& state, std::string_vie
 
 Result<Real, std::string> evaluateAst(
 	const Expr* expr, 
-	std::span<const FunctionParameter> parameters, 
+	std::span<const Variable> parameters, 
 	std::span<const FunctionInfo> functions,
 	std::span<const float> arguments) {
 	ASSERT(parameters.size() == arguments.size());

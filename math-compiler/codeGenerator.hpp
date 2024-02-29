@@ -80,12 +80,12 @@ struct CodeGenerator {
 	};
 
 	CodeGenerator();
-	void initialize(std::span<const FunctionParameter> parameters, std::span<const FunctionInfo> functions);
+	void initialize(std::span<const Variable> parameters, std::span<const FunctionInfo> functions);
 
 	const MachineCode& compile(
 		const std::vector<IrOp>& irCode, 
 		std::span<const FunctionInfo> functions,
-		std::span<const FunctionParameter> parameters);
+		std::span<const Variable> parameters);
 
 	// Emmiting jumps after the code has been generated is can be difficult in some situations.
 	/*
@@ -103,7 +103,7 @@ struct CodeGenerator {
 	*/
 	i64 currentInstructionIndex = 0;
 
-	std::span<const FunctionParameter> parameters;
+	std::span<const Variable> parameters;
 	static constexpr i64 SHADOW_SPACE_SIZE = 32;
 
 	void computeRegisterLastUsage(const std::vector<IrOp>& irCode);

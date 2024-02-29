@@ -6,7 +6,6 @@
 #include <span>
 
 #pragma float_control(precise, on, push)
-#pragma STDC FENV_ACCESS ON
 
 #include <bitset>
 #include <cfenv>

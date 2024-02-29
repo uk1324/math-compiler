@@ -3,34 +3,49 @@
 #include <string_view>
 #include <immintrin.h>
 #include "utils/ints.hpp"
-#include "irCompiler.hpp"
 #include "scanner.hpp"
 #include "parser.hpp"
+#include "irCompiler.hpp"
+#include "codeGenerator.hpp"
+//#include "machineCode.hpp"
 
 struct LoopFunctionArray {
-	void add(std::span<const float> values);
+	LoopFunctionArray(i64 valuesPerBlock);
+	void append(std::span<const float> block);
+
+	i64 valuesPerBlock;
+	i64 itemCount;
 
 	__m256* data;
-
-	i32 valuesPerBatch;
-	i64 length;
+	i64 dataCapacity;
 };
 
 struct Runtime {
-	using LoopFunction = __m256 (*)(__m256* input, __m256* output, i64 count);
+	struct LoopFunction {
+		LoopFunction(const MachineCode& machineCode);
+		LoopFunction(LoopFunction&& other) noexcept;
+		LoopFunction(const LoopFunction&) = delete;
+		~LoopFunction();
+		void operator()(const __m256* input, __m256* output, i64 count);
+
+		using Function = void (*)(const __m256*, __m256*, i64);
+		Function function;
+		// TODO: Maybe store capacity so the function can be reallocated.
+	};
 
 	Runtime(
 		ScannerMessageReporter& scannerReporter,
 		ParserMessageReporter& parserReporter,
 		IrCompilerMessageReporter& irCompilerReporter);
 
-	LoopFunction compileFunction(
-		std::string_view name, 
+	std::optional<LoopFunction> compileFunction(
 		std::string_view source, 
-		std::span<const FunctionParameter> parameters);
+		std::span<const Variable> variables);
 	
 	Scanner scanner;
 	Parser parser;
+	IrCompiler compiler;
+	CodeGenerator codeGenerator;
 
 	/*using LoopFunction = __m256 (*)(__m256* input, __m256* output, i64 count);
 

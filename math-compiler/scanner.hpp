@@ -16,13 +16,13 @@ struct Scanner {
 	void initialize(
 		std::string_view source, 
 		std::span<const FunctionInfo> functions,
-		std::span<const FunctionParameter> variables,
+		std::span<const Variable> variables,
 		ScannerMessageReporter* reporter);
 
 	const std::vector<Token>& parse(
 		std::string_view source, 
 		std::span<const FunctionInfo> functions,
-		std::span<const FunctionParameter> variables,
+		std::span<const Variable> variables,
 		ScannerMessageReporter& reporter);
 
 	Token token();
@@ -47,7 +47,7 @@ struct Scanner {
 	std::string_view source;
 	
 	std::span<const FunctionInfo> functions;
-	std::span<const FunctionParameter> variables;
+	std::span<const Variable> variables;
 
 	ScannerMessageReporter* messageReporter;
 };

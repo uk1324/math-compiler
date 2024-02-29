@@ -223,6 +223,7 @@
     <ClInclude Include="utils\fileIo.hpp" />
     <ClInclude Include="utils\format.hpp" />
     <ClInclude Include="utils\hashCombine.hpp" />
+    <ClInclude Include="utils\refOptional.hpp" />
     <ClInclude Include="utils\result.hpp" />
     <ClInclude Include="utils\ints.hpp" />
     <ClInclude Include="parser.hpp" />
@@ -250,6 +251,8 @@
     <Text Include="ideas.txt" />
     <Text Include="notes.txt" />
     <Text Include="ramez.txt" />
+    <Text Include="rewrite_system_optimization.txt" />
+    <Text Include="threaded_code.txt" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ramez.py" />

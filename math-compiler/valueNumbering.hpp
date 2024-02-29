@@ -102,9 +102,9 @@ namespace std {
 }
 
 struct LocalValueNumbering {	
-	void initialize(std::span<const FunctionParameter> parameters);
+	void initialize(std::span<const Variable> parameters);
 
-	std::vector<IrOp> run(const std::vector<IrOp>& irCode, std::span<const FunctionParameter> parameters);
+	std::vector<IrOp> run(const std::vector<IrOp>& irCode, std::span<const Variable> parameters);
 
 	Lvn::ValueNumber regToValueNumber(Register reg);
 	const Lvn::ConstantVal* tryGetConstant(Lvn::ValueNumber vn) const;

@@ -6,13 +6,13 @@
 #include <optional>
 
 Scanner::Scanner() {
-	initialize("", std::span<const FunctionInfo>(), std::span<const FunctionParameter>(), nullptr);
+	initialize("", std::span<const FunctionInfo>(), std::span<const Variable>(), nullptr);
 }
 
 void Scanner::initialize(
 	std::string_view source, 
 	std::span<const FunctionInfo> functions, 
-	std::span<const FunctionParameter> variables,
+	std::span<const Variable> variables,
 	ScannerMessageReporter* reporter) {
 	currentCharIndex = 0;
 	currentTokenStartIndex = 0;
@@ -26,7 +26,7 @@ void Scanner::initialize(
 const std::vector<Token>& Scanner::parse(
 	std::string_view source, 
 	std::span<const FunctionInfo> functions, 
-	std::span<const FunctionParameter> variables,
+	std::span<const Variable> variables,
 	ScannerMessageReporter& reporter) {
 
 	initialize(source, functions, variables, &reporter);

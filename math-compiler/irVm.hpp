@@ -7,7 +7,7 @@
 #include <span>
 
 struct IrVm {
-	enum class Status {
+	enum class [[nodiscard]] Status {
 		OK, ERROR
 	};
 

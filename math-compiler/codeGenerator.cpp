@@ -5,10 +5,10 @@
 #include <algorithm>
 
 CodeGenerator::CodeGenerator() {
-	initialize(std::span<const FunctionParameter>(), std::span<const FunctionInfo>());
+	initialize(std::span<const Variable>(), std::span<const FunctionInfo>());
 }
 
-void CodeGenerator::initialize(std::span<const FunctionParameter> parameters, std::span<const FunctionInfo> functions) {
+void CodeGenerator::initialize(std::span<const Variable> parameters, std::span<const FunctionInfo> functions) {
 	registerToLastUsage.clear();
 	virtualRegisterToLocation.clear();
 	for (i64 i = 0; i < i64(std::size(registerAllocations)); i++) {
@@ -34,7 +34,7 @@ const auto indexRegister = Reg64::R15;
 const MachineCode& CodeGenerator::compile(
 	const std::vector<IrOp>& irCode,
 	std::span<const FunctionInfo> functions,
-	std::span<const FunctionParameter> parameters) {
+	std::span<const Variable> parameters) {
 	initialize(parameters, functions);
 	computeRegisterLastUsage(irCode);
 
