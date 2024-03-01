@@ -1,0 +1,5 @@
+add_subdirectory(allocatorTests)
+add_subdirectory(floatingPointTests)
+add_subdirectory(fuzzTests)
+add_subdirectory(simdFunctionsTests)
+add_subdirectory(tests)

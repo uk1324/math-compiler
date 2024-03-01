@@ -20,6 +20,8 @@ void MachineCode::initialize() {
 }
 
 void MachineCode::generateFrom(const AssemblyCode& assembly) {
+	initialize();
+
 	for (DataLabel label = 0; label < assembly.dataEntries.size(); label++) {
 		const auto& entry = assembly.dataEntries[label];
 		const auto offset = data.size();

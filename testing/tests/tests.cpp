@@ -1,24 +1,23 @@
 #include "tests.hpp"
-#include "../scanner.hpp"
-#include "../runtimeUtils.hpp"
-#include "../parser.hpp"
-#include "../irCompiler.hpp"
-#include "../irVm.hpp"
-#include "../codeGenerator.hpp"
-#include "../evaluateAst.hpp"
-#include "../executeFunction.hpp"
-#include "../valueNumbering.hpp"
-#include "../deadCodeElimination.hpp"
+#include "scanner.hpp"
+#include "runtimeUtils.hpp"
+#include "parser.hpp"
+#include "irCompiler.hpp"
+#include "irVm.hpp"
+#include "codeGenerator.hpp"
+#include "evaluateAst.hpp"
+#include "executeFunction.hpp"
+#include "valueNumbering.hpp"
+#include "deadCodeElimination.hpp"
 #include "testingParserMessageReporter.hpp"
 #include "testingScannerMessageReporter.hpp"
 #include "testingIrCompilerMessageReporter.hpp"
 #include <sstream>
-#include "../utils/pritningUtils.hpp"
-#include "../utils/put.hpp"
-#include "../utils/setDifference.hpp"
-#include "../utils/fileIo.hpp"
-
-bool outputMachineCodeToFile = false;
+#include "utils/pritningUtils.hpp"
+#include "utils/put.hpp"
+#include "utils/setDifference.hpp"
+#include "utils/fileIo.hpp"
+#include <filesystem>
 
 std::string generateExpression(i64 depth, i64 maxDepth) {
 	if (depth == maxDepth) {
@@ -31,6 +30,7 @@ struct TestRunner {
 
 	bool printIrGeneratedCode = false;
 	bool printRemovedInstructionCount = false;
+	bool outputMachineCodeToFile = false;
 
 	Scanner scanner;
 	Parser parser;
@@ -301,7 +301,8 @@ void TestRunner::expectedHelper(std::string_view name, std::string_view source, 
 	{
 		const auto machineCode = codeGenerator.compile(*irCode, functions, parameters);
 		if (outputMachineCodeToFile) {
-			outputToFile("test.txt", machineCode.code);
+			std::cout << std::filesystem::current_path() << '\n';
+			outputToFile("test.bin", machineCode.code);
 		}
 
 		const auto output = executeFunction(machineCode, arguments);
@@ -379,4 +380,8 @@ void TestRunner::reset() {
 	scannerReporter.reset();
 	parserReporter.reset();
 	irCompilerReporter.reset();
+}
+
+int main() {
+	runTests();
 }

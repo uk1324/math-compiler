@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../utils/stringStream.hpp"
-#include "../input.hpp"
-#include "../utils/ints.hpp"
+#include "utils/stringStream.hpp"
+#include "input.hpp"
+#include "utils/ints.hpp"
 #include <span>
 #include <random>
 

@@ -1,6 +1,6 @@
 #include "floatingPointIndentityTest.hpp"
-#include "../floatingPoint.hpp"
-#include "../utils/put.hpp"
+#include "floatingPoint.hpp"
+#include "utils/put.hpp"
 #include <limits>
 #include <vector>
 #include <span>
@@ -143,11 +143,15 @@ void testFloatingPointIdentites() {
 		[](std::span<const float> a) -> float { return 2.0f * a[0]; },
 		1
 	);*/
-	/*compare(
+	compare(
 		[](std::span<const float> a) -> float { return a[0] - -0.0f; },
 		[](std::span<const float> a) -> float { return a[0]; },
 		1
-	);*/
+	);
+}
+
+int main() {
+	testFloatingPointIdentites();
 }
 
 #pragma float_control(pop)

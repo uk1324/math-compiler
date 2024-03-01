@@ -1,26 +1,25 @@
 #include "fuzzTests.hpp"
 
-#include "tests.hpp"
 #include "randomInputGenerator.hpp"
-#include "../scanner.hpp"
-#include "../simdFunctions.hpp"
-#include "../parser.hpp"
-#include "../irCompiler.hpp"
-#include "../codeGenerator.hpp"
-#include "../evaluateAst.hpp"
-#include "../executeFunction.hpp"
-#include "../valueNumbering.hpp"
-#include "../deadCodeElimination.hpp"
-#include "../ostreamIrCompilerMessageReporter.hpp"
-#include "../ostreamParserMessageReporter.hpp"
-#include "../ostreamScannerMessageReporter.hpp"
-#include "../runtimeUtils.hpp"
-#include "../floatingPoint.hpp"
-#include "../utils/put.hpp"
-#include "../utils/format.hpp"
-#include "../utils/stringStream.hpp"
-#include "../utils/pritningUtils.hpp"
-#include "../utils/fileIo.hpp"
+#include "scanner.hpp"
+#include "simdFunctions.hpp"
+#include "parser.hpp"
+#include "irCompiler.hpp"
+#include "codeGenerator.hpp"
+#include "evaluateAst.hpp"
+#include "executeFunction.hpp"
+#include "valueNumbering.hpp"
+#include "deadCodeElimination.hpp"
+#include "ostreamIrCompilerMessageReporter.hpp"
+#include "ostreamParserMessageReporter.hpp"
+#include "ostreamScannerMessageReporter.hpp"
+#include "runtimeUtils.hpp"
+#include "floatingPoint.hpp"
+#include "utils/put.hpp"
+#include "utils/format.hpp"
+#include "utils/stringStream.hpp"
+#include "utils/pritningUtils.hpp"
+#include "utils/fileIo.hpp"
 
 struct FuzzTester {
 	FuzzTester();
@@ -207,4 +206,8 @@ FuzzTester::RunResult FuzzTester::runValidInput(const ValidInput& in) {
 void FuzzTester::runIncorrectSource(std::string_view source) {
 	const auto& tokens = scanner.parse(source, {}, {}, scannerReporter);
 	auto ast = parser.parse(tokens, source, parserReporter);
+}
+
+int main() {
+	runFuzzTests();
 }

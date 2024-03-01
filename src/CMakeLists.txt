@@ -1,0 +1,3 @@
+add_library(math-compiler STATIC
+	"assemblyCode.cpp" "ast.cpp" "astAllocator.cpp" "codeGenerator.cpp" "deadCodeElimination.cpp" "debug.cpp" "evaluateAst.cpp" "executeFunction.cpp" "ffiUtils.cpp" "floatingPoint.cpp" "ir.cpp" "irCompiler.cpp" "irVm.cpp" "machineCode.cpp" "ostreamIrCompilerMessageReporter.cpp" "ostreamParserMessageReporter.cpp" "ostreamScannerMessageReporter.cpp" "parser.cpp" "printAst.cpp" "runtime.cpp" "runtimeUtils.cpp" "scanner.cpp" "sourceInfo.cpp" "token.cpp" "valueNumbering.cpp" "utils/asserts.cpp" "utils/fileIo.cpp" "utils/hashCombine.cpp" "utils/printingUtils.cpp" "utils/put.cpp" "utils/rounding.cpp" "utils/stringStream.cpp" "utils/stringUtils.cpp" "os/windows.cpp"
+)

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../ostreamScannerMessageReporter.hpp"
+#include "ostreamScannerMessageReporter.hpp"
 #include <vector>
 
 struct TestingScannerErrorReporter : public ScannerMessageReporter {

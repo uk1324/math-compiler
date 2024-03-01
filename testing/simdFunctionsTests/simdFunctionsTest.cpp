@@ -1,6 +1,6 @@
 #include "simdFunctionsTest.hpp"
-#include "../utils/put.hpp"
-#include "../simdFunctions.hpp"
+#include "utils/put.hpp"
+#include "simdFunctions.hpp"
 #include <cmath>
 #include <optional>
 #include <iomanip>
@@ -121,7 +121,7 @@ void testFunction(
 	put("max absolute error % on x = %", maxAbsoluteError, maxAbsoluteErrorInput);
 	additionalInfo(maxAbsoluteErrorInput);
 	std::cout << '\n';
-	put("max number between error % on x = %", maxNumbersBetweenError, maxNumbersBetweenErrorInput);
+	put("max numbers between error % on x = %", maxNumbersBetweenError, maxNumbersBetweenErrorInput);
 	// Not sure if the ulp calculation is correct (not sure if the code is correct and even if it is there might still be issue due to rounding errors).
 	//put("max ulp error % on x = %", maxUlpError, maxUlpErrorInput);
 
@@ -162,4 +162,8 @@ void testSimdFunctions() {
 		testFunction(logl, logf, start, end, sampleCount);
 		printLine2();
 	}
+}
+
+int main() {
+	testSimdFunctions();
 }

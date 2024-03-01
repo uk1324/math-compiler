@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../ostreamParserMessageReporter.hpp"
+#include "ostreamParserMessageReporter.hpp"
 #include <vector>
 
 struct TestingParserMessageReporter : public ParserMessageReporter {

@@ -100,7 +100,7 @@ void test() {
 	CodeGenerator codeGenerator;
 	const auto& machineCode = codeGenerator.compile(optimizedCode, functions, parameters);
 
-	outputToFile("test.txt", machineCode.code);
+	outputToFile("test.bin", machineCode.code);
 
 	const auto out = executeFunction(machineCode, arguments);
 	put("out = %", out);
