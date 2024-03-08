@@ -3,6 +3,9 @@
 #include <sstream>
 
 // The issue with std::stringstream is that it creates a copy of the string each time you access it. This class allows the user to directly access the internal std::string.
+
+namespace Calc {
+
 struct StringStream : std::ostream {
 	struct StringStreamBuf : public std::stringbuf {
 		int_type overflow(int_type c) override;
@@ -15,3 +18,5 @@ struct StringStream : std::ostream {
 	std::string& string();
 	const std::string& string() const;
 };
+
+}

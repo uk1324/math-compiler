@@ -11,11 +11,19 @@
 
 struct LoopFunctionArray {
 	LoopFunctionArray(i64 valuesPerBlock);
+	~LoopFunctionArray();
 	void append(std::span<const float> block);
+	void clear();
+	void resizeWithoutCopy(i64 newBlockCount);
+	void reset(i64 valuesPerBlock);
+
+	float operator()(i64 block, i64 indexInBlock) const;
+	//std::span<const float> operator[](i64 blockIndex) const;
 
 	i64 valuesPerBlock;
-	i64 itemCount;
+	i64 blockCount;
 
+	static constexpr i32 ITEMS_PER_DATA = 8;
 	__m256* data;
 	i64 dataCapacity;
 };
@@ -25,6 +33,8 @@ struct Runtime {
 		LoopFunction(const MachineCode& machineCode);
 		LoopFunction(LoopFunction&& other) noexcept;
 		LoopFunction(const LoopFunction&) = delete;
+		LoopFunction& operator=(const LoopFunction&) = delete;
+		LoopFunction& operator=(LoopFunction&& other) noexcept;
 		~LoopFunction();
 		void operator()(const __m256* input, __m256* output, i64 count);
 

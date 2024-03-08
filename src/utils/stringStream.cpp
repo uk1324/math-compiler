@@ -1,5 +1,7 @@
 #include "stringStream.hpp"
 
+using namespace Calc;
+
 StringStream::StringStream() :
 	std::ostream(&buffer) {}
 
