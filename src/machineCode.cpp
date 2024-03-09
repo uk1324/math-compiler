@@ -374,6 +374,11 @@ void MachineCode::emit(const VxorpsYmmYmmYmm& i) {
 	emitInstructionYmmYmmYmm(0x57, regIndex(i.destination), regIndex(i.lhs), regIndex(i.rhs));
 }
 
+void MachineCode::emit(const Vzeroupper& i) {
+	emit2ByteVex(1, 0b1111, 0, 00);
+	emitU8(0x77);
+}
+
 i64 MachineCode::currentLocation() {
 	return code.size();
 }

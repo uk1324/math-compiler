@@ -233,6 +233,9 @@ void CodeGenerator::emitPrologueAndEpilogue() {
 		a.pop(inputArrayRegister);
 		a.pop(Reg64::RBP);
 	}
+	// Prevent expensive transitions. Read agner.
+	a.vzeroupper();
+
 	a.ret();
 }
 

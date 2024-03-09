@@ -47,6 +47,8 @@ struct AssemblyCode {
 	// siged less
 	void jl(InstructionLabel label, i64 offset = OFFSET_LAST);
 
+	void vzeroupper(i64 offset = OFFSET_LAST);
+
 	void insert(const Instruction& instruction, i64 offset);
 
 	void setLabelOnNextInstruction(InstructionLabel label);

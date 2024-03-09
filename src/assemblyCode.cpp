@@ -104,6 +104,10 @@ void AssemblyCode::vbroadcastss(RegYmm destination, DataLabel source, i64 offset
 	insert(VbroadcastssLbl{ .destination = destination, .source = source }, offset);
 }
 
+void AssemblyCode::vzeroupper(i64 offset) {
+	insert(Vzeroupper{}, offset);
+}
+
 void AssemblyCode::insert(const Instruction& instruction, i64 offset) {
 	LabeledInstruction labeledInstruction{ INSTRUCTION_LABEL_NONE, instruction };
 	if (offset == OFFSET_LAST) {

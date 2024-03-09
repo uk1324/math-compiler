@@ -156,6 +156,8 @@ struct VxorpsYmmYmmYmm {
 	RegYmm rhs;
 };
 
+struct Vzeroupper {};
+
 using Instruction = std::variant<
 	CallLbl,
 	CallReg,
@@ -179,7 +181,8 @@ using Instruction = std::variant<
 	VsubpsYmmYmmYmm,
 	VmulpsYmmYmmYmm,
 	VdivpsYmmYmmYmm,
-	VxorpsYmmYmmYmm
+	VxorpsYmmYmmYmm,
+	Vzeroupper
 >;
 
 struct LabeledInstruction {

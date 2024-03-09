@@ -8,6 +8,8 @@ Runtime::Runtime(ScannerMessageReporter& scannerReporter, ParserMessageReporter&
     , parserReporter(parserReporter)
     , irCompilerReporter(irCompilerReporter) {}
 
+#include "utils/fileIo.hpp"
+
 std::optional<Runtime::LoopFunction> Runtime::compileFunction(
     std::string_view source, 
     std::span<const Variable> variables) {
@@ -23,6 +25,7 @@ std::optional<Runtime::LoopFunction> Runtime::compileFunction(
     }
 
     const auto& machineCode = codeGenerator.compile(*irCode, functions, variables);
+    //outputToFile("test.bin", machineCode.code);
 
     return LoopFunction(machineCode);
 }
@@ -106,7 +109,7 @@ void LoopFunctionArray::clear() {
 
 void LoopFunctionArray::resizeWithoutCopy(i64 newBlockCount) {
     const auto requiredSize = newBlockCount / ITEMS_PER_DATA * valuesPerBlock + valuesPerBlock;
-    if (requiredSize < dataCapacity) {
+    if (requiredSize <= dataCapacity) {
         return; 
     }
 
@@ -122,7 +125,7 @@ void LoopFunctionArray::resizeWithoutCopy(i64 newBlockCount) {
 //}
 
 float LoopFunctionArray::operator()(i64 block, i64 indexInBlock) const {
-    const auto dataIndex = blockCount / ITEMS_PER_DATA * valuesPerBlock;
-    const auto offsetInData = blockCount % ITEMS_PER_DATA;
+    const auto dataIndex = block / ITEMS_PER_DATA * valuesPerBlock;
+    const auto offsetInData = block % ITEMS_PER_DATA;
     return data[dataIndex + indexInBlock].m256_f32[offsetInData];
 }
