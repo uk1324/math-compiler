@@ -201,6 +201,14 @@ std::vector<IrOp> LocalValueNumbering::run(const std::vector<IrOp>& irCode, std:
 			[this, &output](const ExponentiateOp& op) -> std::optional<Computed> {
 				const auto d = getBinaryOpData(op.destination, op.lhs, op.rhs);
 
+				/*
+				Tests
+				2^3^2
+				2(2+1)^3
+				2^3(2+1)
+				(2+1)2^3 invalid. Should it be?
+				*/
+
 				// TODO: Currently the value numbering must run in order to desugar exp. Could just call pow inside the codeGenerator. 
 				// If I want to float^int to have different behaviour from float^float then constant should be evaluated before compling the code. This means that either constant propagation happens ealier or that this optimization has to run.
 				if (d.rhsConst != nullptr && isFloatInteger(d.rhsConst->value)) {

@@ -118,6 +118,18 @@ inline __m256 __vectorcall lnSimd(__m256 x) {
 	return _mm256_fmadd_ps(k, invLogBase2OfE, m);
 }
 
+// https://stackoverflow.com/questions/16988199/how-to-choose-avx-compare-predicate-variants
+// https://stackoverflow.com/questions/8627331/what-does-ordered-unordered-comparison-mean
+
+
+inline __m256 __vectorcall powSimd(__m256 x, __m256 y) {
+	const auto yRounded = _mm256_round_ps(x, _MM_FROUND_NO_EXC);
+	const auto yInt = _mm256_castsi256_ps(x);
+	const auto isYIntMask = _mm256_cmp_ps(y, yRounded, _CMP_EQ_OQ);
+	//const auto firstBitMask = _mm256_set1_epi32()
+	//const auto yFirstBit
+}
+
 /*
 
 lnTest lower degree with calculated coefficients
