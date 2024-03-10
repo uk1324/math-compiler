@@ -82,6 +82,10 @@ IrCompiler::ExprResult IrCompiler::compileBinaryExpr(const BinaryExpr& expr) {
 	case BinaryOpType::DIVIDE:
 		addOp(DivideOp{ .destination = destination, .lhs = lhs.result, .rhs = rhs.result });
 		break;
+
+	case BinaryOpType::EXPONENTIATE:
+		addOp(ExponentiateOp{ .destination = destination, .lhs = lhs.result, .rhs = rhs.result });
+		break;
 	}
 	
 	return ExprResult{ .result = destination };

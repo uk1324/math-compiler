@@ -7,6 +7,8 @@
 #include "parser.hpp"
 #include "irCompiler.hpp"
 #include "codeGenerator.hpp"
+#include "valueNumbering.hpp"
+#include "deadCodeElimination.hpp"
 //#include "machineCode.hpp"
 
 struct LoopFunctionArray {
@@ -73,6 +75,9 @@ struct Runtime {
 	//	// TODO: For function inlining
 	//	//std::vector<IrOp> irCode;
 	//};
+
+	LocalValueNumbering valueNumbering;
+	DeadCodeElimination deadCodeElimination;
 
 	ScannerMessageReporter& scannerReporter;
 	ParserMessageReporter& parserReporter;

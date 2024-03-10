@@ -45,6 +45,7 @@ IrVm::Status IrVm::executeOp(const IrOp& op) {
 		[&](const SubtractOp& op) { return executeOp(op); },
 		[&](const MultiplyOp& op) { return executeMultiplyOp(op); },
 		[&](const DivideOp& op) { return executeOp(op); },
+		[&](const ExponentiateOp& op) { return executeOp(op); },
 		[&](const XorOp& op) { return executeOp(op); },
 		[&](const NegateOp& op) { return executeOp(op); },
 		[&](const FunctionOp& op) { return executeOp(op); },
@@ -95,6 +96,12 @@ IrVm::Status IrVm::executeMultiplyOp(const MultiplyOp& op) {
 
 IrVm::Status IrVm::executeOp(const DivideOp& op) {
 	BASIC_BINARY_OP(/);
+}
+
+IrVm::Status IrVm::executeOp(const ExponentiateOp& op) {
+	//return Status();
+	ASSERT_NOT_REACHED();
+	return Status::ERROR;
 }
 
 IrVm::Status IrVm::executeOp(const XorOp& op) {

@@ -13,6 +13,7 @@ enum class TokenType {
 	MINUS,
 	STAR,
 	SLASH,
+	CARET,
 	COMMA,
 	LEFT_PAREN,
 	RIGHT_PAREN,

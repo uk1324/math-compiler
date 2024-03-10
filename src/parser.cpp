@@ -138,9 +138,17 @@ Expr* Parser::primaryExpr() {
 		
 		lhs = astAllocator.allocate<ConstantExpr>(value, numberToken.start(), numberToken.end());
 		lhsStart = numberToken.start();
+
+		if (match(TokenType::CARET)) {
+			return exponentiationExpr(lhs, lhsStart);
+		}
+
 	} else if (match(TokenType::LEFT_PAREN)) {
 		lhsStart = peek().start();
 		lhs = parenExprAfterMatch();
+		if (match(TokenType::CARET)) {
+			return exponentiationExpr(lhs, lhsStart);
+		}
 	} else if (match(TokenType::VARIABLE)) {
 		const auto& identifierToken = peekPrevious();
 		lhsStart = identifierToken.start();
@@ -149,16 +157,24 @@ Expr* Parser::primaryExpr() {
 			identifier,
 			lhsStart,
 			identifierToken.end());
+
+		if (match(TokenType::CARET)) {
+			return exponentiationExpr(lhs, lhsStart);
+		}
+
 	} else if (match(TokenType::FUNCTION)) {
 		lhsStart = peekPrevious().start();
 		lhs = function(tokenSource(peekPrevious()), lhsStart);
+
+		if (match(TokenType::CARET)) {
+			return exponentiationExpr(lhs, lhsStart);
+		}
 	} else if (match(TokenType::MINUS)) {
 		// TODO: Not sure if this should be changed but -4x will parse to -(4 * x) and not (-4) * x. (I wrote this when I thought that the order is reversed but I guess -(4 * x) makes more sense thatn the other option. Don't think that will change the result but not sure. GCC treats the differently. I guess if x is NaN then the result might have different signs idk.
 		const auto start = peekPrevious().start();
-		lhsStart = start;
 		const auto& operand = primaryExpr();
 		const auto end = peek().end();
-		lhs = astAllocator.allocate<UnaryExpr>(
+		return astAllocator.allocate<UnaryExpr>(
 			operand,
 			UnaryOpType::NEGATE,
 			start,
@@ -169,6 +185,7 @@ Expr* Parser::primaryExpr() {
 	}
 
 	for (;;) {
+		i64 rhsStart;
 		i64 rhsEnd;
 
 		Expr* rhs;
@@ -176,26 +193,41 @@ Expr* Parser::primaryExpr() {
 			const auto& identifierToken = peekPrevious();
 			const auto identifier = tokenSource(identifierToken);
 			const auto start = identifierToken.start();
+			rhsStart = start;
 			rhs = astAllocator.allocate<IdentifierExpr>(
 				identifier,
 				start,
 				identifierToken.end());
-
 			rhsEnd = identifierToken.end();
 		} else if (match(TokenType::FUNCTION)) {
-			rhs = function(tokenSource(peekPrevious()), lhsStart);
+			rhsStart = peekPrevious().start();
+			rhs = function(tokenSource(peekPrevious()), rhsStart);
 			rhsEnd = peekPrevious().end();
 		} else if (match(TokenType::LEFT_PAREN)) {
+			rhsStart = peekPrevious().start();
 			rhs = parenExprAfterMatch();
 			rhsEnd = peekPrevious().end();
 		} else {
 			break;
 		}
+
+		if (match(TokenType::CARET)) {
+			rhs = exponentiationExpr(rhs, rhsStart);
+			return astAllocator.allocate<BinaryExpr>(lhs, rhs, BinaryOpType::MULTIPLY, lhsStart, rhsEnd);
+		}
+
 		lhs = astAllocator.allocate<BinaryExpr>(lhs, rhs, BinaryOpType::MULTIPLY, lhsStart, rhsEnd);
 	}
 
 	return lhs;
 }
+
+Expr* Parser::exponentiationExpr(Expr* lhs, i64 start) {
+	const auto rhs = primaryExpr();
+	const auto end = peekPrevious().end();
+	return astAllocator.allocate<BinaryExpr>(lhs, rhs, BinaryOpType::EXPONENTIATE, start, end);
+}
+
 
 Expr* Parser::function(std::string_view name, i64 start) {
 	// TODO: Maybe make a new error expected left paren after function name.

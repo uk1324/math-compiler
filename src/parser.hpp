@@ -27,6 +27,7 @@ struct Parser {
 	Expr* plusOrMinusBinaryExpr();
 	Expr* timesOrDivideBinaryExpr();
 	Expr* primaryExpr();
+	Expr* exponentiationExpr(Expr* lhs, i64 start);
 	Expr* function(std::string_view name, i64 start);
 
 	const Token& peek();

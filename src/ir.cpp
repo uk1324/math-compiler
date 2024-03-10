@@ -26,6 +26,9 @@ void printIrOp(std::ostream& out, const IrOp& op) {
 		[&](const DivideOp& add) {
 			printBinaryOp(out, "div", add.lhs, add.rhs, add.destination);
 		},
+		[&](const ExponentiateOp& add) {
+			printBinaryOp(out, "pow", add.lhs, add.rhs, add.destination);
+		},
 		[&](const XorOp& add) {
 			printBinaryOp(out, "xor", add.lhs, add.rhs, add.destination);
 		},

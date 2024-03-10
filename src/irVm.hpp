@@ -23,6 +23,7 @@ struct IrVm {
 	Status executeOp(const SubtractOp& op);
 	Status executeMultiplyOp(const MultiplyOp& op);
 	Status executeOp(const DivideOp& op);
+	Status executeOp(const ExponentiateOp& op);
 	Status executeOp(const XorOp& op);
 	Status executeOp(const NegateOp& op);
 	Status executeOp(const FunctionOp& op);

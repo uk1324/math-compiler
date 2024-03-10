@@ -12,6 +12,10 @@ void LocalValueNumbering::initialize(std::span<const Variable> parameters) {
 	valueNumberToVal.clear();
 }
 
+static bool isFloatInteger(float x) {
+	return x == std::floor(x);
+}
+
 /*
 Things to consider:
 NaNs, Infinities, signs of zeros
@@ -21,10 +25,10 @@ https://people.eecs.berkeley.edu/~wkahan/ieee754status/IEEE754.PDF
 Look at the output of compilers
 */
 
-std::vector<IrOp> LocalValueNumbering::run(const std::vector<IrOp>& irCode, std::span<const Variable> parameters) {
+std::vector<IrOp> LocalValueNumbering::run(const std::vector<IrOp>& irCode, std::span<const Variable> parameters, std::vector<IrOp>& output) {
 	initialize(parameters);
+	output.clear();
 
-	std::vector<IrOp> output;
 	bool performUnsafeOptimizations = false;
 	bool ignoreNegativeZero = false;
 
@@ -193,6 +197,46 @@ std::vector<IrOp> LocalValueNumbering::run(const std::vector<IrOp>& irCode, std:
 					.destinationValueNumber = d.destinationVn,
 					.value = DivideVal{ d.lhsVn, d.rhsVn }
 				};
+			},
+			[this, &output](const ExponentiateOp& op) -> std::optional<Computed> {
+				const auto d = getBinaryOpData(op.destination, op.lhs, op.rhs);
+
+				// TODO: Currently the value numbering must run in order to desugar exp. Could just call pow inside the codeGenerator. 
+				// If I want to float^int to have different behaviour from float^float then constant should be evaluated before compling the code. This means that either constant propagation happens ealier or that this optimization has to run.
+				if (d.rhsConst != nullptr && isFloatInteger(d.rhsConst->value)) {
+					const ValueNumber baseVn = regToValueNumber(op.lhs);
+					ValueNumber lhsVn = baseVn;
+					// TODO: Doesn't check if the value was already computed.
+					// Could implement addition chain exponentiation, it could locally make the code faster but globally slower.
+					const auto multiplicationCount = i64(d.rhsConst->value) - 1;
+					for (i64 i = 0; i < multiplicationCount; i++) {
+						auto destinationVn = allocateValueNumber();
+						if (i == multiplicationCount - 1) {
+							destinationVn = regToValueNumber(op.destination);
+						}
+						output.push_back(MultiplyOp{ .destination = destinationVn, .lhs = lhsVn, .rhs = baseVn });
+						lhsVn = destinationVn;
+					}
+					return std::nullopt;
+				}
+
+				auto ln = FunctionOp{ .destination = allocateValueNumber(), .functionName = "ln" };
+				ln.arguments.push_back(regToValueNumber(op.lhs));
+				output.push_back(ln);
+
+				const auto exponentVn = allocateValueNumber();
+				output.push_back(MultiplyOp{ 
+					.destination = exponentVn, 
+					.lhs = ln.destination, 
+					.rhs = regToValueNumber(op.rhs)
+				});
+
+				auto exp = FunctionOp{ .destination = regToValueNumber(op.destination), .functionName = "exp"};
+				exp.arguments.push_back(exponentVn);
+				output.push_back(exp);
+
+				// TODO
+				return std::nullopt;
 			},
 			[this](const XorOp& op) -> std::optional<Computed> {
 				const auto d = getBinaryOpData(op.destination, op.lhs, op.rhs);

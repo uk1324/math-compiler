@@ -75,6 +75,17 @@ struct DivideOp {
 	void callWithInputRegisters(Function f) const;
 };
 
+struct ExponentiateOp {
+	Register destination;
+	Register lhs;
+	Register rhs;
+
+	template<typename Function>
+	void callWithOutputRegisters(Function f) const;
+	template<typename Function>
+	void callWithInputRegisters(Function f) const;
+};
+
 struct XorOp {
 	Register destination;
 	Register lhs;
@@ -133,6 +144,7 @@ using IrOp = std::variant<
 	SubtractOp,
 	MultiplyOp,
 	DivideOp,
+	ExponentiateOp,
 	XorOp,
 	NegateOp,
 	FunctionOp,
@@ -215,6 +227,17 @@ void DivideOp::callWithOutputRegisters(Function f) const {
 
 template<typename Function>
 void DivideOp::callWithInputRegisters(Function f) const {
+	f(lhs);
+	f(rhs);
+}
+
+template<typename Function>
+void ExponentiateOp::callWithOutputRegisters(Function f) const {
+	f(destination);
+}
+
+template<typename Function>
+void ExponentiateOp::callWithInputRegisters(Function f) const {
 	f(lhs);
 	f(rhs);
 }

@@ -2,11 +2,16 @@
 #include "os/os.hpp"
 #include "utils/rounding.hpp"
 #include "utils/asserts.hpp"
+#include "simdFunctions.hpp"
 
 Runtime::Runtime(ScannerMessageReporter& scannerReporter, ParserMessageReporter& parserReporter, IrCompilerMessageReporter& irCompilerReporter)
     : scannerReporter(scannerReporter)
     , parserReporter(parserReporter)
-    , irCompilerReporter(irCompilerReporter) {}
+    , irCompilerReporter(irCompilerReporter) {
+    
+    functions.push_back({ .name = "exp", .arity = 1, .address = expSimd, });
+    functions.push_back({ .name = "ln", .arity = 1, .address = lnSimd, });
+}
 
 #include "utils/fileIo.hpp"
 
@@ -24,7 +29,25 @@ std::optional<Runtime::LoopFunction> Runtime::compileFunction(
         return std::nullopt;
     }
 
-    const auto& machineCode = codeGenerator.compile(*irCode, functions, variables);
+    std::vector<IrOp> a = *irCode;
+    std::vector<IrOp> b;
+
+    std::vector<IrOp>* input = &a;
+    std::vector<IrOp>* output = &b;
+    auto swap = [&]() -> void {
+        std::swap(input, output);
+    };
+    auto result = [&]() -> const std::vector<IrOp>& {
+        return *input;
+    };
+
+    valueNumbering.run(*input, variables, *output);
+    swap();
+
+    deadCodeElimination.run(*input, variables, *output);
+    swap();
+    
+    const auto& machineCode = codeGenerator.compile(result(), functions, variables);
     //outputToFile("test.bin", machineCode.code);
 
     return LoopFunction(machineCode);
@@ -118,6 +141,11 @@ void LoopFunctionArray::resizeWithoutCopy(i64 newBlockCount) {
     data = newData;
     dataCapacity = requiredSize;
     blockCount = newBlockCount;
+}
+
+void LoopFunctionArray::reset(i64 valuesPerBlock) {
+    this->valuesPerBlock = valuesPerBlock;
+    blockCount = 0;
 }
 
 //std::span<const float> LoopFunctionArray::operator[](i64 block) const {

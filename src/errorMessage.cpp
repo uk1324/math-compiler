@@ -32,6 +32,8 @@ static const char* tokenTypeName(TokenType type) {
 	case TokenType::MINUS: return "'-'";
 	case TokenType::STAR: return "'*'";
 	case TokenType::SLASH: return "'/'";
+	case TokenType::CARET: return "'^'";
+	case TokenType::COMMA: return "','";
 	case TokenType::LEFT_PAREN: return "'('";
 	case TokenType::RIGHT_PAREN: return "')'";
 	case TokenType::VARIABLE: return "variable";

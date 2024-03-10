@@ -57,6 +57,7 @@ Token Scanner::token() {
 	case '-': return makeToken(TokenType::MINUS);
 	case '*': return makeToken(TokenType::STAR);
 	case '/': return makeToken(TokenType::SLASH);
+	case '^': return makeToken(TokenType::CARET);
 
 	case ',': return makeToken(TokenType::COMMA);
 

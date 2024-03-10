@@ -33,6 +33,7 @@ enum class BinaryOpType {
 	SUBTRACT,
 	MULTIPLY,
 	DIVIDE,
+	EXPONENTIATE
 };
 
 struct BinaryExpr : public Expr {

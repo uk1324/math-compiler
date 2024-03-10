@@ -56,6 +56,7 @@ const MachineCode& CodeGenerator::compile(
 			[&](const SubtractOp& op) { subtractOp(op); },
 			[&](const MultiplyOp& op) { multiplyOp(op); },
 			[&](const DivideOp& op) { divideOp(op); },
+			[&](const ExponentiateOp& op) { ASSERT_NOT_REACHED(); },
 			[&](const XorOp& op) { generate(op); },
 			[&](const NegateOp& op) { generate(op); },
 			[&](const FunctionOp& op) { generate(op); },
@@ -111,6 +112,12 @@ void CodeGenerator::computeRegisterLastUsage(const std::vector<IrOp>& irCode) {
 				add(op.rhs);
 			},
 			[&](const DivideOp& op) {
+				add(op.destination);
+				add(op.lhs);
+				add(op.rhs);
+			},
+			[&](const ExponentiateOp& op) {
+				ASSERT_NOT_REACHED();
 				add(op.destination);
 				add(op.lhs);
 				add(op.rhs);

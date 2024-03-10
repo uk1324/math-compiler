@@ -24,6 +24,7 @@ const char* tokenTypeToStr(TokenType type) {
 	case TokenType::FLOAT: return "FLOAT";
 	case TokenType::STAR: return "STAR";
 	case TokenType::SLASH: return "SLASH";
+	case TokenType::CARET: return "CARET";
 	case TokenType::LEFT_PAREN: return "LEFT_PAREN";
 	case TokenType::RIGHT_PAREN: return "LEFT_PAREN";
 	case TokenType::END_OF_SOURCE: return "END_OF_SOURCE";
