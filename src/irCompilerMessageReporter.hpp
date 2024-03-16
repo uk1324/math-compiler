@@ -11,7 +11,19 @@ struct UndefinedVariableIrCompilerError {
 	bool operator==(const UndefinedVariableIrCompilerError&) const = default;
 };
 
-using IrCompilerError = std::variant<UndefinedVariableIrCompilerError>;
+struct InvalidNumberOfArgumentsIrCompilerError {
+	std::string_view functionName;
+	i64 argumentsFound;
+	i64 argumentsExpected;
+	SourceLocation location;
+
+	bool operator==(const InvalidNumberOfArgumentsIrCompilerError&) const = default;
+};
+
+using IrCompilerError = std::variant<
+	UndefinedVariableIrCompilerError,
+	InvalidNumberOfArgumentsIrCompilerError
+>;
 
 struct IrCompilerMessageReporter {
 	virtual void onError(const IrCompilerError& error) = 0;

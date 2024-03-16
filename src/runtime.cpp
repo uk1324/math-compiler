@@ -11,6 +11,7 @@ Runtime::Runtime(ScannerMessageReporter& scannerReporter, ParserMessageReporter&
     
     functions.push_back({ .name = "exp", .arity = 1, .address = expSimd, });
     functions.push_back({ .name = "ln", .arity = 1, .address = lnSimd, });
+    functions.push_back({ .name = "sin", .arity = 1, .address = sinSimd, });
 }
 
 #include "utils/fileIo.hpp"
@@ -85,35 +86,47 @@ Runtime::LoopFunction::~LoopFunction() {
     freeExecutableMemory(function);
 }
 
-void Runtime::LoopFunction::operator()(const __m256* input, __m256* output, i64 count) {
+void Runtime::LoopFunction::operator()(const __m256* input, __m256* output, i64 count) const {
     function(input, output, count);
+}
+
+void Runtime::LoopFunction::operator()(const LoopFunctionArray& input, LoopFunctionArray& output) const {
+    if (input.blockCount() != output.blockCount()) {
+        ASSERT_NOT_REACHED();
+        return;
+    }
+    i64 dataCount = input.blockCount_ / LoopFunctionArray::ITEMS_PER_DATA;
+    if (input.blockCount_ % LoopFunctionArray::ITEMS_PER_DATA != 0) {
+        dataCount += 1;
+    }
+    operator()(input.data(), output.data(), dataCount);
 }
 
 LoopFunctionArray::LoopFunctionArray(i64 valuesPerBlock)
     : valuesPerBlock(valuesPerBlock)
     , dataCapacity(0)
-    , blockCount(0)
-    , data(nullptr) {}
+    , blockCount_(0)
+    , data_(nullptr) {}
 
 LoopFunctionArray::~LoopFunctionArray() {
-    delete data;
+    delete data_;
 }
 
 void LoopFunctionArray::append(std::span<const float> block) {
-    const auto dataIndex = blockCount / ITEMS_PER_DATA * valuesPerBlock;
+    const auto dataIndex = blockCount_ / ITEMS_PER_DATA * valuesPerBlock;
 
     const auto requiredSize = dataIndex + valuesPerBlock;
     if (requiredSize > dataCapacity) {
         const auto newDataCapacity = std::max(requiredSize, dataCapacity * 2);
         const auto newData = new __m256[newDataCapacity];
         // TODO: Don't need to copy this much data.
-        memcpy(newData, data, dataCapacity * sizeof(__m256));
-        delete data;
-        data = newData;
+        memcpy(newData, data_, dataCapacity * sizeof(__m256));
+        delete data_;
+        data_ = newData;
         dataCapacity = newDataCapacity;
     }
 
-    const auto offsetInData = blockCount % ITEMS_PER_DATA;
+    const auto offsetInData = blockCount_ % ITEMS_PER_DATA;
 
     if (block.size() != valuesPerBlock) {
         ASSERT_NOT_REACHED();
@@ -121,39 +134,30 @@ void LoopFunctionArray::append(std::span<const float> block) {
     }
 
     for (usize i = 0; i < block.size(); i++) {
-        data[dataIndex + i].m256_f32[offsetInData] = block[i];
+        data_[dataIndex + i].m256_f32[offsetInData] = block[i];
     }
-    blockCount++;
+    blockCount_++;
 }
 
 void LoopFunctionArray::clear() {
-    blockCount = 0;
+    blockCount_ = 0;
 }
 
 void LoopFunctionArray::resizeWithoutCopy(i64 newBlockCount) {
     const auto requiredSize = newBlockCount / ITEMS_PER_DATA * valuesPerBlock + valuesPerBlock;
     if (requiredSize <= dataCapacity) {
+        blockCount_ = newBlockCount;
         return; 
     }
 
-    delete data;
+    delete data_;
     const auto newData = new __m256[requiredSize];
-    data = newData;
+    data_ = newData;
     dataCapacity = requiredSize;
-    blockCount = newBlockCount;
+    blockCount_ = newBlockCount;
 }
 
 void LoopFunctionArray::reset(i64 valuesPerBlock) {
     this->valuesPerBlock = valuesPerBlock;
-    blockCount = 0;
-}
-
-//std::span<const float> LoopFunctionArray::operator[](i64 block) const {
-//
-//}
-
-float LoopFunctionArray::operator()(i64 block, i64 indexInBlock) const {
-    const auto dataIndex = block / ITEMS_PER_DATA * valuesPerBlock;
-    const auto offsetInData = block % ITEMS_PER_DATA;
-    return data[dataIndex + indexInBlock].m256_f32[offsetInData];
+    blockCount_ = 0;
 }

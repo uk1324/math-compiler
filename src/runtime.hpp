@@ -20,13 +20,17 @@ struct LoopFunctionArray {
 	void reset(i64 valuesPerBlock);
 
 	float operator()(i64 block, i64 indexInBlock) const;
+	float& operator()(i64 block, i64 indexInBlock);
 	//std::span<const float> operator[](i64 blockIndex) const;
 
+
 	i64 valuesPerBlock;
-	i64 blockCount;
+	i64 blockCount_;
+	i64 blockCount() const { return blockCount_; };
 
 	static constexpr i32 ITEMS_PER_DATA = 8;
-	__m256* data;
+	__m256* data_;
+	__m256* data() const { return data_; };
 	i64 dataCapacity;
 };
 
@@ -38,12 +42,15 @@ struct Runtime {
 		LoopFunction& operator=(const LoopFunction&) = delete;
 		LoopFunction& operator=(LoopFunction&& other) noexcept;
 		~LoopFunction();
-		void operator()(const __m256* input, __m256* output, i64 count);
+		void operator()(const __m256* input, __m256* output, i64 count) const;
+		void operator()(const LoopFunctionArray& input, LoopFunctionArray& output) const;
 
 		using Function = void (*)(const __m256*, __m256*, i64);
 		Function function;
 		// TODO: Maybe store capacity so the function can be reallocated.
 	};
+
+	using SingleFunction = void (*)(float*);
 
 	Runtime(
 		ScannerMessageReporter& scannerReporter,
@@ -83,3 +90,14 @@ struct Runtime {
 	ParserMessageReporter& parserReporter;
 	IrCompilerMessageReporter& irCompilerReporter;
 };
+
+
+inline float LoopFunctionArray::operator()(i64 block, i64 indexInBlock) const {
+	return const_cast<LoopFunctionArray*>(this)->operator()(block, indexInBlock);
+}
+
+inline float& LoopFunctionArray::operator()(i64 block, i64 indexInBlock) {
+	const auto dataIndex = block / ITEMS_PER_DATA * valuesPerBlock;
+	const auto offsetInData = block % ITEMS_PER_DATA;
+	return data_[dataIndex + indexInBlock].m256_f32[offsetInData];
+}

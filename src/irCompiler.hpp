@@ -44,5 +44,6 @@ struct IrCompiler {
 	std::vector<IrOp> generatedIrCode;
 
 	std::span<const Variable> parameters;
+	std::span<const FunctionInfo> functionInfo;
 	IrCompilerMessageReporter* reporter;
 };

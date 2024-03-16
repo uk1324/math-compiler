@@ -123,13 +123,16 @@ inline __m256 __vectorcall lnSimd(__m256 x) {
 
 
 inline __m256 __vectorcall powSimd(__m256 x, __m256 y) {
-	const auto yRounded = _mm256_round_ps(x, _MM_FROUND_NO_EXC);
-	const auto yInt = _mm256_castsi256_ps(x);
-	const auto isYIntMask = _mm256_cmp_ps(y, yRounded, _CMP_EQ_OQ);
+	//const auto yRounded = _mm256_round_ps(x, _MM_FROUND_NO_EXC);
+	//const auto yInt = _mm256_castsi256_ps(x);
+	//const auto isYIntMask = _mm256_cmp_ps(y, yRounded, _CMP_EQ_OQ);
 	//const auto firstBitMask = _mm256_set1_epi32()
 	//const auto yFirstBit
 }
 
+inline __m256 __vectorcall sinSimd(__m256 x) {
+	return _mm256_sin_ps(x);
+}
 /*
 
 lnTest lower degree with calculated coefficients

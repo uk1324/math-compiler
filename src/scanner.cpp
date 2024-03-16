@@ -144,6 +144,7 @@ Token Scanner::identifier(u8 firstChar) {
 		});
 	}
 
+	// TODO: Because of this if there is an empty variable name then this becomes an infinite loop adding more and more variable tokens.
 	currentCharIndex = currentTokenStartIndex + shortestPrefix->text.length();
 	return makeToken(shortestPrefix->type);
 }

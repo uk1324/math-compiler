@@ -18,3 +18,5 @@ https://functions.wolfram.com/ElementaryFunctions/Exp/10/ShowAll.html
 http://meandering-through-mathematics.blogspot.com/2012/02/numerical-analysis-how-to-calculate.html
 Table Maker's Dilemma
 https://www.gnu.org/software/libc/manual/html_node/Errors-in-Math-Functions.html
+
+https://dlmf.nist.gov/3

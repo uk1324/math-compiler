@@ -233,21 +233,14 @@ Expr* Parser::function(std::string_view name, i64 start) {
 	// TODO: Maybe make a new error expected left paren after function name.
 	expect(TokenType::LEFT_PAREN);
 
-	if (match(TokenType::RIGHT_PAREN)) {
-		return astAllocator.allocate<FunctionExpr>(name, std::span<const Expr*>(), start, peek().end());
-	}
-
 	AstAllocator::List<const Expr*> arguments;
-	while (!eof()) {
-		astAllocator.listAppend(arguments, (const Expr*)(expr()));
-		if (match(TokenType::RIGHT_PAREN)) {
-			break;
-		}
-		expect(TokenType::COMMA);
-		if (match(TokenType::RIGHT_PAREN)) {
-			break;
-		}
+
+	if (!eof() && peek().type != TokenType::RIGHT_PAREN) {
+		do {
+			astAllocator.listAppend(arguments, (const Expr*)(expr()));
+		} while (!eof() && match(TokenType::COMMA));
 	}
+	expect(TokenType::RIGHT_PAREN);
 
 	return astAllocator.allocate<FunctionExpr>(name, arguments.span(), start, peek().end());
 }

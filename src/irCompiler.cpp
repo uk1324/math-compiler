@@ -14,6 +14,7 @@ void IrCompiler::initialize(
 	IrCompilerMessageReporter* reporter) {
 	generatedIrCode.clear();
 	this->parameters = parameters;
+	this->functionInfo = functionInfo;
 	this->reporter = reporter;
 	allocatedRegistersCount = parameters.size();
 }
@@ -126,6 +127,24 @@ IrCompiler::ExprResult IrCompiler::compileIdentifierExpr(const IdentifierExpr& e
 }
 
 IrCompiler::ExprResult IrCompiler::compileFunctionExpr(const FunctionExpr& expr) {
+	const auto function = std::ranges::find_if(functionInfo, [&](const FunctionInfo& i) { return i.name == expr.functionName; });
+
+	if (function == functionInfo.end()) {
+		// Should have been deteced in scanning.
+		ASSERT_NOT_REACHED();
+		// TODO: How to handle this?
+		return ExprResult{ .result = 0 };
+	}
+
+	if (expr.arguments.size() != function->arity) {
+		throwError(InvalidNumberOfArgumentsIrCompilerError{
+			.functionName = expr.functionName,
+			.argumentsFound = i64(expr.arguments.size()),
+			.argumentsExpected = function->arity,
+			// Could use the function name source location
+			.location = expr.sourceLocation,
+		});
+	}
 	const auto destination = allocateRegister();
 	FunctionOp op{ .destination = destination, .functionName = expr.functionName };
 	for (const auto& argumentExpr : expr.arguments) {

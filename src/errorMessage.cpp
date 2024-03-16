@@ -88,5 +88,13 @@ void outputIrCompilerErrorMessage(std::ostream& out, const IrCompilerError& erro
 				out << '\n';
 			}
 		},
+		[&](const InvalidNumberOfArgumentsIrCompilerError& e) {
+			putnn(out, "'%' expected % arguments, but found %", e.functionName, e.argumentsExpected, e.argumentsFound);
+			if (printLocation) {
+				out << '\n';
+				highlightInText(out, source, e.location.start, e.location.length);
+				out << '\n';
+			}
+		},
 	}, error);
 }
