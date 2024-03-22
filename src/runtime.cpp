@@ -12,6 +12,8 @@ Runtime::Runtime(ScannerMessageReporter& scannerReporter, ParserMessageReporter&
     functions.push_back({ .name = "exp", .arity = 1, .address = expSimd, });
     functions.push_back({ .name = "ln", .arity = 1, .address = lnSimd, });
     functions.push_back({ .name = "sin", .arity = 1, .address = sinSimd, });
+    functions.push_back({ .name = "cos", .arity = 1, .address = cosSimd, });
+    functions.push_back({ .name = "sqrt", .arity = 1, .address = sqrtSimd, });
 }
 
 #include "utils/fileIo.hpp"

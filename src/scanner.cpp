@@ -208,5 +208,5 @@ bool Scanner::isDigit(u8 c) {
 }
 
 bool Scanner::isAlpha(u8 c) {
-	return (c >= 'a' && c >= 'z') || (c >= 'A' && c >= 'Z');
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 }

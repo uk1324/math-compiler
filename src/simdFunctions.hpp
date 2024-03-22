@@ -133,6 +133,15 @@ inline __m256 __vectorcall powSimd(__m256 x, __m256 y) {
 inline __m256 __vectorcall sinSimd(__m256 x) {
 	return _mm256_sin_ps(x);
 }
+
+inline __m256 __vectorcall cosSimd(__m256 x) {
+	return _mm256_cos_ps(x);
+}
+
+inline __m256 __vectorcall sqrtSimd(__m256 x) {
+	return _mm256_sqrt_ps(x);
+}
+
 /*
 
 lnTest lower degree with calculated coefficients
