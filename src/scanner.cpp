@@ -111,7 +111,8 @@ Token Scanner::identifier(u8 firstChar) {
 		TokenType type;
 		std::string_view text;
 	};
-	std::optional<Prefix> shortestPrefix;
+	// The longest prefix is chosen so for example cos(x) can't be parsed as c * os(x)
+	std::optional<Prefix> longestPrefix;
 
 	// @Performance
 	auto checkPrefix = [&](std::string_view possiblePrefix, TokenType type) {
@@ -123,10 +124,12 @@ Token Scanner::identifier(u8 firstChar) {
 			.type = type,
 			.text = possiblePrefix
 		};
-		if (shortestPrefix.has_value() && prefix.text.length() < shortestPrefix->text.length()) {
-			shortestPrefix = prefix;
+		if (longestPrefix.has_value()) {
+			if (prefix.text.length() > longestPrefix->text.length()) {
+				longestPrefix = prefix;
+			}
 		} else {
-			shortestPrefix = prefix;
+			longestPrefix = prefix;
 		}
 	};
 
@@ -137,7 +140,7 @@ Token Scanner::identifier(u8 firstChar) {
 		checkPrefix(variables[i].name, TokenType::VARIABLE);
 	}
 
-	if (!shortestPrefix.has_value()) {
+	if (!longestPrefix.has_value()) {
 		return error(InvalidIdentifierScannerError{
 			.identifier = tokenSource,
 			.location = SourceLocation::fromStartEnd(currentTokenStartIndex, currentCharIndex)
@@ -145,8 +148,8 @@ Token Scanner::identifier(u8 firstChar) {
 	}
 
 	// TODO: Because of this if there is an empty variable name then this becomes an infinite loop adding more and more variable tokens.
-	currentCharIndex = currentTokenStartIndex + shortestPrefix->text.length();
-	return makeToken(shortestPrefix->type);
+	currentCharIndex = currentTokenStartIndex + longestPrefix->text.length();
+	return makeToken(longestPrefix->type);
 }
 
 u8 Scanner::peek() {

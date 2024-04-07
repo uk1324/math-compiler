@@ -22,6 +22,21 @@ std::optional<Runtime::LoopFunction> Runtime::compileFunction(
     std::string_view source, 
     std::span<const Variable> variables) {
 
+    const auto ir = compileToIr(source, variables);
+    if (!ir.has_value()) {
+        return std::nullopt;
+    }
+
+    const auto& machineCode = codeGenerator.compile(*ir, functions, variables);
+    //outputToFile("test.bin", machineCode.code);
+
+    return LoopFunction(machineCode);
+}
+
+std::optional<std::vector<IrOp>> Runtime::compileToIr(
+    std::string_view source,
+    std::span<const Variable> variables) {
+
     const auto& tokens = scanner.parse(source, functions, variables, scannerReporter);
     const auto& ast = parser.parse(tokens, source, parserReporter);
     if (!ast.has_value()) {
@@ -49,11 +64,8 @@ std::optional<Runtime::LoopFunction> Runtime::compileFunction(
 
     deadCodeElimination.run(*input, variables, *output);
     swap();
-    
-    const auto& machineCode = codeGenerator.compile(result(), functions, variables);
-    //outputToFile("test.bin", machineCode.code);
 
-    return LoopFunction(machineCode);
+    return result();
 }
 
 Runtime::LoopFunction::LoopFunction(const MachineCode& machineCode) {

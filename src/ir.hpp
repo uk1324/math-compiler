@@ -9,7 +9,6 @@
 #include "input.hpp"
 
 using Register = i64;
-//bool registerIsParamter(std::span<const FunctionParameter> parameters, Register r);
 
 struct LoadConstantOp {
 	Register destination;

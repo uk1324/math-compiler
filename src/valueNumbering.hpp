@@ -102,6 +102,10 @@ namespace std {
 }
 
 struct LocalValueNumbering {	
+	/*struct Settings {
+		bool convertNegationToXor = true;
+	};*/
+
 	void initialize(std::span<const Variable> parameters);
 
 	std::vector<IrOp> run(const std::vector<IrOp>& irCode, std::span<const Variable> parameters, std::vector<IrOp>& output);
@@ -140,4 +144,12 @@ struct LocalValueNumbering {
 	std::unordered_map<Register, Lvn::ValueNumber> regToValueNumberMap;
 	std::unordered_map<Lvn::Val, Lvn::ValueNumber> valToValueNumber;
 	std::unordered_map<Lvn::ValueNumber, Lvn::Val> valueNumberToVal;
+	//Settings settings;
+
+	//static constexpr Settings x64DefaultSettings = Settings{
+	//	.convertNegationToXor = true
+	//};
+	//static constexpr Settings glslDefaultSettings = Settings{
+	//	.convertNegationToXor = false
+	//};
 };

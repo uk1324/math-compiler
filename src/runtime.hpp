@@ -60,6 +60,10 @@ struct Runtime {
 	std::optional<LoopFunction> compileFunction(
 		std::string_view source, 
 		std::span<const Variable> variables);
+
+	std::optional<std::vector<IrOp>> compileToIr(
+		std::string_view source,
+		std::span<const Variable> variables);
 	
 	Scanner scanner;
 	Parser parser;
