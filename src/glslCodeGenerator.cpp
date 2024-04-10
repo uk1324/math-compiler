@@ -112,11 +112,11 @@ void GlslCodeGenerator::generate(const FunctionOp& op) {
 	outRegisterEquals(op.destination);
 	out() << op.functionName << "(";
 	for (i32 i = 0; i < i32(op.arguments.size()) - 1; i++) {
-		out() << op.arguments[i];
+		outRegisterName(op.arguments[i]);
 		out() << ", ";
 	}
 	if (op.arguments.size() > 0) {
-		out() << op.arguments[op.arguments.size() - 1];
+		outRegisterName(op.arguments[op.arguments.size() - 1]);
 	}
 	out() << ");\n";
 }
