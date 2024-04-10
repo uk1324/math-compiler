@@ -12,6 +12,7 @@
 //#include "machineCode.hpp"
 
 struct LoopFunctionArray {
+	LoopFunctionArray();
 	LoopFunctionArray(i64 valuesPerBlock);
 	~LoopFunctionArray();
 	void append(std::span<const float> block);
@@ -19,12 +20,17 @@ struct LoopFunctionArray {
 	void resizeWithoutCopy(i64 newBlockCount);
 	void reset(i64 valuesPerBlock);
 
+	void copyIntoItself(const LoopFunctionArray& other);
+
 	float operator()(i64 block, i64 indexInBlock) const;
 	float& operator()(i64 block, i64 indexInBlock);
 	//std::span<const float> operator[](i64 blockIndex) const;
 
+	i32 dataUnitsOccupiedBy(i32 blockCount) const;
+	i32 dataUnitsOccupiedByBlocks() const;
 
-	i64 valuesPerBlock;
+	i64 valuesPerBlock_;
+	i32 valuesPerBlock() { return valuesPerBlock_; };
 	i64 blockCount_;
 	i64 blockCount() const { return blockCount_; };
 
@@ -101,7 +107,7 @@ inline float LoopFunctionArray::operator()(i64 block, i64 indexInBlock) const {
 }
 
 inline float& LoopFunctionArray::operator()(i64 block, i64 indexInBlock) {
-	const auto dataIndex = block / ITEMS_PER_DATA * valuesPerBlock;
+	const auto dataIndex = block / ITEMS_PER_DATA * valuesPerBlock_;
 	const auto offsetInData = block % ITEMS_PER_DATA;
 	return data_[dataIndex + indexInBlock].m256_f32[offsetInData];
 }

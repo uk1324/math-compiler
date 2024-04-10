@@ -116,8 +116,11 @@ void Runtime::LoopFunction::operator()(const LoopFunctionArray& input, LoopFunct
     operator()(input.data(), output.data(), dataCount);
 }
 
+LoopFunctionArray::LoopFunctionArray()
+    : LoopFunctionArray(0) {}
+
 LoopFunctionArray::LoopFunctionArray(i64 valuesPerBlock)
-    : valuesPerBlock(valuesPerBlock)
+    : valuesPerBlock_(valuesPerBlock)
     , dataCapacity(0)
     , blockCount_(0)
     , data_(nullptr) {}
@@ -127,9 +130,9 @@ LoopFunctionArray::~LoopFunctionArray() {
 }
 
 void LoopFunctionArray::append(std::span<const float> block) {
-    const auto dataIndex = blockCount_ / ITEMS_PER_DATA * valuesPerBlock;
+    const auto dataIndex = blockCount_ / ITEMS_PER_DATA * valuesPerBlock_;
 
-    const auto requiredSize = dataIndex + valuesPerBlock;
+    const auto requiredSize = dataIndex + valuesPerBlock_;
     if (requiredSize > dataCapacity) {
         const auto newDataCapacity = std::max(requiredSize, dataCapacity * 2);
         const auto newData = new __m256[newDataCapacity];
@@ -142,7 +145,7 @@ void LoopFunctionArray::append(std::span<const float> block) {
 
     const auto offsetInData = blockCount_ % ITEMS_PER_DATA;
 
-    if (block.size() != valuesPerBlock) {
+    if (block.size() != valuesPerBlock_) {
         ASSERT_NOT_REACHED();
         return;
     }
@@ -158,7 +161,7 @@ void LoopFunctionArray::clear() {
 }
 
 void LoopFunctionArray::resizeWithoutCopy(i64 newBlockCount) {
-    const auto requiredSize = newBlockCount / ITEMS_PER_DATA * valuesPerBlock + valuesPerBlock;
+    const auto requiredSize = dataUnitsOccupiedBy(newBlockCount);
     if (requiredSize <= dataCapacity) {
         blockCount_ = newBlockCount;
         return; 
@@ -172,6 +175,22 @@ void LoopFunctionArray::resizeWithoutCopy(i64 newBlockCount) {
 }
 
 void LoopFunctionArray::reset(i64 valuesPerBlock) {
-    this->valuesPerBlock = valuesPerBlock;
+    this->valuesPerBlock_ = valuesPerBlock;
     blockCount_ = 0;
+}
+
+void LoopFunctionArray::copyIntoItself(const LoopFunctionArray& other) {
+    valuesPerBlock_ = other.valuesPerBlock_;
+    resizeWithoutCopy(other.blockCount_);
+    for (i32 i = 0; i < other.dataUnitsOccupiedBy(other.blockCount_); i++) {
+        data_[i] = other.data()[i];
+    }
+}
+
+i32 LoopFunctionArray::dataUnitsOccupiedBy(i32 blockCount) const {
+    return blockCount / ITEMS_PER_DATA * valuesPerBlock_ + valuesPerBlock_;
+}
+
+i32 LoopFunctionArray::dataUnitsOccupiedByBlocks() const {
+    return dataUnitsOccupiedBy(blockCount_);
 }

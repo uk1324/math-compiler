@@ -84,7 +84,9 @@ void GlslCodeGenerator::generate(const ExponentiateOp& op) {
 
 void GlslCodeGenerator::generate(const XorOp& op) {
 	outRegisterEquals(op.destination);
-	out() << "uintBitsToFloat(";
+	// XOR is currently only used to implement negation this is a hacky way to make it work.
+	out() << "-" << "r" << op.lhs << ";\n";
+	/*out() << "uintBitsToFloat(";
 	{
 		out() << "floatBitsToUint(";
 		outRegisterName(op.lhs);
@@ -96,7 +98,7 @@ void GlslCodeGenerator::generate(const XorOp& op) {
 		outRegisterName(op.rhs);
 		out() << ")";
 	}
-	out() << ");\n";
+	out() << ");\n";*/
 }
 
 void GlslCodeGenerator::generate(const NegateOp& op) {
