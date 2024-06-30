@@ -24,7 +24,7 @@ void GlslCodeGenerator::compile(
 		});
 	}
 	out() << "float result;\n";
-	out() << '{';
+	out() << "{\n";
 
 	for (const auto& r : usedRegisters) {
 		// Using variables instead of arrays might be better, because:
@@ -42,7 +42,7 @@ void GlslCodeGenerator::compile(
 		}, op);
 	}
 
-	out() << '}';
+	out() << "\n}\n";
 }
 
 void GlslCodeGenerator::generate(const LoadConstantOp& op) {
@@ -128,7 +128,23 @@ void GlslCodeGenerator::generate(const ReturnOp& op) {
 }
 
 void GlslCodeGenerator::outRegisterName(Register reg) {
-	out() << "r" << reg;
+	// https://www.google.com/search?client=firefox-b-d&q=glsl+%22r8%22+reserved
+	// For some reason intel compilers reserve the string 'r8' as a keyword. 
+	// https://www.cs.upc.edu/~robert/teaching/idi/GLSLangSpec.4.50.pdf
+	// In the spec 'r8' is used as 'float-image-format-qualifier'
+	/*
+	Minimal example
+	const auto y = R"(
+	#version 430 core
+
+	void main() {
+		float r8;
+	}
+	)";
+	const auto prog = Shader::fromSource(y, ShaderType::Fragment);
+	*/
+
+	out() << "reg" << reg;
 }
 
 void GlslCodeGenerator::outRegisterEquals(Register reg) {
